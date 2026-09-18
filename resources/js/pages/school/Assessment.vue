@@ -4,7 +4,7 @@ import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { router } from '@inertiajs/vue3';
 
-const props = defineProps<{
+defineProps<{
     title: string;
     subtitle: string;
     kpis?: Kpi[];
