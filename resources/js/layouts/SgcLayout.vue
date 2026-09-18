@@ -1,0 +1,206 @@
+<script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
+import type { SharedData } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+
+const props = defineProps<{
+    title: string;
+    subtitle: string;
+    chip?: string;
+}>();
+
+const page = usePage<SharedData>();
+const noticesOpen = ref(false);
+const menuOpen = ref(false);
+
+const user = computed(() => page.props.auth.user);
+const sgc = computed(() => page.props.sgc);
+const unread = computed(() => sgc.value?.notices.filter((notice) => notice.unread).length ?? 0);
+const currentPath = computed(() => page.url.split('?')[0]);
+const flash = computed(() => page.props.flash?.status);
+const isSchool = computed(() => user.value?.role === 'school' || user.value?.role === 'school_head');
+const hideSubmitButton = computed(() => currentPath.value === '/school/submit');
+
+const initials = computed(() => {
+    const parts = (user.value?.name ?? '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    if (parts.length === 0) {
+        return 'U';
+    }
+
+    if (parts.length === 1) {
+        return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+});
+
+const isActive = (href: string) => currentPath.value === href;
+
+const openNotices = () => {
+    menuOpen.value = false;
+    noticesOpen.value = true;
+};
+
+const toggleMenu = () => {
+    noticesOpen.value = false;
+    menuOpen.value = !menuOpen.value;
+};
+
+const closeNotices = () => {
+    noticesOpen.value = false;
+};
+
+const closeMenu = () => {
+    menuOpen.value = false;
+};
+
+const signOut = () => {
+    closeMenu();
+    router.post(route('logout'));
+};
+</script>
+
+<template>
+    <Head :title="props.title" />
+    <div class="app">
+        <aside class="side">
+            <div class="logo-mini">
+                <img src="/assets/cadiz-division-seal.png" alt="SDO Cadiz City" />
+                <div>
+                    <b>SGC SmartTrack</b><br />
+                    <span class="muted">{{ user?.role_label }}</span>
+                </div>
+            </div>
+            <nav class="nav">
+                <Link
+                    v-for="item in sgc?.nav"
+                    :key="item.href"
+                    :href="item.href"
+                    :class="{ active: isActive(item.href) }"
+                >
+                    <SgcIcon :name="item.label" />
+                    {{ item.label }}
+                </Link>
+            </nav>
+            <button class="signout" type="button" @click="signOut">
+                <SgcIcon name="Sign out" />
+                Sign out
+            </button>
+        </aside>
+        <section class="main">
+            <div class="top">
+                <div>
+                    <h1>{{ props.title }}</h1>
+                    <p class="muted">{{ props.subtitle }}</p>
+                </div>
+                <div class="top-actions">
+                    <button
+                        class="bell"
+                        type="button"
+                        aria-label="Open notifications"
+                        :aria-expanded="noticesOpen"
+                        @click="openNotices"
+                    >
+                        <SgcIcon name="Notifications" />
+                        <span v-if="unread" class="dot">{{ unread }}</span>
+                    </button>
+                    <div class="user-menu">
+                        <button
+                            class="avatar-btn"
+                            type="button"
+                            aria-label="Open account menu"
+                            :aria-expanded="menuOpen"
+                            @click="toggleMenu"
+                        >
+                            {{ initials }}
+                        </button>
+                        <div v-if="menuOpen" class="menu-catch" @click="closeMenu" />
+                        <div v-if="menuOpen" class="user-card" role="menu">
+                            <div class="user-card-head">
+                                <span class="avatar-btn static">{{ initials }}</span>
+                                <div>
+                                    <b>{{ user?.name }}</b>
+                                    <p class="muted">{{ user?.email }}</p>
+                                </div>
+                            </div>
+                            <Link class="user-item" href="/account" :class="{ active: isActive('/account') }" @click="closeMenu">
+                                <SgcIcon name="Account" />
+                                Account
+                            </Link>
+                            <Link class="user-item" href="/docs" :class="{ active: isActive('/docs') }" @click="closeMenu">
+                                <SgcIcon name="Docs" />
+                                Docs
+                            </Link>
+                            <Link class="user-item" href="/help" :class="{ active: isActive('/help') }" @click="closeMenu">
+                                <SgcIcon name="Help" />
+                                Help
+                            </Link>
+                            <button class="user-item" type="button" @click="signOut">
+                                <SgcIcon name="Sign out" />
+                                Sign out
+                            </button>
+                        </div>
+                    </div>
+                    <span v-if="props.chip" class="chip">{{ props.chip }}</span>
+                </div>
+            </div>
+            <div v-if="flash" class="flash">{{ flash }}</div>
+            <div v-if="isSchool && sgc?.flow" class="flow-wrap">
+                <div class="flow">
+                    <Link
+                        v-for="step in sgc.flow.steps"
+                        :key="step.label"
+                        class="flow-step"
+                        :class="step.state"
+                        :href="step.href"
+                    >
+                        <div class="flow-dot">{{ step.state === 'done' ? '✓' : step.n }}</div>
+                        <b>{{ step.label }}</b>
+                        <small>{{ step.hint }}</small>
+                    </Link>
+                </div>
+                <div class="flow-banner">
+                    <div>
+                        <b>You are here: {{ sgc.flow.banner }}</b>
+                        <p class="muted">{{ sgc.flow.path }}</p>
+                    </div>
+                    <Link v-if="!hideSubmitButton" class="btn inline" href="/school/submit">Open submit</Link>
+                </div>
+            </div>
+            <slot />
+        </section>
+        <div class="notice-backdrop" :class="{ open: noticesOpen }" @click="closeNotices" />
+        <aside class="notice-panel" :class="{ open: noticesOpen }">
+            <div class="notice-head">
+                <div>
+                    <b>Notifications</b>
+                    <p class="muted">{{ unread }} unread</p>
+                </div>
+                <button type="button" aria-label="Close" @click="closeNotices">&times;</button>
+            </div>
+            <div class="notice-list">
+                <Link
+                    v-for="notice in sgc?.notices"
+                    :key="notice.id || notice.title"
+                    class="notice-item"
+                    :class="{ unread: notice.unread }"
+                    :href="notice.href || sgc?.noticeHref || '#'"
+                    @click="closeNotices"
+                >
+                    <strong>{{ notice.title }}</strong>
+                    <p class="muted">{{ notice.detail }}</p>
+                    <p class="muted">{{ notice.when }}</p>
+                </Link>
+                <p v-if="!sgc?.notices?.length" class="muted" style="padding: 18px">No notifications yet.</p>
+            </div>
+            <div class="notice-foot">
+                <Link :href="sgc?.noticeHref || '#'" @click="closeNotices">Open notification page</Link>
+            </div>
+        </aside>
+    </div>
+</template>

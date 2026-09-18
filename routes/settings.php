@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Settings\AccountController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
+    Route::patch('settings/account', [AccountController::class, 'update'])->name('settings.account');
     Route::redirect('settings', 'settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');

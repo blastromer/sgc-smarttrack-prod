@@ -1,83 +1,96 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthBase from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import SgcAuthLayout from '@/layouts/SgcAuthLayout.vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+
+const props = defineProps<{
+    positions: {
+        school: string[];
+        school_head: string[];
+    };
+}>();
+
+const selectedRole = ref<'school' | 'school_head'>('school');
 
 const form = useForm({
     name: '',
     email: '',
+    role: 'school',
+    school_name: '',
+    school_code: '',
+    position: '',
     password: '',
-    password_confirmation: '',
+});
+
+const isSchoolHead = computed(() => selectedRole.value === 'school_head');
+const positionOptions = computed(() =>
+    isSchoolHead.value ? props.positions.school_head : props.positions.school,
+);
+const positionLabel = computed(() =>
+    isSchoolHead.value ? 'School Head position' : 'Encoder position',
+);
+const positionPlaceholder = computed(() =>
+    isSchoolHead.value ? 'Select School Head position' : 'Select Encoder position',
+);
+
+watch(selectedRole, (role) => {
+    form.role = role;
+    form.position = '';
 });
 
 const submit = () => {
-    form.post(route('register'), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
-    });
+    form.role = selectedRole.value;
+    form.post(route('register'));
 };
 </script>
 
 <template>
-    <AuthBase title="Create an account" description="Enter your details below to create your account">
-        <Head title="Register" />
+    <SgcAuthLayout title="Register">
+        <template #hero>
+            <h1>Register your school</h1>
+            <p>School Heads register first with a unique school name and School ID, then wait for Division accept. Teachers register as Encoder using that same school name and School ID. The School Head approves those teachers.</p>
+        </template>
 
-        <form @submit.prevent="submit" class="flex flex-col gap-6">
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="name">Name</Label>
-                    <Input id="name" type="text" required autofocus tabindex="1" autocomplete="name" v-model="form.name" placeholder="Full name" />
-                    <InputError :message="form.errors.name" />
-                </div>
+        <form @submit.prevent="submit">
+            <h2>Create account</h2>
+            <p class="sub">Use your official DepEd email. Encoder and School Head must use the same unique School ID so they share one FAT packet.</p>
 
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input id="email" type="email" required tabindex="2" autocomplete="email" v-model="form.email" placeholder="email@example.com" />
-                    <InputError :message="form.errors.email" />
-                </div>
+            <label for="role">I am registering as</label>
+            <select id="role" v-model="selectedRole" required>
+                <option value="school">Encoder — teacher who encodes and uploads MOVs</option>
+                <option value="school_head">School Head — certify QA, submit, and approve teachers</option>
+            </select>
+            <p v-if="form.errors.role" class="err" :style="{ display: 'block' }">{{ form.errors.role }}</p>
 
-                <div class="grid gap-2">
-                    <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        tabindex="3"
-                        autocomplete="new-password"
-                        v-model="form.password"
-                        placeholder="Password"
-                    />
-                    <InputError :message="form.errors.password" />
-                </div>
+            <label for="position">{{ positionLabel }}</label>
+            <select id="position" :key="selectedRole" v-model="form.position" required>
+                <option disabled value="">{{ positionPlaceholder }}</option>
+                <option v-for="item in positionOptions" :key="item" :value="item">{{ item }}</option>
+            </select>
+            <p v-if="form.errors.position" class="err" :style="{ display: 'block' }">{{ form.errors.position }}</p>
 
-                <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        required
-                        tabindex="4"
-                        autocomplete="new-password"
-                        v-model="form.password_confirmation"
-                        placeholder="Confirm password"
-                    />
-                    <InputError :message="form.errors.password_confirmation" />
-                </div>
+            <label for="name">Full name</label>
+            <input id="name" v-model="form.name" required placeholder="Juan Dela Cruz" />
+            <p v-if="form.errors.name" class="err" :style="{ display: 'block' }">{{ form.errors.name }}</p>
 
-                <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Create account
-                </Button>
-            </div>
+            <label for="email">DepEd email</label>
+            <input id="email" v-model="form.email" type="email" required placeholder="juan.delacruz@deped.gov.ph" />
+            <p v-if="form.errors.email" class="err" :style="{ display: 'block' }">{{ form.errors.email }}</p>
 
-            <div class="text-center text-sm text-muted-foreground">
-                Already have an account?
-                <TextLink :href="route('login')" class="underline underline-offset-4" tabindex="6">Log in</TextLink>
-            </div>
+            <label for="school_name">School name</label>
+            <input id="school_name" v-model="form.school_name" required placeholder="Sample Elementary School" />
+            <p v-if="form.errors.school_name" class="err" :style="{ display: 'block' }">{{ form.errors.school_name }}</p>
+
+            <label for="school_code">School ID</label>
+            <input id="school_code" v-model="form.school_code" required placeholder="123456" />
+            <p v-if="form.errors.school_code" class="err" :style="{ display: 'block' }">{{ form.errors.school_code }}</p>
+
+            <label for="password">Password</label>
+            <input id="password" v-model="form.password" type="password" required minlength="8" placeholder="Minimum 8 characters" />
+            <p v-if="form.errors.password" class="err" :style="{ display: 'block' }">{{ form.errors.password }}</p>
+
+            <button class="btn" type="submit" :disabled="form.processing" style="margin-top: 16px">Submit registration</button>
+            <p class="foot">Already registered? <Link href="/login">Sign in</Link></p>
         </form>
-    </AuthBase>
+    </SgcAuthLayout>
 </template>

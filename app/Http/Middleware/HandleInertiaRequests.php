@@ -2,7 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use Illuminate\Foundation\Inspiring;
+use App\Support\AssessmentEngine;
+use App\Support\SgcSample;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,15 +37,44 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
+        $user = $request->user();
 
         return array_merge(parent::share($request), [
-            ...parent::share($request),
             'name' => config('app.name'),
-            'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
+            'flash' => [
+                'status' => $request->session()->get('status'),
+            ],
+            'sgc' => $user ? [
+                'nav' => SgcSample::nav($user->role),
+                'notices' => $this->noticesFor($user),
+                'noticeHref' => SgcSample::noticeHref($user->role),
+                'flow' => $user->isSchoolStaff() ? AssessmentEngine::flowFor($user) : null,
+            ] : null,
         ]);
+    }
+
+    /**
+     * @return array<int, array{id: string, unread: bool, title: string, detail: mixed, when: string, href: mixed}>
+     */
+    private function noticesFor(\App\Models\User $user): array
+    {
+        $live = $user->notifications()
+            ->latest()
+            ->limit(12)
+            ->get()
+            ->map(fn ($notification) => [
+                'id' => $notification->id,
+                'unread' => $notification->read_at === null,
+                'title' => $notification->data['title'] ?? 'Notice',
+                'detail' => $notification->data['detail'] ?? '',
+                'when' => $notification->created_at?->diffForHumans() ?? '',
+                'href' => $notification->data['href'] ?? SgcSample::noticeHref($user->role),
+            ])
+            ->all();
+
+        return $live;
     }
 }

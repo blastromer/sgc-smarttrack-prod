@@ -45,7 +45,15 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Invalid email or password.',
+            ]);
+        }
+
+        $user = Auth::user();
+        if ($user && $user->status === 'pending') {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => 'This School Admin account is waiting for Division verification.',
             ]);
         }
 
