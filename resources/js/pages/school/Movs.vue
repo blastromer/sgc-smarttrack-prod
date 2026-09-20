@@ -81,6 +81,7 @@ const statusLabel = (status: string, reason: string | null, requested: boolean) 
             <div v-if="can_withdraw" class="actions">
                 <button class="btn inline ghost" type="button" @click="withdraw">Withdraw from Division</button>
             </div>
+            <div class="table-scroll">
             <table class="data-table" style="margin-top: 12px">
                 <thead>
                     <tr>
@@ -113,6 +114,7 @@ const statusLabel = (status: string, reason: string | null, requested: boolean) 
                     </tr>
                 </tbody>
             </table>
+            </div>
             <p v-if="!slots.length" class="muted" style="margin-top: 12px">Encode Yes on an indicator first, then upload its Minimum MOV here.</p>
         </div>
     </SgcLayout>

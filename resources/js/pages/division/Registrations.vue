@@ -32,7 +32,8 @@ const accept = (id: number) => {
         <KpiGrid :items="kpis" />
         <div class="box">
             <p v-if="!registrations.length" class="muted">{{ empty_text }}</p>
-            <table v-else class="data-table">
+            <div v-else class="table-scroll">
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -60,6 +61,7 @@ const accept = (id: number) => {
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </SgcLayout>
 </template>

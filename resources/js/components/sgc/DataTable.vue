@@ -11,7 +11,8 @@ defineProps<{
 <template>
     <div class="box">
         <p v-if="!rows.length" class="muted">{{ empty_text || 'No records yet.' }}</p>
-        <table v-else class="data-table">
+        <div v-else class="table-scroll">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th v-for="header in headers" :key="header">{{ header }}</th>
@@ -26,5 +27,6 @@ defineProps<{
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 </template>

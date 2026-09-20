@@ -43,6 +43,7 @@ const tone = (status: string) => {
     <SgcLayout :title="title" :subtitle="subtitle">
         <p class="muted">Yes answers: {{ yes_count }}/12 · Packet: {{ status }}{{ result ? ' · ' + result : '' }}</p>
         <div class="box" style="margin-top: 12px">
+            <div class="table-scroll">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -75,6 +76,7 @@ const tone = (status: string) => {
                     </tr>
                 </tbody>
             </table>
+            </div>
             <div class="actions">
                 <button class="btn inline" type="button" :disabled="!can_complete" :class="{ disabled: !can_complete }" @click="complete">
                     Complete validation (10/12 = Functional)

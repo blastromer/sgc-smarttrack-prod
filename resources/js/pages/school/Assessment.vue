@@ -28,6 +28,7 @@ const encode = (code: string, answer: 'yes' | 'no') => {
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
             <p class="muted">Answer Yes or No for each functionality indicator. A Yes requires a Minimum MOV on the MOV files page.</p>
+            <div class="table-scroll">
             <table class="data-table" style="margin-top: 12px">
                 <thead>
                     <tr>
@@ -53,6 +54,7 @@ const encode = (code: string, answer: 'yes' | 'no') => {
                     </tr>
                 </tbody>
             </table>
+            </div>
             <p v-if="!indicators.length" class="muted">No open cycle.</p>
         </div>
     </SgcLayout>

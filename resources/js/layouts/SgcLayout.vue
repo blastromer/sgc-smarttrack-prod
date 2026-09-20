@@ -13,6 +13,7 @@ const props = defineProps<{
 const page = usePage<SharedData>();
 const noticesOpen = ref(false);
 const menuOpen = ref(false);
+const navOpen = ref(false);
 
 const user = computed(() => page.props.auth.user);
 const sgc = computed(() => page.props.sgc);
@@ -21,6 +22,7 @@ const currentPath = computed(() => page.url.split('?')[0]);
 const flash = computed(() => page.props.flash?.status);
 const isSchool = computed(() => user.value?.role === 'school' || user.value?.role === 'school_head');
 const hideSubmitButton = computed(() => currentPath.value === '/school/submit');
+const mobileTabs = computed(() => (sgc.value?.nav ?? []).slice(0, 4));
 
 const initials = computed(() => {
     const parts = (user.value?.name ?? '')
@@ -41,13 +43,30 @@ const initials = computed(() => {
 
 const isActive = (href: string) => currentPath.value === href;
 
+const tabLabel = (label: string) => {
+    const labels: Record<string, string> = {
+        'My assessment': 'Assess',
+        'MOV files': 'MOVs',
+        'Validation queue': 'Queue',
+        'Users & roles': 'Users',
+        Notifications: 'Inbox',
+        Registrations: 'Accept',
+        Encoders: 'Staff',
+        Divisions: 'SDOs',
+    };
+
+    return labels[label] ?? label.split(' ')[0];
+};
+
 const openNotices = () => {
     menuOpen.value = false;
+    navOpen.value = false;
     noticesOpen.value = true;
 };
 
 const toggleMenu = () => {
     noticesOpen.value = false;
+    navOpen.value = false;
     menuOpen.value = !menuOpen.value;
 };
 
@@ -59,15 +78,83 @@ const closeMenu = () => {
     menuOpen.value = false;
 };
 
+const closeNav = () => {
+    navOpen.value = false;
+};
+
 const signOut = () => {
     closeMenu();
+    closeNav();
     router.post(route('logout'));
 };
 </script>
 
 <template>
     <Head :title="props.title" />
-    <div class="app">
+    <div class="app" :class="{ 'nav-open': navOpen }">
+        <header class="mobile-layer mobile-top">
+            <button class="icon-btn" type="button" aria-label="Open menu" @click="navOpen = true">
+                <SgcIcon name="Menu" />
+            </button>
+            <div class="mobile-brand">
+                <img src="/assets/cadiz-division-seal.png" alt="" />
+                <div>
+                    <b>SGC SmartTrack</b>
+                    <span class="muted">{{ user?.role_label }}</span>
+                </div>
+            </div>
+            <div class="top-actions">
+                <button
+                    class="bell"
+                    type="button"
+                    aria-label="Open notifications"
+                    :aria-expanded="noticesOpen"
+                    @click="openNotices"
+                >
+                    <SgcIcon name="Notifications" />
+                    <span v-if="unread" class="dot">{{ unread }}</span>
+                </button>
+                <div class="user-menu">
+                    <button
+                        class="avatar-btn"
+                        type="button"
+                        aria-label="Open account menu"
+                        :aria-expanded="menuOpen"
+                        @click="toggleMenu"
+                    >
+                        {{ initials }}
+                    </button>
+                    <div v-if="menuOpen" class="menu-catch" @click="closeMenu" />
+                    <div v-if="menuOpen" class="user-card" role="menu">
+                        <div class="user-card-head">
+                            <span class="avatar-btn static">{{ initials }}</span>
+                            <div>
+                                <b>{{ user?.name }}</b>
+                                <p class="muted">{{ user?.email }}</p>
+                            </div>
+                        </div>
+                        <Link class="user-item" href="/account" :class="{ active: isActive('/account') }" @click="closeMenu">
+                            <SgcIcon name="Account" />
+                            Account
+                        </Link>
+                        <Link class="user-item" href="/docs" :class="{ active: isActive('/docs') }" @click="closeMenu">
+                            <SgcIcon name="Docs" />
+                            Docs
+                        </Link>
+                        <Link class="user-item" href="/help" :class="{ active: isActive('/help') }" @click="closeMenu">
+                            <SgcIcon name="Help" />
+                            Help
+                        </Link>
+                        <button class="user-item" type="button" @click="signOut">
+                            <SgcIcon name="Sign out" />
+                            Sign out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="side-backdrop" :class="{ open: navOpen }" @click="closeNav" />
         <aside class="side">
             <div class="logo-mini">
                 <img src="/assets/cadiz-division-seal.png" alt="SDO Cadiz City" />
@@ -82,6 +169,7 @@ const signOut = () => {
                     :key="item.href"
                     :href="item.href"
                     :class="{ active: isActive(item.href) }"
+                    @click="closeNav"
                 >
                     <SgcIcon :name="item.label" />
                     {{ item.label }}
@@ -98,7 +186,7 @@ const signOut = () => {
                     <h1>{{ props.title }}</h1>
                     <p class="muted">{{ props.subtitle }}</p>
                 </div>
-                <div class="top-actions">
+                <div class="top-actions desktop-layer">
                     <button
                         class="bell"
                         type="button"
@@ -149,6 +237,7 @@ const signOut = () => {
                     <span v-if="props.chip" class="chip">{{ props.chip }}</span>
                 </div>
             </div>
+            <p v-if="props.chip" class="chip mobile-layer mobile-chip">{{ props.chip }}</p>
             <div v-if="flash" class="flash">{{ flash }}</div>
             <div v-if="isSchool && sgc?.flow" class="flow-wrap">
                 <div class="flow">
@@ -174,6 +263,17 @@ const signOut = () => {
             </div>
             <slot />
         </section>
+        <nav class="mobile-layer mobile-tabs" aria-label="Primary">
+            <Link
+                v-for="item in mobileTabs"
+                :key="item.href"
+                :href="item.href"
+                :class="{ active: isActive(item.href) }"
+            >
+                <SgcIcon :name="item.label" />
+                <span>{{ tabLabel(item.label) }}</span>
+            </Link>
+        </nav>
         <div class="notice-backdrop" :class="{ open: noticesOpen }" @click="closeNotices" />
         <aside class="notice-panel" :class="{ open: noticesOpen }">
             <div class="notice-head">

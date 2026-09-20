@@ -24,7 +24,8 @@ defineProps<{
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
             <p v-if="!packets.length" class="muted">No school packets in the queue yet.</p>
-            <table v-else class="data-table">
+            <div v-else class="table-scroll">
+            <table class="data-table">
                 <thead>
                     <tr>
                         <th>School</th>
@@ -46,6 +47,7 @@ defineProps<{
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </SgcLayout>
 </template>

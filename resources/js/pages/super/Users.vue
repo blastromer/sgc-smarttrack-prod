@@ -81,7 +81,8 @@ const resetData = () => {
             <div class="box">
                 <b>Accounts</b>
                 <p v-if="!users.length" class="muted">No accounts yet.</p>
-                <table v-else class="data-table" style="margin-top: 12px">
+                <div v-else class="table-scroll">
+                <table class="data-table" style="margin-top: 12px">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -103,6 +104,7 @@ const resetData = () => {
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         <form class="box" style="margin-top: 12px" @submit.prevent="resetData">
