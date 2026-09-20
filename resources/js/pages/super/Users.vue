@@ -50,7 +50,7 @@ const resetData = () => {
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid :items="kpis" />
-        <div class="grid2">
+        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <form class="box" @submit.prevent="submit">
                 <b>Create Division Admin</b>
                 <p class="muted">Only Super Admin can create this role. School Heads still register and wait for Division accept.</p>

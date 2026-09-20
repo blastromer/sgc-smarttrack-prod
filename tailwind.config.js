@@ -15,14 +15,24 @@ export default {
                 sgc: '901px',
             },
             fontFamily: {
-                sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
-            },
-            borderRadius: {
-                lg: 'var(--radius)',
-                md: 'calc(var(--radius) - 2px)',
-                sm: 'calc(var(--radius) - 4px)',
+                sans: ['Segoe UI', 'Inter', 'system-ui', ...defaultTheme.fontFamily.sans],
             },
             colors: {
+                sgc: {
+                    bg: '#0b141c',
+                    panel: '#101c27',
+                    line: '#243544',
+                    teal: '#2aa7a0',
+                    ink: '#e7eef2',
+                    muted: '#8fa3ae',
+                    deep: '#173038',
+                    mint: '#7ee0d6',
+                    gold: '#f0c36a',
+                    gold2: '#c48a2a',
+                    coral: '#e08a6a',
+                    card: '#0e1a24',
+                    ink2: '#062226',
+                },
                 background: 'hsl(var(--background))',
                 foreground: 'hsl(var(--foreground))',
                 card: {
@@ -73,6 +83,11 @@ export default {
                     border: 'hsl(var(--sidebar-border))',
                     ring: 'hsl(var(--sidebar-ring))',
                 },
+            },
+            borderRadius: {
+                lg: 'var(--radius)',
+                md: 'calc(var(--radius) - 2px)',
+                sm: 'calc(var(--radius) - 4px)',
             },
         },
     },

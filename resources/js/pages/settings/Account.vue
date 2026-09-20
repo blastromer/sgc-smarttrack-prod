@@ -50,7 +50,7 @@ const savePassword = () => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
-        <div class="grid2">
+        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <form class="box" @submit.prevent="saveAccount">
                 <b>Account</b>
                 <p class="muted">These details appear on the dashboard and on packets sent to Division.</p>

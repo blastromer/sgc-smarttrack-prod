@@ -56,7 +56,7 @@ const printDocs = () => window.print();
             <span v-if="!isOwnRole">Your signed-in role is different, so in-app links stay on this Docs page.</span>
         </p>
 
-        <div v-if="mode === 'full'" class="grid2" style="margin-bottom: 12px">
+        <div v-if="mode === 'full'" class="mb-3 grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <div class="box">
                 <b>FAT rules</b>
                 <p class="muted" style="margin-top: 10px">{{ fatRules.order }}. {{ fatRules.indicators }}</p>
@@ -104,7 +104,7 @@ const printDocs = () => window.print();
             <p class="muted" style="margin-top: 8px">{{ guide.who }}</p>
 
             <template v-if="mode === 'full'">
-                <div class="grid2" style="margin-top: 16px">
+                <div class="mt-4 grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
                     <div>
                         <b>This role can</b>
                         <ul class="doc-list">

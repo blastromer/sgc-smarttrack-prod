@@ -1,3 +1,5 @@
+@import "./sgc.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -86,6 +88,6 @@ html {
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply bg-sgc-bg font-sans text-sgc-ink;
     }
 }
