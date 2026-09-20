@@ -19,7 +19,15 @@ class Mov extends Model
         'size',
         'status',
         'return_reason',
+        'removal_requested_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'removal_requested_at' => 'datetime',
+        ];
+    }
 
     public function assessment(): BelongsTo
     {

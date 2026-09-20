@@ -95,4 +95,30 @@ class Assessment extends Model
 
         return in_array($mov->status, ['draft', 'uploaded', 'returned'], true);
     }
+
+    public function canRemoveMov(Mov $mov): bool
+    {
+        if (! $mov->hasFile()) {
+            return false;
+        }
+
+        if ($this->status === 'validated' || $mov->status === 'valid') {
+            return false;
+        }
+
+        if ($this->isLocked()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function canWithdraw(): bool
+    {
+        if (! in_array($this->status, ['submitted', 'under_review'], true)) {
+            return false;
+        }
+
+        return ! $this->movs()->where('status', 'valid')->exists();
+    }
 }

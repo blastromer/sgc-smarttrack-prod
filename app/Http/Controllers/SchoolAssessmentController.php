@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Mov;
 use App\Models\User;
+use App\Notifications\MovRemovalRequested;
 use App\Notifications\PacketSubmitted;
 use App\Support\AssessmentEngine;
 use App\Support\FatCatalog;
@@ -162,6 +163,8 @@ class SchoolAssessmentController extends Controller
                 'subtitle' => 'No open cycle',
                 'kpis' => [],
                 'slots' => [],
+                'is_school_head' => request()->user()->isSchoolHead(),
+                'can_withdraw' => false,
             ]);
         }
         AssessmentEngine::ensureRequiredMovs($assessment);
@@ -181,6 +184,9 @@ class SchoolAssessmentController extends Controller
                 'status' => $mov?->status ?? 'draft',
                 'reason' => $mov?->return_reason,
                 'can_replace' => $mov ? $assessment->canReplaceMov($mov) : ! $assessment->answersLocked(),
+                'can_remove' => $mov ? $assessment->canRemoveMov($mov) && request()->user()->isSchoolHead() : false,
+                'can_request_remove' => $mov ? $assessment->canRemoveMov($mov) && request()->user()->isEncoder() : false,
+                'removal_requested' => (bool) $mov?->removal_requested_at,
             ];
         })->values();
 
@@ -196,6 +202,8 @@ class SchoolAssessmentController extends Controller
                 ['label' => 'Returned', 'value' => (string) $returned, 'hint' => $returned ? 'Replace then QA + resubmit' : null, 'tone' => $returned ? 'bad' : null],
             ],
             'slots' => $slots,
+            'is_school_head' => request()->user()->isSchoolHead(),
+            'can_withdraw' => $assessment->canWithdraw() && request()->user()->isSchoolHead(),
         ]);
     }
 
@@ -228,6 +236,7 @@ class SchoolAssessmentController extends Controller
             'size' => $file->getSize(),
             'status' => 'uploaded',
             'return_reason' => null,
+            'removal_requested_at' => null,
         ]);
 
         $assessment->update(['qa_certified_at' => null]);
@@ -243,6 +252,69 @@ class SchoolAssessmentController extends Controller
             : $mov->code.' uploaded. Encode all 12 indicators before School Head QA.';
 
         return back()->with('status', $message);
+    }
+
+    public function requestRemoval(Mov $mov): RedirectResponse
+    {
+        $user = request()->user();
+        $assessment = $mov->assessment;
+        abort_unless($user->isEncoder() && $assessment->school_code === $user->packetSchoolCode(), 403);
+        abort_unless($assessment->canRemoveMov($mov), 403, 'This file cannot be removed. Division already accepted it, or the packet is locked.');
+
+        $mov->update(['removal_requested_at' => now()]);
+
+        User::query()
+            ->where('role', 'school_head')
+            ->where('status', 'active')
+            ->where('school_code', $user->school_code)
+            ->get()
+            ->each(fn (User $head) => $head->notify(new MovRemovalRequested($mov->fresh(), $user)));
+
+        return back()->with('status', $mov->code.' removal requested. The School Head can remove this file.');
+    }
+
+    public function remove(Mov $mov): RedirectResponse
+    {
+        $user = request()->user();
+        $assessment = $mov->assessment;
+        abort_unless($user->isSchoolHead() && $assessment->school_code === $user->packetSchoolCode(), 403);
+        abort_unless($assessment->canRemoveMov($mov), 403, 'This file cannot be removed. Division already accepted it, or withdraw the packet first.');
+
+        if ($mov->path) {
+            Storage::disk('local')->delete($mov->path);
+        }
+
+        $mov->update([
+            'original_name' => null,
+            'path' => null,
+            'mime' => null,
+            'size' => 0,
+            'status' => 'draft',
+            'return_reason' => null,
+            'removal_requested_at' => null,
+        ]);
+
+        $assessment->update(['qa_certified_at' => null]);
+
+        return back()->with('status', $mov->code.' removed. Upload a replacement if this indicator still needs a MOV.');
+    }
+
+    public function withdraw(): RedirectResponse
+    {
+        $user = request()->user();
+        $assessment = AssessmentEngine::forSchool($user);
+        abort_unless($assessment, 404);
+        abort_unless($user->isSchoolHead(), 403, 'Only the School Head can withdraw the packet.');
+        abort_unless($assessment->canWithdraw(), 403, 'Cannot withdraw after Division has accepted a MOV.');
+
+        $assessment->update([
+            'status' => 'in_progress',
+            'submitted_at' => null,
+            'qa_certified_at' => null,
+            'result' => null,
+        ]);
+
+        return back()->with('status', 'Packet withdrawn from Division. You can remove or replace files, then QA and submit again.');
     }
 
     public function download(Mov $mov): StreamedResponse
@@ -273,9 +345,10 @@ class SchoolAssessmentController extends Controller
                 'can_submit' => false,
                 'qa_done' => false,
                 'returned' => false,
-                'locked' => true,
-                'status' => 'none',
-                'is_school_head' => request()->user()->isSchoolHead(),
+            'locked' => true,
+            'status' => 'none',
+            'is_school_head' => request()->user()->isSchoolHead(),
+            'can_withdraw' => false,
             ]);
         }
         $snap = AssessmentEngine::snapshot($assessment);
@@ -318,6 +391,7 @@ class SchoolAssessmentController extends Controller
             'locked' => $assessment->isLocked(),
             'status' => $assessment->status,
             'is_school_head' => $requestUser->isSchoolHead(),
+            'can_withdraw' => $assessment->canWithdraw() && $requestUser->isSchoolHead(),
         ]);
     }
 

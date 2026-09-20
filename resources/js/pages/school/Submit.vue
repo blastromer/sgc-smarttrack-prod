@@ -17,10 +17,15 @@ defineProps<{
     locked: boolean;
     status: string;
     is_school_head?: boolean;
+    can_withdraw?: boolean;
 }>();
 
 const certify = () => router.post(route('school.submit.qa'));
 const submit = () => router.post(route('school.submit.send'));
+const withdraw = () => {
+    if (!confirm('Withdraw this packet from Division? You can then remove or replace files.')) return;
+    router.post(route('school.submit.withdraw'));
+};
 </script>
 
 <template>
@@ -45,6 +50,7 @@ const submit = () => router.post(route('school.submit.send'));
                     <button class="btn inline" type="button" :disabled="!can_submit" :class="{ disabled: !can_submit }" @click="submit">
                         {{ status === 'returned' || returned ? 'Resubmit to Division' : 'Submit to Division' }}
                     </button>
+                    <button v-if="can_withdraw" class="btn inline ghost" type="button" @click="withdraw">Withdraw from Division</button>
                 </div>
                 <p v-if="!is_school_head" class="muted" style="margin-top: 12px">
                     Teachers encode and upload MOVs. Only the School Head can certify QA and submit to Division.

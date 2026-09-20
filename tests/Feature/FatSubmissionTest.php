@@ -175,4 +175,69 @@ class FatSubmissionTest extends TestCase
             'result' => 'functional',
         ]);
     }
+
+    public function test_encoder_requests_removal_and_school_head_removes_unapproved_file()
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder, $head] = $this->schoolPair();
+
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'Validity',
+            'file' => UploadedFile::fake()->create('Validity.pdf', 20, 'application/pdf'),
+        ])->assertRedirect();
+
+        $assessment = Assessment::query()->where('school_code', '654321')->first();
+        $mov = $assessment->movs()->where('code', 'Validity')->first();
+
+        $this->actingAs($encoder)
+            ->post(route('school.movs.remove', $mov))
+            ->assertForbidden();
+
+        $this->actingAs($encoder)
+            ->post(route('school.movs.request-removal', $mov))
+            ->assertRedirect();
+
+        $this->assertNotNull($mov->fresh()->removal_requested_at);
+
+        $this->actingAs($head)
+            ->post(route('school.movs.remove', $mov))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('movs', [
+            'id' => $mov->id,
+            'path' => null,
+            'status' => 'draft',
+        ]);
+    }
+
+    public function test_school_head_can_withdraw_unapproved_packet()
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder, $head] = $this->schoolPair();
+
+        $this->actingAs($encoder)->post('/school/assessment', ['code' => 'FI1', 'answer' => 'yes']);
+        foreach (['FI2', 'FI3', 'FI4', 'FI5', 'FI6', 'FI7', 'FI8', 'FI9', 'FI10', 'FI11', 'FI12'] as $code) {
+            $this->actingAs($encoder)->post('/school/assessment', ['code' => $code, 'answer' => 'no']);
+        }
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'FI1A',
+            'file' => UploadedFile::fake()->create('FI1A.pdf', 80, 'application/pdf'),
+        ]);
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'Validity',
+            'file' => UploadedFile::fake()->create('Validity.pdf', 20, 'application/pdf'),
+        ]);
+        $this->actingAs($head)->post('/school/submit/qa');
+        $this->actingAs($head)->post('/school/submit');
+
+        $this->actingAs($encoder)->post('/school/submit/withdraw')->assertForbidden();
+        $this->actingAs($head)->post('/school/submit/withdraw')->assertRedirect();
+
+        $this->assertDatabaseHas('assessments', [
+            'school_code' => '654321',
+            'status' => 'in_progress',
+        ]);
+    }
 }

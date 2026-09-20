@@ -54,10 +54,13 @@ Route::middleware(['auth', 'role:school,school_head'])->group(function () {
     Route::post('school/assessment', [SchoolAssessmentController::class, 'encode'])->name('school.assessment.encode');
     Route::get('school/movs', [SchoolAssessmentController::class, 'movs'])->name('school.movs');
     Route::post('school/movs', [SchoolAssessmentController::class, 'upload'])->name('school.movs.upload');
+    Route::post('school/movs/{mov}/remove', [SchoolAssessmentController::class, 'remove'])->name('school.movs.remove');
+    Route::post('school/movs/{mov}/request-removal', [SchoolAssessmentController::class, 'requestRemoval'])->name('school.movs.request-removal');
     Route::get('school/movs/{mov}/download', [SchoolAssessmentController::class, 'download'])->name('school.movs.download');
     Route::get('school/submit', [SchoolAssessmentController::class, 'submitPage'])->name('school.submit');
     Route::post('school/submit/qa', [SchoolAssessmentController::class, 'certifyQa'])->name('school.submit.qa');
     Route::post('school/submit', [SchoolAssessmentController::class, 'submit'])->name('school.submit.send');
+    Route::post('school/submit/withdraw', [SchoolAssessmentController::class, 'withdraw'])->name('school.submit.withdraw');
     Route::get('school/notifications', [SchoolAssessmentController::class, 'notifications'])->name('school.notifications');
 });
 
