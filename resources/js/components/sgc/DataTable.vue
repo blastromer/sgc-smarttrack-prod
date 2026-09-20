@@ -20,7 +20,7 @@ defineProps<{
             </thead>
             <tbody>
                 <tr v-for="(row, index) in rows" :key="index">
-                    <td v-for="(cell, cellIndex) in row" :key="cellIndex">
+                    <td v-for="(cell, cellIndex) in row" :key="cellIndex" :data-label="headers[cellIndex] || ''">
                         <span v-if="isBadge(cell)" class="badge" :class="cell.tone">{{ cell.badge }}</span>
                         <template v-else>{{ cell }}</template>
                     </td>

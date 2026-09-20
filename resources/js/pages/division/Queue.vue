@@ -38,12 +38,12 @@ defineProps<{
                 </thead>
                 <tbody>
                     <tr v-for="packet in packets" :key="packet.id">
-                        <td>{{ packet.school }}</td>
-                        <td>{{ packet.school_code }}</td>
-                        <td>{{ packet.score }}</td>
-                        <td><span class="badge" :class="packet.status.tone">{{ packet.status.badge }}</span></td>
-                        <td>{{ packet.submitted || '—' }}</td>
-                        <td><Link class="btn inline" :href="route('division.review', { assessment: packet.id })">Review</Link></td>
+                        <td data-label="School">{{ packet.school }}</td>
+                        <td data-label="School ID">{{ packet.school_code }}</td>
+                        <td data-label="Self-score">{{ packet.score }}</td>
+                        <td data-label="Status"><span class="badge" :class="packet.status.tone">{{ packet.status.badge }}</span></td>
+                        <td data-label="Submitted">{{ packet.submitted || '—' }}</td>
+                        <td><Link class="btn inline min-h-11" :href="route('division.review', { assessment: packet.id })">Review</Link></td>
                     </tr>
                 </tbody>
             </table>

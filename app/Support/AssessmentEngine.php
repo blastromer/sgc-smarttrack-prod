@@ -87,7 +87,7 @@ class AssessmentEngine
         }
         $qaState = $qaDone ? 'done' : ($canQa ? 'now' : 'lock');
         $submitState = $inDivision || $validated ? 'done' : ($canSubmit ? 'now' : 'lock');
-        $divisionState = $validated ? 'done' : ($inDivision ? 'now' : ($returned ? 'now' : 'lock'));
+        $divisionState = $validated ? 'done' : ($inDivision ? 'now' : ($returned ? 'warn' : 'lock'));
         $resultState = $validated ? 'done' : 'lock';
 
         $banner = match (true) {

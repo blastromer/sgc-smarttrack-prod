@@ -11,6 +11,9 @@ export default {
     ],
     theme: {
         extend: {
+            screens: {
+                sgc: '901px',
+            },
             fontFamily: {
                 sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
             },

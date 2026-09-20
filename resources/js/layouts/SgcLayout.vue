@@ -23,6 +23,22 @@ const flash = computed(() => page.props.flash?.status);
 const isSchool = computed(() => user.value?.role === 'school' || user.value?.role === 'school_head');
 const hideSubmitButton = computed(() => currentPath.value === '/school/submit');
 const mobileTabs = computed(() => (sgc.value?.nav ?? []).slice(0, 4));
+const flowSteps = computed(() => sgc.value?.flow?.steps ?? []);
+const snakeTop = computed(() => flowSteps.value.slice(0, 3));
+const snakeBottom = computed(() => [...flowSteps.value.slice(3, 6)].reverse());
+
+const snakeLabel = (label: string) => {
+    const labels: Record<string, string> = {
+        Encode: 'Encode',
+        MOVs: 'MOVs',
+        'School Head QA': 'QA',
+        Submit: 'Submit',
+        Division: 'Division',
+        Result: 'Result',
+    };
+
+    return labels[label] ?? label;
+};
 
 const initials = computed(() => {
     const parts = (user.value?.name ?? '')
@@ -239,8 +255,8 @@ const signOut = () => {
             </div>
             <p v-if="props.chip" class="chip mobile-layer mobile-chip">{{ props.chip }}</p>
             <div v-if="flash" class="flash">{{ flash }}</div>
-            <div v-if="isSchool && sgc?.flow" class="flow-wrap">
-                <div class="flow">
+            <div v-if="isSchool && sgc?.flow" class="mb-4">
+                <div class="flow hidden sgc:flex">
                     <Link
                         v-for="step in sgc.flow.steps"
                         :key="step.label"
@@ -249,16 +265,65 @@ const signOut = () => {
                         :href="step.href"
                     >
                         <div class="flow-dot">{{ step.state === 'done' ? '✓' : step.n }}</div>
-                        <b>{{ step.label }}</b>
-                        <small>{{ step.hint }}</small>
+                        <div class="min-w-0">
+                            <b>{{ step.label }}</b>
+                            <small>{{ step.hint }}</small>
+                        </div>
                     </Link>
                 </div>
-                <div class="flow-banner">
-                    <div>
-                        <b>You are here: {{ sgc.flow.banner }}</b>
-                        <p class="muted">{{ sgc.flow.path }}</p>
+                <div
+                    class="flow-snake relative block rounded-[10px] border border-[var(--line)] bg-[var(--panel)] px-2 py-3.5 sgc:hidden"
+                    aria-label="FAT path"
+                >
+                    <span
+                        class="pointer-events-none absolute right-[calc(16.66%-4px)] top-[31px] z-0 h-[84px] w-2 rounded-full bg-[#314650]"
+                        aria-hidden="true"
+                    />
+                    <div class="relative z-[1] grid grid-cols-3">
+                        <span
+                            class="pointer-events-none absolute inset-x-[16.66%] top-[17px] z-0 h-2 rounded-full bg-[#314650]"
+                            aria-hidden="true"
+                        />
+                        <Link
+                            v-for="step in snakeTop"
+                            :key="`snake-top-${step.label}`"
+                            class="flow-step relative z-[1] flex min-w-0 flex-col items-center border-0 px-0.5 text-center after:hidden"
+                            :class="step.state"
+                            :href="step.href"
+                        >
+                            <div class="flow-dot">{{ step.state === 'done' ? '✓' : step.n }}</div>
+                            <b>{{ snakeLabel(step.label) }}</b>
+                        </Link>
                     </div>
-                    <Link v-if="!hideSubmitButton" class="btn inline" href="/school/submit">Open submit</Link>
+                    <div class="relative z-[1] mt-5 grid grid-cols-3">
+                        <span
+                            class="pointer-events-none absolute inset-x-[16.66%] top-[17px] z-0 h-2 rounded-full bg-[#314650]"
+                            aria-hidden="true"
+                        />
+                        <Link
+                            v-for="step in snakeBottom"
+                            :key="`snake-bottom-${step.label}`"
+                            class="flow-step relative z-[1] flex min-w-0 flex-col items-center border-0 px-0.5 text-center after:hidden"
+                            :class="step.state"
+                            :href="step.href"
+                        >
+                            <div class="flow-dot">{{ step.state === 'done' ? '✓' : step.n }}</div>
+                            <b>{{ snakeLabel(step.label) }}</b>
+                        </Link>
+                    </div>
+                </div>
+                <div class="flow-banner mt-2.5 flex flex-col items-stretch gap-3 sgc:flex-row sgc:items-center sgc:justify-between">
+                    <div class="min-w-0 break-words">
+                        <b>You are here: {{ sgc.flow.banner }}</b>
+                        <p class="muted break-words">{{ sgc.flow.path }}</p>
+                    </div>
+                    <Link
+                        v-if="!hideSubmitButton"
+                        class="btn inline min-h-11 w-full justify-center sgc:w-auto"
+                        href="/school/submit"
+                    >
+                        Open submit
+                    </Link>
                 </div>
             </div>
             <slot />

@@ -57,20 +57,20 @@ const tone = (status: string) => {
                 </thead>
                 <tbody>
                     <tr v-for="mov in movs" :key="mov.id">
-                        <td>{{ mov.code }}</td>
-                        <td>{{ mov.title }}</td>
-                        <td>
+                        <td data-label="MOV">{{ mov.code }}</td>
+                        <td data-label="Title">{{ mov.title }}</td>
+                        <td data-label="File">
                             <a v-if="mov.file" :href="route('movs.download', { mov: mov.id })">{{ mov.file }}</a>
                             <span v-else class="muted">No file</span>
                         </td>
-                        <td><span class="badge" :class="tone(mov.status)">{{ mov.status }}</span></td>
-                        <td>
+                        <td data-label="Status"><span class="badge" :class="tone(mov.status)">{{ mov.status }}</span></td>
+                        <td data-label="Return reason">
                             <input v-model="reasons[mov.id]" placeholder="Why invalid?" />
                         </td>
                         <td>
                             <div class="actions" style="margin-top: 0">
-                                <button class="btn inline" type="button" @click="accept(mov.id)">Accept</button>
-                                <button class="btn inline ghost" type="button" @click="returnMov(mov.id)">Return</button>
+                                <button class="btn inline min-h-11" type="button" @click="accept(mov.id)">Accept</button>
+                                <button class="btn inline ghost min-h-11" type="button" @click="returnMov(mov.id)">Return</button>
                             </div>
                         </td>
                     </tr>

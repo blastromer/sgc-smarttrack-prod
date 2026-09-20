@@ -8,7 +8,7 @@ defineProps<{
 </script>
 
 <template>
-    <div class="kpis">
+    <div class="kpis mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sgc:grid-cols-4">
         <div v-for="kpi in items" :key="kpi.label" class="kpi" :class="kpi.tone || undefined">
             <div class="kpi-head">
                 <SgcIcon :name="kpi.label" />

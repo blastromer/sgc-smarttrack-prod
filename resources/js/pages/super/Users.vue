@@ -94,11 +94,11 @@ const resetData = () => {
                     </thead>
                     <tbody>
                         <tr v-for="user in users" :key="user.id">
-                            <td>{{ user.name }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>{{ user.role_label }}</td>
-                            <td>{{ user.office || '—' }}</td>
-                            <td>
+                            <td data-label="Name">{{ user.name }}</td>
+                            <td data-label="Email">{{ user.email }}</td>
+                            <td data-label="Role">{{ user.role_label }}</td>
+                            <td data-label="Office / school">{{ user.office || '—' }}</td>
+                            <td data-label="Status">
                                 <span class="badge" :class="user.status === 'active' ? 'ok' : 'warn'">{{ user.status }}</span>
                             </td>
                         </tr>

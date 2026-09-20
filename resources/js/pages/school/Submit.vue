@@ -30,7 +30,7 @@ const withdraw = () => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
-        <div class="grid2">
+        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <div class="box">
                 <b>Ready-to-send checklist</b>
                 <p class="muted">Division will not accept the packet until every row is clear. Returned or invalid MOVs unlock only those files for replacement.</p>

@@ -48,15 +48,15 @@ const accept = (id: number) => {
                 </thead>
                 <tbody>
                     <tr v-for="item in registrations" :key="item.id">
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.email }}</td>
-                        <td>{{ item.school_name }}</td>
-                        <td>{{ item.school_code || '—' }}</td>
-                        <td>{{ item.role_label }}</td>
-                        <td>{{ item.position }}</td>
-                        <td>{{ item.requested }}</td>
+                        <td data-label="Name">{{ item.name }}</td>
+                        <td data-label="Email">{{ item.email }}</td>
+                        <td data-label="School">{{ item.school_name }}</td>
+                        <td data-label="School ID">{{ item.school_code || '—' }}</td>
+                        <td data-label="Role">{{ item.role_label }}</td>
+                        <td data-label="Position">{{ item.position }}</td>
+                        <td data-label="Requested">{{ item.requested }}</td>
                         <td>
-                            <button class="btn inline" type="button" @click="accept(item.id)">Accept</button>
+                            <button class="btn inline min-h-11" type="button" @click="accept(item.id)">Accept</button>
                         </td>
                     </tr>
                 </tbody>
