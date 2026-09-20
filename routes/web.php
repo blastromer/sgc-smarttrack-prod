@@ -31,6 +31,7 @@ Route::middleware(['auth', 'role:super'])->group(function () {
     Route::get('super/divisions', [PortalController::class, 'superDivisions'])->name('super.divisions');
     Route::get('super/users', [SuperUserController::class, 'index'])->name('super.users');
     Route::post('super/users', [SuperUserController::class, 'store'])->name('super.users.store');
+    Route::post('super/reset', [SuperUserController::class, 'reset'])->name('super.reset');
     Route::get('super/cycles', [PortalController::class, 'superCycles'])->name('super.cycles');
 });
 

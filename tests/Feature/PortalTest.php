@@ -98,5 +98,39 @@ class PortalTest extends TestCase
         $user = User::factory()->create(['role' => 'division']);
 
         $this->actingAs($user)->get('/division/registrations')->assertOk();
+        $this->actingAs($user)
+            ->get('/division')
+            ->assertOk()
+            ->assertDontSee('186')
+            ->assertDontSee('76% compliance');
+        $this->actingAs($user)->get('/division/schools')->assertOk()->assertSee('No School Heads have registered yet.');
+    }
+
+    public function test_super_admin_can_reset_school_and_fat_data()
+    {
+        $super = User::factory()->create(['role' => 'super']);
+        $division = User::factory()->create(['role' => 'division', 'email' => 'division@example.com']);
+        $head = User::factory()->create(['role' => 'school_head', 'email' => 'head@example.com']);
+
+        $this->actingAs($super)
+            ->from('/super/users')
+            ->post('/super/reset', ['confirm' => 'RESET FAT DATA'])
+            ->assertRedirect('/super/users');
+
+        $this->assertDatabaseHas('users', ['id' => $super->id, 'role' => 'super']);
+        $this->assertDatabaseHas('users', ['id' => $division->id, 'role' => 'division']);
+        $this->assertDatabaseMissing('users', ['id' => $head->id]);
+    }
+
+    public function test_division_admin_cannot_reset_data()
+    {
+        $division = User::factory()->create(['role' => 'division']);
+        $head = User::factory()->create(['role' => 'school_head']);
+
+        $this->actingAs($division)
+            ->post('/super/reset', ['confirm' => 'RESET FAT DATA'])
+            ->assertRedirect(route('division.overview', absolute: false));
+
+        $this->assertDatabaseHas('users', ['id' => $head->id]);
     }
 }

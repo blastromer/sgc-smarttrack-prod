@@ -28,10 +28,21 @@ const form = useForm({
     password_confirmation: '',
 });
 
+const resetForm = useForm({
+    confirm: '',
+});
+
 const submit = () => {
     form.post(route('super.users.store'), {
         preserveScroll: true,
         onSuccess: () => form.reset('name', 'email', 'position', 'password', 'password_confirmation'),
+    });
+};
+
+const resetData = () => {
+    resetForm.post(route('super.reset'), {
+        preserveScroll: true,
+        onSuccess: () => resetForm.reset(),
     });
 };
 </script>
@@ -94,5 +105,15 @@ const submit = () => {
                 </table>
             </div>
         </div>
+        <form class="box" style="margin-top: 12px" @submit.prevent="resetData">
+            <b>Reset operational data</b>
+            <p class="muted">Clears School Heads, Encoders, FAT packets, and MOV files. Super Admin and Division Admin stay. This does not drop the database.</p>
+            <label for="reset-confirm">Type RESET FAT DATA to confirm</label>
+            <input id="reset-confirm" v-model="resetForm.confirm" required placeholder="RESET FAT DATA" autocomplete="off" />
+            <p v-if="resetForm.errors.confirm" class="err" style="display: block">{{ resetForm.errors.confirm }}</p>
+            <div class="actions">
+                <button class="btn inline ghost" type="submit" :disabled="resetForm.processing">Clear school and FAT data</button>
+            </div>
+        </form>
     </SgcLayout>
 </template>

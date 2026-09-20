@@ -11,12 +11,13 @@ defineProps<{
     kpis?: Kpi[];
     headers: string[];
     rows: TableCell[][];
+    empty_text?: string;
 }>();
 </script>
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
-        <DataTable :headers="headers" :rows="rows" />
+        <DataTable :headers="headers" :rows="rows" :empty_text="empty_text" />
     </SgcLayout>
 </template>

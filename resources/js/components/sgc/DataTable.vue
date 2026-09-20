@@ -4,12 +4,14 @@ import { isBadge, type TableCell } from '@/types/sgc';
 defineProps<{
     headers: string[];
     rows: TableCell[][];
+    empty_text?: string;
 }>();
 </script>
 
 <template>
     <div class="box">
-        <table class="data-table">
+        <p v-if="!rows.length" class="muted">{{ empty_text || 'No records yet.' }}</p>
+        <table v-else class="data-table">
             <thead>
                 <tr>
                     <th v-for="header in headers" :key="header">{{ header }}</th>

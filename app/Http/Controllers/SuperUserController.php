@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\OperationalReset;
 use App\Support\SchoolDirectory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,5 +63,18 @@ class SuperUserController extends Controller
         ]);
 
         return back()->with('status', 'Division Admin created. They can sign in now.');
+    }
+
+    public function reset(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'confirm' => ['required', 'in:RESET FAT DATA'],
+        ], [
+            'confirm.in' => 'Type RESET FAT DATA to confirm.',
+        ]);
+
+        OperationalReset::run();
+
+        return back()->with('status', 'School accounts, FAT packets, and MOVs were cleared. Super Admin and Division Admin were kept.');
     }
 }

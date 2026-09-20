@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PortalMetrics;
 use App\Support\SgcSample;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -10,22 +12,22 @@ class PortalController extends Controller
 {
     public function superOverview(): Response
     {
-        return Inertia::render('super/Overview', SgcSample::page('super.overview'));
+        return Inertia::render('super/Overview', PortalMetrics::superOverview());
     }
 
     public function superDivisions(): Response
     {
-        return Inertia::render('super/Divisions', SgcSample::page('super.divisions'));
+        return Inertia::render('super/Divisions', PortalMetrics::superDivisions());
     }
 
     public function superCycles(): Response
     {
-        return Inertia::render('super/Cycles', SgcSample::page('super.cycles'));
+        return Inertia::render('super/Cycles', PortalMetrics::superCycles());
     }
 
-    public function divisionOverview(): Response
+    public function divisionOverview(Request $request): Response
     {
-        return Inertia::render('division/Overview', SgcSample::page('division.overview'));
+        return Inertia::render('division/Overview', PortalMetrics::divisionOverview($request->user()));
     }
 
     public function divisionQueue(): Response
@@ -35,12 +37,12 @@ class PortalController extends Controller
 
     public function divisionSchools(): Response
     {
-        return Inertia::render('division/Schools', SgcSample::page('division.schools'));
+        return Inertia::render('division/Schools', PortalMetrics::divisionSchools());
     }
 
     public function divisionAlerts(): Response
     {
-        return Inertia::render('division/Alerts', SgcSample::page('division.alerts'));
+        return Inertia::render('division/Alerts', PortalMetrics::divisionAlerts());
     }
 
     public function schoolDashboard(): Response
