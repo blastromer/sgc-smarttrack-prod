@@ -18,11 +18,6 @@ class PortalController extends Controller
         return Inertia::render('super/Divisions', SgcSample::page('super.divisions'));
     }
 
-    public function superUsers(): Response
-    {
-        return Inertia::render('super/Users', SgcSample::page('super.users'));
-    }
-
     public function superCycles(): Response
     {
         return Inertia::render('super/Cycles', SgcSample::page('super.cycles'));

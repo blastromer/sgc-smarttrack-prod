@@ -56,6 +56,23 @@ class SchoolDirectory
     }
 
     /**
+     * @return list<string>
+     */
+    public static function divisionPositions(): array
+    {
+        return [
+            'Schools Division Superintendent',
+            'Assistant Schools Division Superintendent',
+            'SGOD Chief',
+            'CID Chief',
+            'Education Program Supervisor',
+            'SGC Focal Person',
+            'Public Schools District Supervisor',
+            'Division Validator',
+        ];
+    }
+
+    /**
      * @return array{school: list<string>, school_head: list<string>}
      */
     public static function positionsByRole(): array

@@ -5,6 +5,7 @@ import { Link, useForm } from '@inertiajs/vue3';
 defineProps<{
     status?: string;
     canResetPassword?: boolean;
+    needs_setup?: boolean;
 }>();
 
 const form = useForm({
@@ -44,7 +45,10 @@ const submit = () => {
 
             <button class="btn" type="submit" :disabled="form.processing">Sign in to SmartTrack</button>
             <div v-if="form.errors.email || status" class="err">{{ form.errors.email || status }}</div>
-            <p class="foot">No account yet? <Link href="/register">Create a School Admin account</Link></p>
+            <p class="foot">
+                <template v-if="needs_setup">No Super Admin yet? <Link href="/setup">Create the first Super Admin</Link></template>
+                <template v-else>No school account yet? <Link href="/register">Register as School Head or Encoder</Link></template>
+            </p>
         </form>
     </SgcAuthLayout>
 </template>

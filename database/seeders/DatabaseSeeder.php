@@ -11,6 +11,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production')) {
+            return;
+        }
         User::query()->updateOrCreate(
             ['email' => 'romer.necesario@sgcsmarttrack.gov.ph'],
             [

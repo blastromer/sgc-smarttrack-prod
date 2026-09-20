@@ -6,9 +6,15 @@ use App\Http\Controllers\PortalController;
 use App\Http\Controllers\SchoolAssessmentController;
 use App\Http\Controllers\SchoolRegistrationController;
 use App\Http\Controllers\Settings\AccountController;
+use App\Http\Controllers\SuperUserController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    if (! User::query()->where('role', 'super')->exists()) {
+        return redirect()->route('setup');
+    }
+
     if (auth()->check()) {
         return redirect()->route(auth()->user()->homeRoute());
     }
@@ -23,7 +29,8 @@ Route::get('dashboard', function () {
 Route::middleware(['auth', 'role:super'])->group(function () {
     Route::get('super', [PortalController::class, 'superOverview'])->name('super.overview');
     Route::get('super/divisions', [PortalController::class, 'superDivisions'])->name('super.divisions');
-    Route::get('super/users', [PortalController::class, 'superUsers'])->name('super.users');
+    Route::get('super/users', [SuperUserController::class, 'index'])->name('super.users');
+    Route::post('super/users', [SuperUserController::class, 'store'])->name('super.users.store');
     Route::get('super/cycles', [PortalController::class, 'superCycles'])->name('super.cycles');
 });
 

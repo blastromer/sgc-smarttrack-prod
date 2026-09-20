@@ -90,6 +90,7 @@ class PortalTest extends TestCase
         $user = User::factory()->create(['role' => 'super']);
 
         $this->actingAs($user)->get('/super')->assertOk();
+        $this->actingAs($user)->get('/super/users')->assertOk();
     }
 
     public function test_division_admin_can_open_registrations()
