@@ -695,6 +695,7 @@ label.btn { cursor: pointer; margin: 0; }
   .top h1 { font-size: 22px; line-height: 1.25; }
   .kpis { grid-template-columns: 1fr 1fr; }
   .grid2, .grid3 { grid-template-columns: 1fr; }
+  .doc-gallery { grid-template-columns: 1fr; }
   .kpi b { font-size: 22px; }
   .actions { flex-direction: column; }
   .btn.inline { width: 100%; justify-content: center; }
@@ -726,6 +727,96 @@ label.btn { cursor: pointer; margin: 0; }
     align-items: stretch;
   }
   .card { width: 100%; }
+}
+
+.role-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.role-tabs .btn.active {
+  background: #173038;
+  color: #7ee0d6;
+  border-color: #2a5a62;
+}
+.doc-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.doc-list li { margin: 6px 0; }
+.walk-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.walk-step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.walk-step:last-child { border-bottom: 0; }
+.walk-n {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #173038;
+  color: #7ee0d6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+.docs code {
+  font-size: 12px;
+  color: #7ee0d6;
+}
+.doc-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+.doc-shot {
+  margin: 10px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0b181c;
+}
+.doc-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.doc-shot figcaption {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+  border-top: 1px solid var(--line);
+}
+
+@media print {
+  .no-print,
+  .side,
+  .mobile-layer,
+  .mobile-tabs,
+  .side-backdrop,
+  .top-actions,
+  .flow-banner { display: none !important; }
+  .app, .main {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #111;
+  }
+  .box, .kpi {
+    background: #fff;
+    border-color: #ccc;
+    break-inside: avoid;
+  }
+  .muted, .walk-n { color: #333; }
+  .walk-n { background: #eee; }
+  .doc-shot { break-inside: avoid; }
 }
 
 @media (max-width: 560px) {

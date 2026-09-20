@@ -33,6 +33,30 @@ class PortalTest extends TestCase
         $this->actingAs($user)->get('/help')->assertOk();
     }
 
+    public function test_each_role_opens_docs_and_help_walkthroughs()
+    {
+        foreach (['super', 'division', 'school_head', 'school'] as $role) {
+            $user = User::factory()->create([
+                'role' => $role,
+                'email' => $role.'-docs@example.com',
+            ]);
+
+            $this->actingAs($user)
+                ->get('/docs')
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->component('Docs')
+                    ->where('role', $role));
+
+            $this->actingAs($user)
+                ->get('/help')
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->component('Help')
+                    ->where('role', $role));
+        }
+    }
+
     public function test_school_head_can_open_school_pages()
     {
         Cycle::query()->create([

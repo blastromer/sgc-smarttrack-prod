@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SGC SmartTrack User Role Guide</title>
+<style>
+  :root { --ink:#12222a; --muted:#4d5f68; --line:#d5dee2; --teal:#1f7a74; --paper:#fff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); background: var(--paper); font: 12.5px/1.5 "Segoe UI", Calibri, Arial, sans-serif; }
+  .page { max-width: 900px; margin: 0 auto; padding: 24px 28px 48px; }
+  h1 { font-size: 26px; margin: 0 0 8px; color: var(--teal); page-break-after: avoid; }
+  h2 { font-size: 16px; margin: 22px 0 8px; color: var(--teal); page-break-after: avoid; }
+  h3 { font-size: 13px; margin: 0 0 6px; }
+  p, li { color: var(--ink); }
+  .muted, figcaption { color: var(--muted); }
+  .cover { min-height: 900px; display: flex; flex-direction: column; justify-content: center; border-bottom: 4px solid var(--teal); margin-bottom: 28px; padding-bottom: 40px; }
+  .cover .kicker { letter-spacing: .16em; text-transform: uppercase; font-size: 11px; color: var(--teal); font-weight: 700; }
+  .cover h1 { font-size: 34px; margin-top: 8px; }
+  .cover .sub { font-size: 16px; color: var(--muted); max-width: 36em; }
+  .meta { margin-top: 28px; }
+  .meta p { margin: 4px 0; }
+  .toc a { color: var(--teal); text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 10px 0 18px; }
+  th, td { border: 1px solid var(--line); padding: 7px 8px; vertical-align: top; text-align: left; }
+  th { background: #eef6f5; color: var(--teal); }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 11px; background: #eef3f4; padding: 1px 5px; border-radius: 4px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .role { page-break-before: always; }
+  .screen, .step { page-break-inside: avoid; margin: 0 0 16px; }
+  .step { display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+  .n { width: 28px; height: 28px; border-radius: 50%; background: var(--teal); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+  .shot { margin: 8px 0 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #0b181c; }
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot figcaption { background: #f4f7f8; padding: 6px 10px; font-size: 11px; }
+  .flow { background: #eef6f5; border: 1px solid #cfe3e0; padding: 12px 16px; border-radius: 8px; }
+  @page { size: A4; margin: 14mm 12mm; }
+  @media print {
+    .page { max-width: none; padding: 0; }
+    .cover { min-height: auto; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <section class="cover">
+    <div class="kicker">Schools Division of Cadiz City · Negros Island Region</div>
+    <h1>SGC SmartTrack</h1>
+    <p class="sub">User Role Guide — Super Admin, Division Admin, School Head, and Encoder. Complete instructions with screen snapshots.</p>
+    <div class="meta">
+      <p><strong>Portal:</strong> https://sgc-smarttrack.com</p>
+      <p><strong>Policy:</strong> DepEd Order 26, s. 2022 — School Governance Council Functionality Assessment Tool</p>
+      <p><strong>Scope:</strong> One SDO, one domain. Not multi-tenant.</p>
+      <p><strong>Date:</strong> 20 September 2026</p>
+    </div>
+  </section>
+
+  <h1>Contents</h1>
+  <ol class="toc">
+    <li><a href="#how">How the portal works</a></li>
+    <li><a href="#order">Order of work</a></li>
+    <li><a href="#who">Who does what</a></li>
+    <li><a href="#super">Super Admin</a></li>
+    <li><a href="#division">Division Admin</a></li>
+    <li><a href="#school_head">School Head</a></li>
+    <li><a href="#school">Encoder</a></li>
+    <li><a href="#return">Returned or invalid MOV</a></li>
+    <li><a href="#register">Registration rules and positions</a></li>
+  </ol>
+
+  <section id="how">
+    <h1>How the portal works</h1>
+    <p>SGC SmartTrack is the school-to-division FAT platform for SDO Cadiz City. A school encodes 12 functionality indicators. <strong>Functional</strong> status requires 10 of 12 Yes answers, each Yes backed by a valid Minimum MOV. The Validity Form is required for every packet.</p>
+    <p>One FAT packet is shared by School ID and cycle. The Encoder and School Head of the same school work on the same packet.</p>
+    <p>The school path is:</p>
+    <div class="flow"><strong>Encode → MOV files → School Head QA → Submit to Division → Validation → Result (Functional 10/12)</strong></div>
+  </section>
+
+  <section id="order">
+    <h1>Order of work</h1>
+    <ol>
+      <li>On a new production site, open <code>/setup</code> and create Super Admin. This is available only while no Super exists.</li>
+      <li>Super Admin signs in and creates the Division Admin under Users &amp; roles.</li>
+      <li>The School Head registers with a unique school name and School ID, then waits for Division Accept.</li>
+      <li>Teachers register as Encoder using that same school name and School ID. They cannot register until the Head is active.</li>
+      <li>The School Head accepts those teachers under Encoders.</li>
+      <li>The Encoder (or Head) answers Yes / No for all 12 indicators and uploads Minimum MOVs plus the Validity Form.</li>
+      <li>The School Head certifies QA and submits to Division. Only the Head can submit or withdraw.</li>
+      <li>Division reviews each MOV, Accepts or Returns flagged files, then completes the review.</li>
+      <li>If a file is returned: replace only that file, recertify QA, resubmit. Do not rebuild the packet.</li>
+    </ol>
+  </section>
+
+  <section id="who">
+    <h1>Who does what</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Super Admin</th>
+          <th>Division Admin</th>
+          <th>School Head</th>
+          <th>Encoder</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Create first Super Admin</td><td>Yes — /setup once</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Create Division Admin</td><td>Users &amp; roles</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Accept School Head</td><td>No</td><td>Registrations</td><td>No</td><td>No</td></tr><tr><td>Accept Encoder</td><td>No</td><td>No</td><td>Encoders</td><td>No</td></tr><tr><td>Encode Yes / No</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Upload MOV</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Remove unapproved MOV</td><td>No</td><td>No</td><td>Remove</td><td>Request only</td></tr><tr><td>Certify QA and submit</td><td>No</td><td>No</td><td>Yes</td><td>No</td></tr><tr><td>Withdraw packet</td><td>No</td><td>No</td><td>If no MOV is valid yet</td><td>No</td></tr><tr><td>Accept or return MOV</td><td>No</td><td>Validation queue</td><td>No</td><td>No</td></tr><tr><td>Reset school and FAT data</td><td>Type RESET FAT DATA</td><td>No</td><td>No</td><td>No</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  
+    <section class="role" id="super">
+        <h1>1. Super Admin</h1>
+        <p class="lead">Opens the portal, creates the Division Admin, watches live counts, and can clear school FAT data for a new cycle.</p>
+        <p>Platform owner. One Super Admin is created on /setup while the system is empty. Super does not encode school packets or validate MOVs.</p>
+        <div class="split">
+            <div><h2>This role can</h2><ul><li>Create the first Super Admin on /setup.</li><li>Create Division Admin accounts under Users &amp; roles.</li><li>Watch Overview, Divisions, and Cycles with live database counts.</li><li>Reset School Heads, Encoders, packets, and MOV files without dropping Super or Division accounts.</li></ul></div>
+            <div><h2>This role cannot</h2><ul><li>Register as a school or accept School Heads.</li><li>Encode indicators, upload MOVs, or certify QA.</li><li>Accept or return school files in the validation queue.</li></ul></div>
+        </div>
+        <h2>Screens</h2>
+        
+        <article class="screen">
+            <h3>Overview <code>/super</code></h3>
+            <p>Live KPIs for schools, packets, and cycle progress.</p>
+            <figure class="shot"><img src="super-overview.png" alt="Overview"><figcaption>Overview</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Divisions <code>/super/divisions</code></h3>
+            <p>SDO Cadiz City record for this single-division portal.</p>
+            <figure class="shot"><img src="super-divisions.png" alt="Divisions"><figcaption>Divisions</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Users &amp; roles <code>/super/users</code></h3>
+            <p>Create Division Admin and reset FAT data.</p>
+            <figure class="shot"><img src="super-users.png" alt="Users &amp; roles"><figcaption>Users &amp; roles</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Cycles <code>/super/cycles</code></h3>
+            <p>Confirm the open FAT cycle and deadline.</p>
+            <figure class="shot"><img src="super-cycles.png" alt="Cycles"><figcaption>Cycles</figcaption></figure>
+        </article>
+        <h2>Walkthrough</h2>
+        <p>Follow these clicks in order. Button names match the live screens.</p>
+        
+        <article class="step">
+            <div class="n">1</div>
+            <div>
+                <h3>Create Super Admin (first run only)</h3>
+                <p>Open https://sgc-smarttrack.com/setup while no Super Admin exists. Enter full name, email, and password (minimum 8 characters). Click Create Super Admin. This form disappears after the first Super exists.</p>
+                <p><strong>Click:</strong> Create Super Admin</p>
+                <p><strong>Page:</strong> <code>/setup</code></p>
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">2</div>
+            <div>
+                <h3>Sign in</h3>
+                <p>Open Sign in. Use the Super Admin email and password. The portal opens Overview.</p>
+                <p><strong>Click:</strong> Sign in to SmartTrack</p>
+                <p><strong>Page:</strong> <code>/login</code></p>
+                <figure class="shot"><img src="login.png" alt="Sign in"><figcaption>Sign in</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">3</div>
+            <div>
+                <h3>Create Division Admin</h3>
+                <p>Open Users &amp; roles. Fill Full name, DepEd email, Office (example: SGOD / SGC Focal), Position from the list, Password, and Confirm password. Click Create Division Admin. Super is the only role that can create this account. School Heads still self-register later.</p>
+                <p><strong>Click:</strong> Create Division Admin</p>
+                <p><strong>Page:</strong> <code>/super/users</code></p>
+                <figure class="shot"><img src="super-users.png" alt="Create Division Admin"><figcaption>Create Division Admin</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">4</div>
+            <div>
+                <h3>Hand over Division credentials</h3>
+                <p>Give the Division Admin their email and temporary password. They should sign in and change the password under Account.</p>
+                
+                <p><strong>Page:</strong> <code>/account</code></p>
+                <figure class="shot"><img src="account.png" alt="Hand over Division credentials"><figcaption>Hand over Division credentials</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">5</div>
+            <div>
+                <h3>Confirm the FAT cycle</h3>
+                <p>Open Cycles. Confirm the 2026 SGC Functionality Assessment window is open. Schools cannot encode or submit without an open cycle.</p>
+                
+                <p><strong>Page:</strong> <code>/super/cycles</code></p>
+                <figure class="shot"><img src="super-cycles.png" alt="Confirm the FAT cycle"><figcaption>Confirm the FAT cycle</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">6</div>
+            <div>
+                <h3>Watch live counts</h3>
+                <p>Overview and Divisions show real database counts, not sample figures. Empty production is expected until School Heads register and Division accepts them.</p>
+                
+                <p><strong>Page:</strong> <code>/super</code></p>
+                <figure class="shot"><img src="super-overview.png" alt="Watch live counts"><figcaption>Watch live counts</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">7</div>
+            <div>
+                <h3>Reset FAT data only when needed</h3>
+                <p>On Users &amp; roles, scroll to Reset operational data. Type RESET FAT DATA exactly, then click Clear school and FAT data. This removes School Heads, Encoders, packets, and MOV files. Super and Division stay. Do not use this as a daily tool.</p>
+                <p><strong>Click:</strong> Type RESET FAT DATA</p>
+                <p><strong>Page:</strong> <code>/super/users</code></p>
+                
+            </div>
+        </article>
+        <h2>Notes</h2>
+        <ul><li>Production starts empty on purpose. Do not seed demo school accounts on the live site.</li><li>This portal is one SDO (Cadiz City), one domain. Super does not create extra divisions as tenants.</li></ul>
+    </section>
+    <section class="role" id="division">
+        <h1>2. Division Admin</h1>
+        <p class="lead">Accepts School Heads, validates MOV files, and records Functional or Not Yet Functional for SDO Cadiz City.</p>
+        <p>SDO Cadiz City SGC focal or validator. Created by Super Admin. Does not register on the public Register page.</p>
+        <div class="split">
+            <div><h2>This role can</h2><ul><li>Accept pending School Head registrations.</li><li>See schools that belong to this division.</li><li>Review submitted packets, download MOVs, Accept or Return a file with a reason.</li><li>Complete review so the school result is posted.</li></ul></div>
+            <div><h2>This role cannot</h2><ul><li>Create Super Admin or another Division Admin.</li><li>Accept Encoders. That is the School Head.</li><li>Encode a school packet or certify School Head QA.</li></ul></div>
+        </div>
+        <h2>Screens</h2>
+        
+        <article class="screen">
+            <h3>Overview <code>/division</code></h3>
+            <p>Live submission and validation counts.</p>
+            <figure class="shot"><img src="division-overview.png" alt="Overview"><figcaption>Overview</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Validation queue <code>/division/queue</code></h3>
+            <p>Packets waiting for MOV review.</p>
+            <figure class="shot"><img src="division-queue.png" alt="Validation queue"><figcaption>Validation queue</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Schools <code>/division/schools</code></h3>
+            <p>Accepted schools and packet status.</p>
+            <figure class="shot"><img src="division-schools.png" alt="Schools"><figcaption>Schools</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Registrations <code>/division/registrations</code></h3>
+            <p>Accept School Heads only.</p>
+            <figure class="shot"><img src="division-registrations.png" alt="Registrations"><figcaption>Registrations</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Review packet <code>/division/queue/{id}</code></h3>
+            <p>Accept or Return each MOV file.</p>
+            <figure class="shot"><img src="division-review.png" alt="Review packet"><figcaption>Review packet</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Alerts <code>/division/alerts</code></h3>
+            <p>Overdue or returned packets.</p>
+            <figure class="shot"><img src="division-alerts.png" alt="Alerts"><figcaption>Alerts</figcaption></figure>
+        </article>
+        <h2>Walkthrough</h2>
+        <p>Follow these clicks in order. Button names match the live screens.</p>
+        
+        <article class="step">
+            <div class="n">1</div>
+            <div>
+                <h3>Sign in</h3>
+                <p>Use the DepEd email Super Admin created. Change the password under Account after first sign-in.</p>
+                <p><strong>Click:</strong> Sign in to SmartTrack</p>
+                <p><strong>Page:</strong> <code>/login</code></p>
+                <figure class="shot"><img src="login.png" alt="Sign in"><figcaption>Sign in</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">2</div>
+            <div>
+                <h3>Accept School Heads</h3>
+                <p>Open Registrations. Each row is a pending School Head. Confirm school name and School ID are unique, then click Accept. Teachers never appear here.</p>
+                <p><strong>Click:</strong> Accept</p>
+                <p><strong>Page:</strong> <code>/division/registrations</code></p>
+                <figure class="shot"><img src="division-registrations.png" alt="Accept School Heads"><figcaption>Accept School Heads</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">3</div>
+            <div>
+                <h3>Confirm the school list</h3>
+                <p>Open Schools. Accepted School Heads now appear with their School ID. Encoders stay pending until that Head accepts them.</p>
+                
+                <p><strong>Page:</strong> <code>/division/schools</code></p>
+                <figure class="shot"><img src="division-schools.png" alt="Confirm the school list"><figcaption>Confirm the school list</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">4</div>
+            <div>
+                <h3>Wait for a submitted packet</h3>
+                <p>Open Validation queue. A row appears after the School Head certifies QA and clicks Submit to Division.</p>
+                
+                <p><strong>Page:</strong> <code>/division/queue</code></p>
+                <figure class="shot"><img src="division-queue.png" alt="Wait for a submitted packet"><figcaption>Wait for a submitted packet</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">5</div>
+            <div>
+                <h3>Open Review</h3>
+                <p>Click Review on a packet. Download each MOV. Check the Minimum MOV for every Yes and the Validity Form.</p>
+                <p><strong>Click:</strong> Review</p>
+                <p><strong>Page:</strong> <code>/division/queue</code></p>
+                <figure class="shot"><img src="division-review.png" alt="Open Review"><figcaption>Open Review</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">6</div>
+            <div>
+                <h3>Accept or Return each file</h3>
+                <p>Click Accept on a valid file. For an invalid file, type why in Return reason, then click Return. Only that file goes back to the school. Do not ask the school to rebuild the whole packet.</p>
+                <p><strong>Click:</strong> Accept or Return</p>
+                
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">7</div>
+            <div>
+                <h3>Complete the review</h3>
+                <p>When files are decided, complete the review. Functional status needs 10 of 12 Yes answers with valid MOVs. The school sees the result on Submit.</p>
+                <p><strong>Click:</strong> Complete review</p>
+                
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">8</div>
+            <div>
+                <h3>Watch returned packets come back</h3>
+                <p>If you returned a file, the school replaces it, the Head recertifies QA, and resubmits. The packet returns to the queue. Check Alerts for overdue schools.</p>
+                
+                <p><strong>Page:</strong> <code>/division/alerts</code></p>
+                <figure class="shot"><img src="division-alerts.png" alt="Watch returned packets come back"><figcaption>Watch returned packets come back</figcaption></figure>
+            </div>
+        </article>
+        <h2>Notes</h2>
+        <ul><li>Division accepts School Heads only. Encoder accept lives under the School Head Encoders page.</li><li>Do not ask a school to rebuild the whole packet for one invalid MOV.</li></ul>
+    </section>
+    <section class="role" id="school_head">
+        <h1>3. School Head</h1>
+        <p class="lead">Owns the school identity, accepts teachers, certifies QA, submits to Division, and can remove or withdraw unapproved files.</p>
+        <p>Principal, Head Teacher, Teacher-in-Charge, or Officer-in-Charge. Registers with a unique school name and School ID.</p>
+        <div class="split">
+            <div><h2>This role can</h2><ul><li>Register as School Head and wait for Division accept.</li><li>Accept Encoder (teacher) registrations for the same School ID.</li><li>Encode indicators and upload MOVs, or let the Encoder do that work.</li><li>Remove an unapproved MOV, certify School Head QA, submit, and withdraw if Division has not accepted any file yet.</li></ul></div>
+            <div><h2>This role cannot</h2><ul><li>Create Division Admin.</li><li>Accept another School Head.</li><li>Register a second Head with the same school name or School ID.</li><li>Remove a MOV that Division already marked valid.</li></ul></div>
+        </div>
+        <h2>Screens</h2>
+        
+        <article class="screen">
+            <h3>Dashboard <code>/school</code></h3>
+            <p>Packet progress and 6-step FAT path.</p>
+            <figure class="shot"><img src="head-dashboard.png" alt="Dashboard"><figcaption>Dashboard</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>My assessment <code>/school/assessment</code></h3>
+            <p>Yes / No for 12 functionality indicators.</p>
+            <figure class="shot"><img src="head-assessment.png" alt="My assessment"><figcaption>My assessment</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>MOV files <code>/school/movs</code></h3>
+            <p>Upload, remove, or withdraw files.</p>
+            <figure class="shot"><img src="head-movs.png" alt="MOV files"><figcaption>MOV files</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Submit <code>/school/submit</code></h3>
+            <p>Certify QA, submit, or withdraw.</p>
+            <figure class="shot"><img src="head-submit.png" alt="Submit"><figcaption>Submit</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Encoders <code>/school/encoders</code></h3>
+            <p>Accept teachers for this School ID.</p>
+            <figure class="shot"><img src="head-encoders.png" alt="Encoders"><figcaption>Encoders</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Notifications <code>/school/notifications</code></h3>
+            <p>Encoder requests and Division returns.</p>
+            <figure class="shot"><img src="head-notifications.png" alt="Notifications"><figcaption>Notifications</figcaption></figure>
+        </article>
+        <h2>Walkthrough</h2>
+        <p>Follow these clicks in order. Button names match the live screens.</p>
+        
+        <article class="step">
+            <div class="n">1</div>
+            <div>
+                <h3>Register as School Head</h3>
+                <p>Open Register. Choose I am registering as → School Head. Select a School Head position from the list. Enter a unique school name and School ID. Use your official DepEd email and a password of at least 8 characters. Click Submit registration. You stay pending until Division accepts you.</p>
+                <p><strong>Click:</strong> I am registering as → School Head</p>
+                <p><strong>Page:</strong> <code>/register</code></p>
+                <figure class="shot"><img src="register-head.png" alt="Register as School Head"><figcaption>Register as School Head</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">2</div>
+            <div>
+                <h3>Wait for Division accept</h3>
+                <p>Division Admin opens Registrations and clicks Accept. After that you can sign in and approve teachers. Encoders cannot register until you are active.</p>
+                
+                <p><strong>Page:</strong> <code>/login</code></p>
+                <figure class="shot"><img src="login.png" alt="Wait for Division accept"><figcaption>Wait for Division accept</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">3</div>
+            <div>
+                <h3>Accept teachers</h3>
+                <p>Open Encoders. Teachers who used your exact school name and School ID appear here. Click Accept so they can encode.</p>
+                <p><strong>Click:</strong> Accept</p>
+                <p><strong>Page:</strong> <code>/school/encoders</code></p>
+                <figure class="shot"><img src="head-encoders.png" alt="Accept teachers"><figcaption>Accept teachers</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">4</div>
+            <div>
+                <h3>Encode the 12 indicators</h3>
+                <p>Open My assessment. Answer Yes or No for each functionality indicator. A Yes needs a Minimum MOV later. You or the Encoder can encode.</p>
+                <p><strong>Click:</strong> Yes or No</p>
+                <p><strong>Page:</strong> <code>/school/assessment</code></p>
+                <figure class="shot"><img src="head-assessment.png" alt="Encode the 12 indicators"><figcaption>Encode the 12 indicators</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">5</div>
+            <div>
+                <h3>Check MOV files</h3>
+                <p>Open MOV files. Confirm a file for every Yes plus the Validity Form. If a draft file is wrong, click Remove. If the Encoder asked for removal, that row shows Removal requested.</p>
+                <p><strong>Click:</strong> Remove</p>
+                <p><strong>Page:</strong> <code>/school/movs</code></p>
+                <figure class="shot"><img src="head-movs.png" alt="Check MOV files"><figcaption>Check MOV files</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">6</div>
+            <div>
+                <h3>Certify School Head QA</h3>
+                <p>Open Submit. When the checklist is clear, click Certify School Head QA. Teachers cannot click this button.</p>
+                <p><strong>Click:</strong> Certify School Head QA</p>
+                <p><strong>Page:</strong> <code>/school/submit</code></p>
+                <figure class="shot"><img src="head-submit.png" alt="Certify School Head QA"><figcaption>Certify School Head QA</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">7</div>
+            <div>
+                <h3>Submit to Division</h3>
+                <p>Click Submit to Division. The packet enters the Division validation queue. After this, files lock until you withdraw or Division returns a file.</p>
+                <p><strong>Click:</strong> Submit to Division</p>
+                <p><strong>Page:</strong> <code>/school/submit</code></p>
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">8</div>
+            <div>
+                <h3>Withdraw if not yet approved</h3>
+                <p>If you need to change files and Division has not marked any MOV valid, click Withdraw from Division. Then remove or replace files, certify QA again, and resubmit.</p>
+                <p><strong>Click:</strong> Withdraw from Division</p>
+                <p><strong>Page:</strong> <code>/school/submit</code></p>
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">9</div>
+            <div>
+                <h3>Fix a returned MOV</h3>
+                <p>If Division returned a file: the Encoder replaces only that file on MOV files. You certify QA again, then click Resubmit to Division.</p>
+                <p><strong>Click:</strong> Resubmit to Division</p>
+                <p><strong>Page:</strong> <code>/school/movs</code></p>
+                
+            </div>
+        </article>
+        <h2>Notes</h2>
+        <ul><li>School name and School ID must be unique among School Heads.</li><li>Encoder and Head share one packet through the same School ID.</li></ul>
+    </section>
+    <section class="role" id="school">
+        <h1>4. Encoder</h1>
+        <p class="lead">Teacher who encodes Yes / No, uploads MOVs, and requests removal of a wrong file. Cannot submit to Division.</p>
+        <p>Teacher, SGC coordinator, or other school staff on the Encoder position list. Registers only after an active School Head exists for that School ID.</p>
+        <div class="split">
+            <div><h2>This role can</h2><ul><li>Register as Encoder using the Head’s school name and School ID.</li><li>Encode Yes / No on My assessment.</li><li>Upload Minimum MOVs and the Validity Form.</li><li>Request removal of an unapproved file so the School Head can delete it.</li><li>Replace a MOV that Division returned.</li></ul></div>
+            <div><h2>This role cannot</h2><ul><li>Register before the School Head is active for that School ID.</li><li>Use a different school name from the Head.</li><li>Certify School Head QA, submit, or withdraw the packet.</li><li>Remove a file directly. Request removal instead.</li></ul></div>
+        </div>
+        <h2>Screens</h2>
+        
+        <article class="screen">
+            <h3>Dashboard <code>/school</code></h3>
+            <p>See packet progress. Submit stays locked for Encoder.</p>
+            <figure class="shot"><img src="encoder-dashboard.png" alt="Dashboard"><figcaption>Dashboard</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>My assessment <code>/school/assessment</code></h3>
+            <p>Answer Yes or No for 12 FIs.</p>
+            <figure class="shot"><img src="encoder-assessment.png" alt="My assessment"><figcaption>My assessment</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>MOV files <code>/school/movs</code></h3>
+            <p>Upload files and request removal.</p>
+            <figure class="shot"><img src="encoder-movs.png" alt="MOV files"><figcaption>MOV files</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Submit <code>/school/submit</code></h3>
+            <p>Read the checklist. QA and Submit are for the Head only.</p>
+            <figure class="shot"><img src="encoder-submit.png" alt="Submit"><figcaption>Submit</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>Notifications <code>/school/notifications</code></h3>
+            <p>Accept notice, returned MOV, and Head actions.</p>
+            <figure class="shot"><img src="encoder-notifications.png" alt="Notifications"><figcaption>Notifications</figcaption></figure>
+        </article>
+        <h2>Walkthrough</h2>
+        <p>Follow these clicks in order. Button names match the live screens.</p>
+        
+        <article class="step">
+            <div class="n">1</div>
+            <div>
+                <h3>Confirm the School Head is active</h3>
+                <p>Your Principal must already be registered, accepted by Division, and active. Ask for the exact school name and School ID. You cannot register until that Head exists.</p>
+                
+                
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">2</div>
+            <div>
+                <h3>Register as Encoder</h3>
+                <p>Open Register. Choose I am registering as → Encoder. Select your position. Type the same school name and School ID as the Head. Use your DepEd email. Click Submit registration.</p>
+                <p><strong>Click:</strong> I am registering as → Encoder</p>
+                <p><strong>Page:</strong> <code>/register</code></p>
+                <figure class="shot"><img src="register-encoder.png" alt="Register as Encoder"><figcaption>Register as Encoder</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">3</div>
+            <div>
+                <h3>Wait for School Head accept</h3>
+                <p>You stay pending. The Head opens Encoders and clicks Accept. Then you can sign in and encode.</p>
+                
+                <p><strong>Page:</strong> <code>/login</code></p>
+                <figure class="shot"><img src="login.png" alt="Wait for School Head accept"><figcaption>Wait for School Head accept</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">4</div>
+            <div>
+                <h3>Encode all 12 indicators</h3>
+                <p>Open My assessment. Click Yes or No for each functionality indicator. Yes requires a Minimum MOV on the next page.</p>
+                <p><strong>Click:</strong> Yes or No</p>
+                <p><strong>Page:</strong> <code>/school/assessment</code></p>
+                <figure class="shot"><img src="encoder-assessment.png" alt="Encode all 12 indicators"><figcaption>Encode all 12 indicators</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">5</div>
+            <div>
+                <h3>Upload MOV files</h3>
+                <p>Open MOV files. Upload the Minimum MOV for every Yes, plus the Validity Form. Wait for School Head review and Division validation.</p>
+                
+                <p><strong>Page:</strong> <code>/school/movs</code></p>
+                <figure class="shot"><img src="encoder-movs.png" alt="Upload MOV files"><figcaption>Upload MOV files</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">6</div>
+            <div>
+                <h3>Request removal if a file is wrong</h3>
+                <p>If the packet is not yet approved and a file is wrong, click Request removal. The Head is notified and can Remove the file so you can upload again.</p>
+                <p><strong>Click:</strong> Request removal</p>
+                <p><strong>Page:</strong> <code>/school/movs</code></p>
+                
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">7</div>
+            <div>
+                <h3>Leave QA and Submit to the Head</h3>
+                <p>Open Submit to see the checklist. Only the School Head can Certify School Head QA and Submit to Division.</p>
+                
+                <p><strong>Page:</strong> <code>/school/submit</code></p>
+                <figure class="shot"><img src="encoder-submit.png" alt="Leave QA and Submit to the Head"><figcaption>Leave QA and Submit to the Head</figcaption></figure>
+            </div>
+        </article>
+        <article class="step">
+            <div class="n">8</div>
+            <div>
+                <h3>Replace a returned file</h3>
+                <p>If Division returns a MOV, replace only that file. The Head certifies QA again and resubmits. You do not rebuild the whole packet.</p>
+                
+                <p><strong>Page:</strong> <code>/school/movs</code></p>
+                
+            </div>
+        </article>
+        <h2>Notes</h2>
+        <ul><li>Position list changes with “I am registering as.” Encoder positions are teacher and SGC staff titles, not Principal titles.</li><li>One School ID = one packet. Do not invent a second school code for the same school.</li></ul>
+    </section>
+
+  <section class="role" id="return">
+    <h1>Returned or invalid MOV</h1>
+    <p>Division returns only the flagged file. The school does not rebuild the packet.</p>
+    <ol>
+      <li>The Encoder replaces that file on MOV files.</li>
+      <li>The School Head certifies School Head QA again.</li>
+      <li>The School Head clicks Resubmit to Division.</li>
+    </ol>
+    <figure class="shot"><img src="division-review.png" alt="Division Review — Accept or Return each file"><figcaption>Division Review — Accept or Return each file</figcaption></figure>
+    <figure class="shot"><img src="head-submit.png" alt="School Head Submit — recertify QA, then resubmit"><figcaption>School Head Submit — recertify QA, then resubmit</figcaption></figure>
+  </section>
+
+  <section class="role" id="register">
+    <h1>Registration rules and positions</h1>
+    <p>School Heads register first. School name and School ID must be unique among Heads. Encoders must type the Head’s exact school name and School ID. Position is a select list that depends on “I am registering as.”</p>
+    <figure class="shot"><img src="register-head.png" alt="Register as School Head"><figcaption>Register as School Head</figcaption></figure>
+    <figure class="shot"><img src="register-encoder.png" alt="Register as Encoder"><figcaption>Register as Encoder</figcaption></figure>
+    <div class="split">
+      <div>
+        <h2>School Head positions</h2>
+        <p>School Head, Principal I–IV, Head Teacher I–VI, Teacher-in-Charge, Officer-in-Charge.</p>
+      </div>
+      <div>
+        <h2>Encoder positions</h2>
+        <p>Teacher I–III, Master Teacher I–III, SGC Coordinator, SGC Secretary, SGC Teacher-Member, SPED Teacher, Guidance Counselor, Administrative Officer.</p>
+      </div>
+    </div>
+    <h2>Division Admin positions</h2>
+    <p>Created by Super Admin, not by Register: Schools Division Superintendent, Assistant Schools Division Superintendent, SGOD Chief, CID Chief, Education Program Supervisor, SGC Focal Person, Public Schools District Supervisor, Division Validator.</p>
+    <p class="muted">In-app manuals and walkthroughs: sign in, then open Docs or Help. Portal: https://sgc-smarttrack.com</p>
+  </section>
+</div>
+</body>
+</html>

@@ -24,17 +24,23 @@ class AccountController extends Controller
 
     public function docs(): Response
     {
+        $user = request()->user();
+
         return Inertia::render('Docs', [
             'title' => 'Docs',
-            'subtitle' => 'SGC FAT rules used in this portal',
+            'subtitle' => 'Role manuals, FAT rules, and walkthroughs',
+            'role' => $user->role,
         ]);
     }
 
     public function help(): Response
     {
+        $user = request()->user();
+
         return Inertia::render('Help', [
             'title' => 'Help',
-            'subtitle' => 'How to encode, submit, and fix a returned MOV',
+            'subtitle' => 'Click-through walkthrough for '.$user->role_label,
+            'role' => $user->role,
         ]);
     }
 
