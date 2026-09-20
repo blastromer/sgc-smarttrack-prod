@@ -121,4 +121,21 @@ class Assessment extends Model
 
         return ! $this->movs()->where('status', 'valid')->exists();
     }
+
+    public function canReviewMovs(): bool
+    {
+        return in_array($this->status, ['submitted', 'under_review', 'returned', 'validated'], true);
+    }
+
+    public function canCompleteReview(): bool
+    {
+        if (! in_array($this->status, ['submitted', 'under_review'], true)) {
+            return false;
+        }
+
+        $files = $this->movs->filter(fn (Mov $mov) => $mov->hasFile());
+
+        return $files->isNotEmpty()
+            && $files->every(fn (Mov $mov) => $mov->status === 'valid');
+    }
 }

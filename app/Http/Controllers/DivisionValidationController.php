@@ -78,18 +78,25 @@ class DivisionValidationController extends Controller
                 'status' => $mov->status,
                 'reason' => $mov->return_reason,
             ]),
-            'can_complete' => in_array($assessment->status, ['submitted', 'under_review'], true),
+            'can_complete' => $assessment->canCompleteReview(),
         ]);
     }
 
     public function acceptMov(Request $request, Mov $mov): RedirectResponse
     {
-        abort_unless(in_array($mov->assessment->status, ['submitted', 'under_review', 'returned'], true), 403);
+        $assessment = $mov->assessment;
+        if (! $assessment->canReviewMovs()) {
+            return back()->with('status', 'This packet cannot be reviewed.');
+        }
 
         $mov->update(['status' => 'valid', 'return_reason' => null]);
-        $mov->assessment->update(['status' => 'under_review']);
+        $assessment->update([
+            'status' => 'under_review',
+            'result' => null,
+            'validated_at' => null,
+        ]);
 
-        return back()->with('status', $mov->code.' marked valid.');
+        return back()->with('status', $mov->code.' marked valid. Accept every uploaded file before completing validation.');
     }
 
     public function returnMov(Request $request, Mov $mov): RedirectResponse
@@ -120,8 +127,10 @@ class DivisionValidationController extends Controller
 
     public function complete(Assessment $assessment): RedirectResponse
     {
-        abort_unless(in_array($assessment->status, ['submitted', 'under_review'], true), 403);
-        abort_if($assessment->movs()->where('status', 'returned')->exists(), 403, 'Return is still open.');
+        $assessment->load('movs');
+        if (! $assessment->canCompleteReview()) {
+            return back()->with('status', 'Accept every uploaded MOV before completing validation.');
+        }
 
         $assessment->load('movs');
 

@@ -176,6 +176,81 @@ class FatSubmissionTest extends TestCase
         ]);
     }
 
+    public function test_division_must_accept_every_uploaded_mov_before_complete()
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder, $head] = $this->schoolPair();
+        $division = User::factory()->create(['role' => 'division', 'status' => 'active']);
+
+        $this->actingAs($encoder)->post('/school/assessment', ['code' => 'FI1', 'answer' => 'yes']);
+        foreach (['FI2', 'FI3', 'FI4', 'FI5', 'FI6', 'FI7', 'FI8', 'FI9', 'FI10', 'FI11', 'FI12'] as $code) {
+            $this->actingAs($encoder)->post('/school/assessment', ['code' => $code, 'answer' => 'no']);
+        }
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'FI1A',
+            'file' => UploadedFile::fake()->create('FI1A.pdf', 40, 'application/pdf'),
+        ]);
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'Validity',
+            'file' => UploadedFile::fake()->create('Validity.pdf', 20, 'application/pdf'),
+        ]);
+        $this->actingAs($head)->post('/school/submit/qa');
+        $this->actingAs($head)->post('/school/submit');
+
+        $assessment = Assessment::query()->where('school_code', '654321')->first();
+        $first = $assessment->movs()->where('code', 'Validity')->first();
+        $second = $assessment->movs()->where('code', 'FI1A')->first();
+
+        $this->actingAs($division)->post(route('division.movs.accept', $first))->assertRedirect();
+        $this->actingAs($division)->post(route('division.review.complete', $assessment))->assertRedirect();
+        $this->assertDatabaseHas('assessments', [
+            'id' => $assessment->id,
+            'status' => 'under_review',
+        ]);
+
+        $this->actingAs($division)->post(route('division.movs.accept', $second))->assertRedirect();
+        $this->actingAs($division)->post(route('division.review.complete', $assessment))->assertRedirect();
+        $this->assertDatabaseHas('assessments', [
+            'id' => $assessment->id,
+            'status' => 'validated',
+            'result' => 'not_yet',
+        ]);
+    }
+
+    public function test_division_can_accept_remaining_mov_after_packet_was_closed_early()
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder, $head] = $this->schoolPair();
+        $division = User::factory()->create(['role' => 'division', 'status' => 'active']);
+
+        $this->actingAs($encoder)->post('/school/assessment', ['code' => 'FI1', 'answer' => 'yes']);
+        foreach (['FI2', 'FI3', 'FI4', 'FI5', 'FI6', 'FI7', 'FI8', 'FI9', 'FI10', 'FI11', 'FI12'] as $code) {
+            $this->actingAs($encoder)->post('/school/assessment', ['code' => $code, 'answer' => 'no']);
+        }
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'FI1A',
+            'file' => UploadedFile::fake()->create('FI1A.pdf', 40, 'application/pdf'),
+        ]);
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'Validity',
+            'file' => UploadedFile::fake()->create('Validity.pdf', 20, 'application/pdf'),
+        ]);
+        $this->actingAs($head)->post('/school/submit/qa');
+        $this->actingAs($head)->post('/school/submit');
+
+        $assessment = Assessment::query()->where('school_code', '654321')->first();
+        $first = $assessment->movs()->where('code', 'Validity')->first();
+        $second = $assessment->movs()->where('code', 'FI1A')->first();
+        $this->actingAs($division)->post(route('division.movs.accept', $first));
+        $assessment->update(['status' => 'validated', 'result' => 'not_yet']);
+
+        $this->actingAs($division)->post(route('division.movs.accept', $second))->assertRedirect();
+        $this->assertDatabaseHas('movs', ['id' => $second->id, 'status' => 'valid']);
+        $this->assertDatabaseHas('assessments', ['id' => $assessment->id, 'status' => 'under_review']);
+    }
+
     public function test_encoder_requests_removal_and_school_head_removes_unapproved_file()
     {
         Storage::fake('local');

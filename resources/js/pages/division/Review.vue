@@ -69,7 +69,15 @@ const tone = (status: string) => {
                         </td>
                         <td>
                             <div class="actions" style="margin-top: 0">
-                                <button class="btn inline min-h-11" type="button" @click="accept(mov.id)">Accept</button>
+                                <button
+                                    class="btn inline min-h-11"
+                                    type="button"
+                                    :disabled="status === 'validated' && mov.status === 'valid'"
+                                    :class="{ disabled: status === 'validated' && mov.status === 'valid' }"
+                                    @click="accept(mov.id)"
+                                >
+                                    Accept
+                                </button>
                                 <button class="btn inline ghost min-h-11" type="button" @click="returnMov(mov.id)">Return</button>
                             </div>
                         </td>
@@ -82,7 +90,7 @@ const tone = (status: string) => {
                     Complete validation (10/12 = Functional)
                 </button>
             </div>
-            <p class="muted" style="margin-top: 12px">Return an invalid MOV to send it back. The school replaces only that file, certifies QA, and resubmits.</p>
+            <p class="muted" style="margin-top: 12px">Accept every uploaded file first. Complete stays locked until all files are valid. Then 10 of 12 Yes with valid MOVs is Functional.</p>
         </div>
     </SgcLayout>
 </template>
