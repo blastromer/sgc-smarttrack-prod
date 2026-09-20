@@ -3,7 +3,7 @@ import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { CheckItem } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
 
-defineProps<{
+const props = defineProps<{
     title: string;
     subtitle: string;
     chip?: string;
@@ -20,9 +20,12 @@ defineProps<{
     can_withdraw?: boolean;
 }>();
 
+const atDivision = () => ['submitted', 'under_review', 'validated'].includes(props.status);
+
 const certify = () => router.post(route('school.submit.qa'));
 const submit = () => router.post(route('school.submit.send'));
 const withdraw = () => {
+    if (!props.can_withdraw) return;
     if (!confirm('Withdraw this packet from Division? You can then remove or replace files.')) return;
     router.post(route('school.submit.withdraw'));
 };
@@ -50,10 +53,22 @@ const withdraw = () => {
                     <button class="btn inline" type="button" :disabled="!can_submit" :class="{ disabled: !can_submit }" @click="submit">
                         {{ status === 'returned' || returned ? 'Resubmit to Division' : 'Submit to Division' }}
                     </button>
-                    <button v-if="can_withdraw" class="btn inline ghost" type="button" @click="withdraw">Withdraw from Division</button>
+                    <button
+                        v-if="is_school_head && (can_withdraw || atDivision())"
+                        class="btn inline ghost"
+                        type="button"
+                        :disabled="!can_withdraw"
+                        :class="{ disabled: !can_withdraw }"
+                        @click="withdraw"
+                    >
+                        Withdraw from Division
+                    </button>
                 </div>
                 <p v-if="!is_school_head" class="muted" style="margin-top: 12px">
                     Teachers encode and upload MOVs. Only the School Head can certify QA and submit to Division.
+                </p>
+                <p v-if="is_school_head && atDivision() && !can_withdraw" class="muted" style="margin-top: 12px">
+                    Withdraw is closed after Division accepts a MOV. If a file is returned or invalid, replace that file, certify QA, and resubmit.
                 </p>
                 <p class="muted" style="margin-top: 12px">
                     If a MOV is returned or invalid: (1) the encoder replaces that file, (2) the School Head certifies QA again, (3) the School Head resubmits.

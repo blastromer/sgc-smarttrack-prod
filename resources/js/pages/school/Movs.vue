@@ -4,7 +4,7 @@ import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { router } from '@inertiajs/vue3';
 
-defineProps<{
+const props = defineProps<{
     title: string;
     subtitle: string;
     kpis?: Kpi[];
@@ -51,6 +51,7 @@ const requestRemove = (id: number) => {
 };
 
 const withdraw = () => {
+    if (!props.can_withdraw) return;
     if (!confirm('Withdraw this packet from Division? Files can then be removed or replaced.')) return;
     router.post(route('school.submit.withdraw'), {}, { preserveScroll: true });
 };

@@ -315,4 +315,42 @@ class FatSubmissionTest extends TestCase
             'status' => 'in_progress',
         ]);
     }
+
+    public function test_school_head_cannot_withdraw_after_division_accepts_a_mov()
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder, $head] = $this->schoolPair();
+        $division = User::factory()->create(['role' => 'division', 'status' => 'active']);
+
+        $this->actingAs($encoder)->post('/school/assessment', ['code' => 'FI1', 'answer' => 'yes']);
+        foreach (['FI2', 'FI3', 'FI4', 'FI5', 'FI6', 'FI7', 'FI8', 'FI9', 'FI10', 'FI11', 'FI12'] as $code) {
+            $this->actingAs($encoder)->post('/school/assessment', ['code' => $code, 'answer' => 'no']);
+        }
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'FI1A',
+            'file' => UploadedFile::fake()->create('FI1A.pdf', 80, 'application/pdf'),
+        ]);
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'Validity',
+            'file' => UploadedFile::fake()->create('Validity.pdf', 20, 'application/pdf'),
+        ]);
+        $this->actingAs($head)->post('/school/submit/qa');
+        $this->actingAs($head)->post('/school/submit');
+
+        $assessment = Assessment::query()->where('school_code', '654321')->first();
+        $mov = $assessment->movs()->where('code', 'Validity')->first();
+        $this->actingAs($division)->post(route('division.movs.accept', $mov))->assertRedirect();
+
+        $this->actingAs($head)
+            ->from('/school/submit')
+            ->post('/school/submit/withdraw')
+            ->assertRedirect('/school/submit')
+            ->assertSessionHas('status', 'Cannot withdraw after Division has accepted a MOV.');
+
+        $this->assertDatabaseHas('assessments', [
+            'id' => $assessment->id,
+            'status' => 'under_review',
+        ]);
+    }
 }

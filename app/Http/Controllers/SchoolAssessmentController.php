@@ -305,7 +305,10 @@ class SchoolAssessmentController extends Controller
         $assessment = AssessmentEngine::forSchool($user);
         abort_unless($assessment, 404);
         abort_unless($user->isSchoolHead(), 403, 'Only the School Head can withdraw the packet.');
-        abort_unless($assessment->canWithdraw(), 403, 'Cannot withdraw after Division has accepted a MOV.');
+
+        if (! $assessment->canWithdraw()) {
+            return back()->with('status', 'Cannot withdraw after Division has accepted a MOV.');
+        }
 
         $assessment->update([
             'status' => 'in_progress',
