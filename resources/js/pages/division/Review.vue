@@ -41,7 +41,15 @@ const tone = (status: string) => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
-        <p class="muted">Yes answers: {{ yes_count }}/12 · Packet: {{ status }}{{ result ? ' · ' + result : '' }}</p>
+        <p class="muted">
+            Yes answers: {{ yes_count }}/12
+            <template v-if="status === 'validated'">
+                · Result: {{ result === 'functional' ? 'Functional' : 'Not yet functional' }}
+            </template>
+            <template v-else>
+                · Packet: {{ status }}
+            </template>
+        </p>
         <div class="box" style="margin-top: 12px">
             <div class="table-scroll">
             <table class="data-table">
@@ -87,10 +95,12 @@ const tone = (status: string) => {
             </div>
             <div class="actions">
                 <button class="btn inline" type="button" :disabled="!can_complete" :class="{ disabled: !can_complete }" @click="complete">
-                    Complete validation (10/12 = Functional)
+                    {{ status === 'validated' ? (result === 'functional' ? 'Functional (10/12 met)' : 'Not yet functional') : 'Complete validation' }}
                 </button>
             </div>
-            <p class="muted" style="margin-top: 12px">Accept every uploaded file first. Complete stays locked until all files are valid. Then 10 of 12 Yes with valid MOVs is Functional.</p>
+            <p class="muted" style="margin-top: 12px">
+                This packet has {{ yes_count }} of 12 Yes. Completing records the Division decision. Functional needs 10 of 12 Yes, each with a valid Minimum MOV.
+            </p>
         </div>
     </SgcLayout>
 </template>
