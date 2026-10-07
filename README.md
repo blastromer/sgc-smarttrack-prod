@@ -1,8 +1,8 @@
 # SGC SmartTrack (production)
 
-DepEd School Governance Council Functionality Assessment for **SDO Cadiz City**.
+DepEd School Governance Council Functionality Assessment for **public elementary and secondary schools**.
 
-This is the Laravel production codebase. Single SDO (not multi-tenant). Schools sign in at one domain; they do not get subdomains.
+This is the Laravel production codebase. Schools sign in at one domain; they do not get subdomains.
 
 The clickable HTML prototype stays in the separate `sgc-smarttrack` repo / Vercel site.
 
@@ -49,7 +49,8 @@ Or `composer run dev` if you want the app, queue, and Vite together.
 ## Roles (assigned, not chosen at login)
 
 - `super` — system
-- `division` — SDO Cadiz City / SGC Focal
-- `school` — one school under Cadiz
+- `division` — SGC Focal / validator
+- `school_head` — School Head (elementary or secondary)
+- `school` — Encoder for that school
 
 Domain types live in `resources/js/types/sgc.ts`.

@@ -6,6 +6,7 @@ use App\Models\Assessment;
 use App\Models\Cycle;
 use App\Models\IndicatorAnswer;
 use App\Models\Mov;
+use App\Models\SchoolFormProfile;
 use App\Models\User;
 
 class PortalMetrics
@@ -20,7 +21,7 @@ class PortalMetrics
 
         return [
             'title' => 'Division dashboard',
-            'subtitle' => trim($user->name.' · '.($user->position ?: 'Division Admin').' · '.($user->office ?: 'SDO Cadiz City')),
+            'subtitle' => trim($user->name.' · '.($user->position ?: 'Division Admin').' · '.($user->office ?: 'Division')),
             'chip' => self::deadlineChip($cycle),
             'kpis' => [
                 self::kpi('Schools', (string) $stats['schools'], 'Accepted School Heads'),
@@ -57,7 +58,7 @@ class PortalMetrics
 
         return [
             'title' => 'System overview',
-            'subtitle' => 'Live counts · SDO Cadiz City',
+            'subtitle' => 'Live counts · SGC Functionality Assessment',
             'chip' => $cycle?->name ?: 'No open cycle',
             'kpis' => [
                 self::kpi('Schools in cycle', (string) $stats['schools'], 'Accepted School Heads'),
@@ -90,26 +91,25 @@ class PortalMetrics
     public static function superDivisions(): array
     {
         $stats = self::stats();
+        $division = User::query()->where('role', 'division')->where('status', 'active')->first();
+        $divisionName = $division?->office ?: ($division?->name ?: 'No Division Admin yet');
 
         return [
             'title' => 'Divisions',
-            'subtitle' => 'Pilot is one SDO. Counts come from registered schools, not sample data.',
+            'subtitle' => 'Counts come from registered schools, not sample data.',
             'kpis' => [
-                self::kpi('Active SDOs', '1', 'Cadiz City'),
-                self::kpi('Schools mapped', (string) $stats['schools'], 'Accepted School Heads'),
                 self::kpi('Division Admins', (string) $stats['division_admins'], 'Created by Super Admin'),
+                self::kpi('Schools mapped', (string) $stats['schools'], 'Accepted School Heads'),
+                self::kpi('Functional', (string) $stats['functional'], '≥ 10 of 12 FIs'),
             ],
-            'headers' => ['Division', 'Region', 'Schools', 'Submission', 'Functional', 'Status'],
-            'rows' => [
-                [
-                    'Schools Division of Cadiz City',
-                    'Negros Island Region',
-                    (string) $stats['schools'],
-                    $stats['compliance'].'%',
-                    (string) $stats['functional'],
-                    self::badge($stats['schools'] ? 'Live' : 'Awaiting schools', $stats['schools'] ? 'ok' : 'warn'),
-                ],
-            ],
+            'headers' => ['Division', 'Schools', 'Submission', 'Functional', 'Status'],
+            'rows' => $division ? [[
+                $divisionName,
+                (string) $stats['schools'],
+                $stats['compliance'].'%',
+                (string) $stats['functional'],
+                self::badge($stats['schools'] ? 'Live' : 'Awaiting schools', $stats['schools'] ? 'ok' : 'warn'),
+            ]] : [],
         ];
     }
 
@@ -163,8 +163,9 @@ class PortalMetrics
             ->get()
             ->keyBy('school_code');
 
-        $rows = $heads->map(function (User $head) use ($packets) {
-            $packet = $packets->get($head->school_code);
+        $schools = $heads->map(function (User $head) use ($packets) {
+            $code = $head->packetSchoolCode();
+            $packet = $packets->get($head->school_code) ?? $packets->get($code);
             $yes = $packet?->yes_count ?? 0;
             $result = match (true) {
                 $head->status === 'pending' => self::badge('Pending', 'warn'),
@@ -175,25 +176,123 @@ class PortalMetrics
             };
 
             return [
-                $head->school_name ?: 'Unnamed school',
-                $head->school_code ?: '—',
-                $yes.'/12',
-                (string) ($packet?->mov_files ?? 0),
-                $result,
+                'code' => $code,
+                'name' => $head->school_name ?: 'Unnamed school',
+                'school_code' => $head->school_code ?: '—',
+                'yes' => $yes.'/12',
+                'movs' => (string) ($packet?->mov_files ?? 0),
+                'result' => $result,
             ];
-        })->all();
+        })->values();
 
         return [
             'title' => 'Schools',
-            'subtitle' => 'School Heads registered for SDO Cadiz City.',
+            'subtitle' => 'Open a school to see its team and the current FAT packet.',
             'kpis' => [
                 self::kpi('Listed', (string) $heads->count()),
                 self::kpi('Functional', (string) $stats['functional']),
                 self::kpi('Not yet', (string) max($heads->count() - $stats['functional'], 0), null, $heads->count() ? 'warn' : null),
             ],
-            'headers' => ['School', 'School ID', 'FIs met', 'MOVs', 'Result'],
-            'rows' => $rows,
+            'schools' => $schools,
             'empty_text' => 'No School Heads have registered yet.',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function divisionSchool(string $code): array
+    {
+        $heads = User::query()
+            ->where('role', 'school_head')
+            ->where(function ($query) use ($code) {
+                $query->where('school_code', $code);
+                if (preg_match('/^user-(\d+)$/', $code, $match)) {
+                    $query->orWhere('id', (int) $match[1]);
+                }
+            })
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get();
+
+        abort_if($heads->isEmpty(), 404);
+
+        $head = $heads->first();
+        $schoolCode = $head->packetSchoolCode();
+        $profile = SchoolFormProfile::query()->firstOrNew(['school_code' => $schoolCode]);
+        $form = $profile->toForm($head);
+        $encoders = User::query()
+            ->where('role', 'school')
+            ->where('school_code', $head->school_code)
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get();
+
+        $assessment = Assessment::query()
+            ->with(['cycle', 'indicators', 'movs'])
+            ->where('school_code', $schoolCode)
+            ->latest('id')
+            ->first();
+
+        $snap = $assessment ? AssessmentEngine::snapshot($assessment) : null;
+        $yes = $snap['yes_count'] ?? 0;
+        $encoded = $snap['encoded'] ?? 0;
+        $result = match (true) {
+            $head->status === 'pending' => self::badge('Pending', 'warn'),
+            ($assessment?->result) === 'functional' => self::badge('Functional', 'ok'),
+            $assessment?->submitted_at => self::badge($assessment->status === 'validated' ? 'Validated' : 'Submitted', 'warn'),
+            $assessment => self::badge('In progress', 'warn'),
+            default => self::badge('No packet', 'bad'),
+        };
+
+        return [
+            'title' => $head->school_name ?: 'School',
+            'subtitle' => 'School ID '.($head->school_code ?: '—').' · current cycle packet',
+            'kpis' => [
+                self::kpi('FIs met', $yes.'/12', $encoded.' encoded'),
+                self::kpi('Encoders', (string) $encoders->where('status', 'active')->count(), $encoders->where('status', 'pending')->count().' pending'),
+                self::kpi('MOVs', (string) ($assessment?->movs->filter->hasFile()->count() ?? 0), $assessment?->status ?: 'No packet'),
+            ],
+            'school' => [
+                'name' => $form['school_name'] ?: ($head->school_name ?: '—'),
+                'school_code' => $head->school_code ?: '—',
+                'region' => $form['region'] ?: '—',
+                'division' => $form['division'] ?: '—',
+                'address' => $form['school_address'] ?: '—',
+                'school_year' => $form['school_year'] ?: '—',
+                'contact' => $form['contact'] ?: '—',
+                'email' => $form['email'] ?: '—',
+                'co_chair_elected' => $form['co_chair_elected'] ?: '—',
+                'co_chair_designated' => $form['co_chair_designated'] ?: '—',
+                'secretary' => $form['secretary_name'] ?: '—',
+            ],
+            'heads' => $heads->map(fn (User $user) => self::person($user))->values(),
+            'encoders' => $encoders->map(fn (User $user) => self::person($user))->values(),
+            'packet' => $assessment ? [
+                'id' => $assessment->id,
+                'cycle' => $assessment->cycle?->name ?: '—',
+                'status' => $assessment->status,
+                'result' => $result,
+                'encoded' => $encoded.'/12',
+                'yes' => $yes.'/12',
+                'qa' => $assessment->qa_certified_at?->format('M j, Y g:i A') ?: 'Not certified',
+                'submitted' => $assessment->submitted_at?->format('M j, Y g:i A') ?: 'Not submitted',
+                'validated' => $assessment->validated_at?->format('M j, Y g:i A') ?: '—',
+                'can_review' => $assessment->canReviewMovs(),
+                'indicators' => FatCatalog::sortIndicators($assessment->indicators)->map(fn ($indicator) => [
+                    'code' => $indicator->code,
+                    'title' => $indicator->title,
+                    'answer' => $indicator->answer,
+                ])->values(),
+                'movs' => $assessment->movs->map(fn (Mov $mov) => [
+                    'id' => $mov->id,
+                    'code' => $mov->code,
+                    'title' => $mov->title,
+                    'file' => $mov->original_name,
+                    'status' => $mov->status,
+                    'has_file' => $mov->hasFile(),
+                ])->values(),
+            ] : null,
         ];
     }
 
@@ -259,6 +358,36 @@ class PortalMetrics
     }
 
     /**
+     * Compact live counts for dashboard AI (ideas, graph reading, analytics).
+     *
+     * @return array<string, mixed>
+     */
+    public static function analyticsSnapshot(): array
+    {
+        $stats = self::stats();
+        $cycle = self::openCycle();
+
+        return [
+            'cycle' => $cycle?->name,
+            'deadline' => self::deadlineChip($cycle),
+            'schools' => $stats['schools'],
+            'submitted' => $stats['submitted'],
+            'overdue' => $stats['overdue'],
+            'functional' => $stats['functional'],
+            'queue' => $stats['queue'],
+            'validated' => $stats['validated'],
+            'returned_movs' => $stats['returned_movs'],
+            'ta_flagged' => $stats['ta_flagged'],
+            'avg_fis' => $stats['avg_fis'],
+            'compliance' => $stats['compliance'],
+            'admins' => $stats['admins'],
+            'division_admins' => $stats['division_admins'],
+            'weakest' => $stats['weakest'],
+            'funnel' => $stats['funnel'],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function stats(): array
@@ -299,6 +428,7 @@ class PortalMetrics
             $packet = $byCode->get($head->school_code);
             if (! $packet) {
                 $funnelCounts['Not started']++;
+
                 continue;
             }
 
@@ -422,5 +552,20 @@ class PortalMetrics
     private static function badge(string $badge, string $tone): array
     {
         return compact('badge', 'tone');
+    }
+
+    /**
+     * @return array{name: string, email: string, position: string, status: array{badge: string, tone: string}}
+     */
+    private static function person(User $user): array
+    {
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'position' => $user->position ?: '—',
+            'status' => $user->status === 'active'
+                ? self::badge('Active', 'ok')
+                : self::badge(ucfirst((string) $user->status), 'warn'),
+        ];
     }
 }

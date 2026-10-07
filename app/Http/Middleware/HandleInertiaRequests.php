@@ -2,8 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use App\Support\AssessmentEngine;
+use App\Support\SgcAi;
 use App\Support\SgcSample;
+use App\Support\SiteAppearance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -52,6 +55,12 @@ class HandleInertiaRequests extends Middleware
                 'notices' => $this->noticesFor($user),
                 'noticeHref' => SgcSample::noticeHref($user->role),
                 'flow' => $user->isSchoolStaff() ? AssessmentEngine::flowFor($user) : null,
+                'ai' => SgcAi::forUser($user, $request->path()),
+                'appearance' => [
+                    'current' => SiteAppearance::resolved(SiteAppearance::forRequest($request)),
+                    'site' => SiteAppearance::resolved(SiteAppearance::site()),
+                    'can_publish' => $user->role === 'super',
+                ],
             ] : null,
         ]);
     }
@@ -59,7 +68,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * @return array<int, array{id: string, unread: bool, title: string, detail: mixed, when: string, href: mixed}>
      */
-    private function noticesFor(\App\Models\User $user): array
+    private function noticesFor(User $user): array
     {
         $live = $user->notifications()
             ->latest()

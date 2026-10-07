@@ -46,7 +46,7 @@ const withdraw = () => {
                         </div>
                     </li>
                 </ul>
-                <div class="actions">
+                <div class="actions" data-tour="submit">
                     <Link class="btn inline ghost" href="/school/movs">{{ returned ? 'Replace returned MOV' : 'Open MOV files' }}</Link>
                     <Link class="btn inline ghost" href="/school/assessment">Finish indicators</Link>
                     <button v-if="can_qa" class="btn inline" type="button" @click="certify">Certify School Head QA</button>

@@ -24,7 +24,11 @@ const submit = () => {
 <template>
     <SgcAuthLayout title="Sign in">
         <template #hero>
-            <h1>SGC SmartTrack</h1>
+            <img
+                class="mb-2 max-h-[88px] w-auto max-w-full object-contain object-left sgc:mb-3 sgc:max-h-[120px]"
+                src="/assets/sgc-smarttrack-logo.png"
+                alt="SGC SmartTrack"
+            />
             <p>School Governance Council assessment, MOV validation, and division monitoring. Role is assigned to your account after sign-in.</p>
         </template>
 

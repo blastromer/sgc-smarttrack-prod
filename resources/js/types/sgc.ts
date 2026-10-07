@@ -69,6 +69,28 @@ export interface Flow {
     steps: FlowStep[];
 }
 
+export interface AiAssist {
+    template: string;
+    hint: string;
+    next: string;
+    unencoded: string[];
+    missing: string[];
+    returned: string[];
+    href: string;
+    open: number;
+    live?: boolean;
+    role?: 'school' | 'division' | 'super' | string;
+    uses?: string[];
+    ideas?: string[];
+    graphs?: string;
+    prompts?: string[];
+    page?: {
+        key: string;
+        title: string;
+        explain: string;
+    };
+}
+
 export interface CheckItem {
     mark: string;
     tone: Tone | string;

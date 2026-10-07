@@ -26,6 +26,8 @@ class PortalTest extends TestCase
         $this->actingAs($user)->get('/school')->assertOk();
         $this->actingAs($user)->get('/school/assessment')->assertOk();
         $this->actingAs($user)->get('/school/movs')->assertOk();
+        $this->actingAs($user)->get('/school/templates')->assertOk();
+        $this->actingAs($user)->get('/school/form-data')->assertOk();
         $this->actingAs($user)->get('/school/submit')->assertOk();
         $this->actingAs($user)->get('/school/notifications')->assertOk();
         $this->actingAs($user)->get('/account')->assertOk()->assertSee('Account');
@@ -70,8 +72,13 @@ class PortalTest extends TestCase
         $user = User::factory()->create(['role' => 'school_head']);
 
         $this->actingAs($user)->get('/school')->assertOk();
+        $this->actingAs($user)->get('/school/templates')->assertOk();
+        $this->actingAs($user)->get('/school/form-data')->assertOk();
         $this->actingAs($user)->get('/school/submit')->assertOk();
-        $this->actingAs($user)->get('/school/encoders')->assertOk();
+        $this->actingAs($user)
+            ->get('/school/encoders')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('school/Encoders'));
     }
 
     public function test_school_admin_can_update_configuration()
@@ -128,6 +135,7 @@ class PortalTest extends TestCase
             ->assertDontSee('186')
             ->assertDontSee('76% compliance');
         $this->actingAs($user)->get('/division/schools')->assertOk()->assertSee('No School Heads have registered yet.');
+        $this->actingAs($user)->get('/division/schools/654321')->assertNotFound();
     }
 
     public function test_super_admin_can_reset_school_and_fat_data()

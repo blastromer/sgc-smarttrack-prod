@@ -21,7 +21,7 @@ class SchoolRegistrationApproved extends Notification
             return (new MailMessage)
                 ->subject('Your SGC SmartTrack School Head account is active')
                 ->greeting('School Head')
-                ->line('Division Admin accepted your School Head registration for SDO Cadiz City.')
+                ->line('Division Admin accepted your School Head registration.')
                 ->line('You can now sign in, certify School Head QA, and approve Encoder (teacher) registrations for your school.')
                 ->action('Sign in to SmartTrack', url('/login'));
         }

@@ -4,8 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Cycle;
 use App\Models\User;
+use App\Notifications\MovReturned;
 use App\Support\AssessmentEngine;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 
 class DatabaseSeeder extends Seeder
 {
@@ -69,7 +71,7 @@ class DatabaseSeeder extends Seeder
         Cycle::query()->updateOrCreate(
             ['name' => '2026 SGC Functionality Assessment'],
             [
-                'level' => 'Public Elementary',
+                'level' => 'Public Elementary and Secondary',
                 'opens_at' => now()->subDays(17)->toDateString(),
                 'deadline_at' => now()->addDays(12)->toDateString(),
                 'status' => 'open',
@@ -99,7 +101,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($assessment->movs as $mov) {
             $path = 'movs/'.$assessment->id.'/'.$mov->code.'.pdf';
-            \Illuminate\Support\Facades\Storage::disk('local')->put($path, "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
+            Storage::disk('local')->put($path, "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
             $returned = $mov->code === 'FI3A';
             $mov->update([
                 'original_name' => $returned ? 'FI3A-Minimum-Resolution.pdf' : $mov->code.'.pdf',
@@ -119,7 +121,7 @@ class DatabaseSeeder extends Seeder
 
         $fi3a = $assessment->movs()->where('code', 'FI3A')->first();
         if ($fi3a) {
-            $school->notify(new \App\Notifications\MovReturned($fi3a));
+            $school->notify(new MovReturned($fi3a));
         }
     }
 }

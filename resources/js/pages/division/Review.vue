@@ -57,6 +57,7 @@ const tone = (status: string) => {
                     <tr>
                         <th>MOV</th>
                         <th>Title</th>
+                        <th>Type</th>
                         <th>File</th>
                         <th>Status</th>
                         <th>Return reason</th>
@@ -67,6 +68,7 @@ const tone = (status: string) => {
                     <tr v-for="mov in movs" :key="mov.id">
                         <td data-label="MOV">{{ mov.code }}</td>
                         <td data-label="Title">{{ mov.title }}</td>
+                        <td data-label="Type">{{ mov.kind }}</td>
                         <td data-label="File">
                             <a v-if="mov.file" :href="route('movs.download', { mov: mov.id })">{{ mov.file }}</a>
                             <span v-else class="muted">No file</span>
@@ -99,7 +101,7 @@ const tone = (status: string) => {
                 </button>
             </div>
             <p class="muted" style="margin-top: 12px">
-                This packet has {{ yes_count }} of 12 Yes. Completing records the Division decision. Functional needs 10 of 12 Yes, each with a valid Minimum MOV.
+                This packet has {{ yes_count }} of 12 primary Yes. Completing records the Division decision. Functional needs 10 of 12 primary Yes, each with every Minimum MOV marked valid. Additional and other-sub-indicator files do not score.
             </p>
         </div>
     </SgcLayout>

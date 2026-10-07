@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\SchoolDirectory;
+use App\Support\SiteAppearance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,6 +44,39 @@ class AccountController extends Controller
             'subtitle' => 'Click-through walkthrough for '.$user->role_label,
             'role' => $user->role,
         ]);
+    }
+
+    public function configuration(): Response
+    {
+        return Inertia::render('settings/Configuration', [
+            'title' => 'Configuration',
+            'subtitle' => 'Color theme, font, and text size for SmartTrack',
+        ]);
+    }
+
+    public function updateAppearance(Request $request): RedirectResponse
+    {
+        $data = SiteAppearance::sanitize($request->only(['theme', 'accent', 'font', 'text_size', 'density']));
+        $publish = $request->boolean('publish') && $request->user()?->role === 'super';
+
+        if ($publish) {
+            SiteAppearance::publish($data);
+        }
+
+        $message = $publish
+            ? 'Site default saved. Anyone without their own settings will see this theme.'
+            : 'Appearance saved. It applies to every page you use in SmartTrack.';
+
+        return back()
+            ->with('status', $message)
+            ->cookie(SiteAppearance::COOKIE, json_encode($data), 60 * 24 * 365, '/', null, false, false);
+    }
+
+    public function resetAppearance(Request $request): RedirectResponse
+    {
+        return back()
+            ->with('status', 'Reset to the site default.')
+            ->withCookie(Cookie::forget(SiteAppearance::COOKIE));
     }
 
     public function update(Request $request): RedirectResponse

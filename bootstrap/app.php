@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserRole;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Support\SiteAppearance;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,6 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return $user ? route($user->homeRoute()) : route('login');
         });
+
+        $middleware->encryptCookies(except: [
+            SiteAppearance::COOKIE,
+        ]);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,

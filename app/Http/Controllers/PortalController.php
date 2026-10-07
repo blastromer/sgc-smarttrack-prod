@@ -40,6 +40,11 @@ class PortalController extends Controller
         return Inertia::render('division/Schools', PortalMetrics::divisionSchools());
     }
 
+    public function divisionSchool(string $code): Response
+    {
+        return Inertia::render('division/School', PortalMetrics::divisionSchool($code));
+    }
+
     public function divisionAlerts(): Response
     {
         return Inertia::render('division/Alerts', PortalMetrics::divisionAlerts());

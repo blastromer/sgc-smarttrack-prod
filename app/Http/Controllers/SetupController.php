@@ -46,7 +46,7 @@ class SetupController extends Controller
         Cycle::query()->firstOrCreate(
             ['name' => '2026 SGC Functionality Assessment'],
             [
-                'level' => 'Public Elementary',
+                'level' => 'Public Elementary and Secondary',
                 'opens_at' => now()->toDateString(),
                 'deadline_at' => now()->addDays(30)->toDateString(),
                 'status' => 'open',

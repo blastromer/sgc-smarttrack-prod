@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\Assessment;
 use App\Models\Cycle;
-use App\Models\IndicatorAnswer;
 use App\Models\Mov;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -23,7 +22,7 @@ class AssessmentEngine
             return null;
         }
 
-        return Assessment::query()->firstOrCreate(
+        $assessment = Assessment::query()->firstOrCreate(
             [
                 'cycle_id' => $cycle->id,
                 'school_code' => $user->packetSchoolCode(),
@@ -33,6 +32,9 @@ class AssessmentEngine
                 'status' => 'in_progress',
             ]
         );
+        self::syncCatalog($assessment);
+
+        return $assessment;
     }
 
     public static function flowFor(User $user): ?array
@@ -61,8 +63,9 @@ class AssessmentEngine
      */
     public static function snapshot(Assessment $assessment): array
     {
+        self::syncCatalog($assessment);
         $assessment->load(['indicators', 'movs', 'cycle', 'user']);
-        $indicators = $assessment->indicators->sortBy('code')->values();
+        $indicators = FatCatalog::sortIndicators($assessment->indicators);
         $encoded = $indicators->whereNotNull('answer')->count();
         $yesCount = $indicators->where('answer', 'yes')->count();
         $returnedMovs = $assessment->movs->where('status', 'returned');
@@ -96,7 +99,7 @@ class AssessmentEngine
                 : 'Result: Not yet functional.',
             $inDivision => 'Packet is with Division for MOV validation.',
             $returnedMovs->isNotEmpty() => 'Replace returned or invalid MOVs, then School Head QA, then resubmit.',
-            $canSubmit => 'School Head QA is done. Submit the packet to SDO Cadiz City.',
+            $canSubmit => 'School Head QA is done. Submit the packet to Division.',
             $canQa => 'Encode and MOVs are clear. School Head can certify QA.',
             ! $encodeDone => 'Encode all 12 functionality indicators first.',
             default => 'Upload missing MOVs and replace any returned files.',
@@ -131,37 +134,103 @@ class AssessmentEngine
         ];
     }
 
+    public static function syncCatalog(Assessment $assessment): void
+    {
+        foreach (FatCatalog::indicators() as $indicator) {
+            $assessment->indicators()->updateOrCreate(
+                ['code' => $indicator['code']],
+                ['title' => $indicator['title']],
+            );
+        }
+    }
+
     /**
-     * @return Collection<int, array{code: string, title: string, indicator_code: ?string, kind: string}>
+     * Scored Minimum MOV slots plus the Validity Form.
+     *
+     * @return Collection<int, array{code: string, title: string, indicator_code: ?string, kind: string, sub_code?: string, scored?: bool}>
      */
     public static function requiredSlots(Assessment $assessment): Collection
     {
-        $slots = collect();
+        $assessment->loadMissing('indicators');
 
-        foreach ($assessment->indicators as $indicator) {
-            if ($indicator->answer !== 'yes') {
+        return self::slotsForYesIndicators($assessment, false)->push(self::validitySlot());
+    }
+
+    /**
+     * Required slots plus optional additional / other-sub-indicator MOVs for Yes answers.
+     *
+     * @return Collection<int, array{code: string, title: string, indicator_code: ?string, kind: string, sub_code?: string, scored?: bool}>
+     */
+    public static function visibleSlots(Assessment $assessment): Collection
+    {
+        $assessment->loadMissing('indicators');
+        $slots = self::slotsForYesIndicators($assessment, true);
+
+        foreach (FatCatalog::sortIndicators($assessment->indicators) as $indicator) {
+            if ($indicator->answer !== null) {
                 continue;
             }
-            $meta = FatCatalog::indicator($indicator->code);
-            if (! $meta) {
-                continue;
+            foreach (FatCatalog::minimumSlots($indicator->code) as $slot) {
+                $slots->push($slot);
             }
-            $slots->push([
-                'code' => $meta['mov_code'],
-                'title' => $meta['mov_title'],
-                'indicator_code' => $indicator->code,
-                'kind' => 'minimum',
-            ]);
         }
 
-        $slots->push([
-            'code' => 'Validity',
-            'title' => 'Validity Form',
-            'indicator_code' => null,
-            'kind' => 'validity',
+        return $slots->push(self::validitySlot());
+    }
+
+    /**
+     * Uploading a scored Minimum MOV encodes Yes for that FI. Never encodes No. Never overrides an existing answer.
+     */
+    public static function encodeYesFromMinimumUpload(Assessment $assessment, Mov $mov): ?string
+    {
+        if ($mov->kind !== 'minimum' || ! $mov->hasFile() || $assessment->answersLocked()) {
+            return null;
+        }
+
+        $code = $mov->indicator_code;
+        if (! filled($code)) {
+            return null;
+        }
+
+        $indicator = $assessment->indicators()->where('code', $code)->first();
+        if (! $indicator || $indicator->answer !== null) {
+            return null;
+        }
+
+        $indicator->update(['answer' => 'yes']);
+        $assessment->update([
+            'qa_certified_at' => null,
+            'status' => 'in_progress',
+            'result' => null,
         ]);
 
-        return $slots;
+        self::ensureRequiredMovs($assessment->fresh(['indicators']));
+
+        return $code;
+    }
+
+    public static function yesIndicatorsValidated(Assessment $assessment): int
+    {
+        $assessment->loadMissing(['indicators', 'movs']);
+
+        return FatCatalog::sortIndicators($assessment->indicators)
+            ->where('answer', 'yes')
+            ->filter(fn ($indicator) => self::primaryMovsAreValid($assessment, $indicator->code))
+            ->count();
+    }
+
+    public static function primaryMovsAreValid(Assessment $assessment, string $indicatorCode): bool
+    {
+        $slots = FatCatalog::minimumSlots($indicatorCode);
+        if ($slots === []) {
+            return false;
+        }
+
+        return collect($slots)->every(function (array $slot) use ($assessment) {
+            $mov = $assessment->movs->firstWhere('code', $slot['code']);
+
+            return $mov && $mov->status === 'valid';
+        });
     }
 
     public static function missingRequiredMovs(Assessment $assessment): Collection
@@ -178,19 +247,58 @@ class AssessmentEngine
 
     public static function ensureRequiredMovs(Assessment $assessment): void
     {
-        foreach (self::requiredSlots($assessment) as $slot) {
-            Mov::query()->firstOrCreate(
-                [
-                    'assessment_id' => $assessment->id,
-                    'code' => $slot['code'],
-                ],
-                [
-                    'indicator_code' => $slot['indicator_code'],
-                    'title' => $slot['title'],
-                    'kind' => $slot['kind'],
-                    'status' => 'draft',
-                ]
-            );
+        foreach (self::visibleSlots($assessment) as $slot) {
+            $mov = Mov::query()->firstOrNew([
+                'assessment_id' => $assessment->id,
+                'code' => $slot['code'],
+            ]);
+            $mov->indicator_code = $slot['indicator_code'];
+            $mov->title = $slot['title'];
+            $mov->kind = $slot['kind'];
+            if (! $mov->exists) {
+                $mov->status = 'draft';
+            }
+            $mov->save();
         }
+    }
+
+    /**
+     * @return Collection<int, array{code: string, title: string, indicator_code: ?string, kind: string, sub_code?: string, scored?: bool}>
+     */
+    private static function slotsForYesIndicators(Assessment $assessment, bool $includeOptional): Collection
+    {
+        $slots = collect();
+
+        foreach (FatCatalog::sortIndicators($assessment->indicators) as $indicator) {
+            if ($indicator->answer !== 'yes') {
+                continue;
+            }
+
+            foreach (FatCatalog::minimumSlots($indicator->code) as $slot) {
+                $slots->push($slot);
+            }
+
+            if ($includeOptional) {
+                foreach (FatCatalog::optionalSlots($indicator->code) as $slot) {
+                    $slots->push($slot);
+                }
+            }
+        }
+
+        return $slots;
+    }
+
+    /**
+     * @return array{code: string, title: string, indicator_code: null, kind: string, scored: bool}
+     */
+    private static function validitySlot(): array
+    {
+        return [
+            'code' => 'Validity',
+            'title' => 'Printed, signed, and scanned Validity Form',
+            'indicator_code' => null,
+            'kind' => 'validity',
+            'scored' => false,
+        ];
     }
 }

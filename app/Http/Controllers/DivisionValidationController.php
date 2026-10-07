@@ -69,15 +69,24 @@ class DivisionValidationController extends Controller
             'status' => $assessment->status,
             'result' => $assessment->result,
             'yes_count' => $snap['yes_count'],
-            'movs' => $assessment->movs->map(fn (Mov $mov) => [
-                'id' => $mov->id,
-                'code' => $mov->code,
-                'title' => $mov->title,
-                'kind' => $mov->kind,
-                'file' => $mov->original_name,
-                'status' => $mov->status,
-                'reason' => $mov->return_reason,
-            ]),
+            'movs' => $assessment->movs
+                ->filter(fn (Mov $mov) => $mov->hasFile() || in_array($mov->kind, ['minimum', 'validity'], true))
+                ->values()
+                ->map(fn (Mov $mov) => [
+                    'id' => $mov->id,
+                    'code' => $mov->code,
+                    'title' => $mov->title,
+                    'kind' => match ($mov->kind) {
+                        'validity' => 'Required',
+                        'minimum' => 'Minimum (scored)',
+                        'additional' => 'Additional (no score)',
+                        'other' => 'Other sub-indicator (no score)',
+                        default => $mov->kind,
+                    },
+                    'file' => $mov->original_name,
+                    'status' => $mov->status,
+                    'reason' => $mov->return_reason,
+                ]),
             'can_complete' => $assessment->canCompleteReview(),
         ]);
     }
@@ -134,15 +143,7 @@ class DivisionValidationController extends Controller
 
         $assessment->load('movs');
 
-        $yesValid = $assessment->indicators()
-            ->where('answer', 'yes')
-            ->get()
-            ->filter(function ($indicator) use ($assessment) {
-                $mov = $assessment->movs->firstWhere('indicator_code', $indicator->code);
-
-                return $mov && $mov->status === 'valid';
-            })
-            ->count();
+        $yesValid = AssessmentEngine::yesIndicatorsValidated($assessment->fresh(['indicators', 'movs']));
 
         $functional = $yesValid >= 10;
 

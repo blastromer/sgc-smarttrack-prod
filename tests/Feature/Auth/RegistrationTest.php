@@ -97,12 +97,64 @@ class RegistrationTest extends TestCase
 
         Notification::assertSentTo($encoder->fresh(), SchoolRegistrationApproved::class);
 
+        $this->actingAs($head)
+            ->get('/school/encoders')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('school/Encoders')
+                ->has('encoders', 1)
+                ->where('encoders.0.email', 'teacher@example.com')
+                ->has('pending', 0));
+
         $this->post('/logout');
 
         $this->post('/login', [
             'email' => 'teacher@example.com',
             'password' => 'password',
         ])->assertRedirect(route('school.dashboard', absolute: false));
+    }
+
+    public function test_division_admin_can_open_a_school_dossier()
+    {
+        $division = User::factory()->create(['role' => 'division', 'status' => 'active']);
+        $head = User::factory()->create([
+            'role' => 'school_head',
+            'status' => 'active',
+            'name' => 'Maria Santos',
+            'school_code' => '654321',
+            'school_name' => 'Rizal Elementary School',
+            'position' => 'Principal I',
+        ]);
+        $encoder = User::factory()->create([
+            'role' => 'school',
+            'status' => 'active',
+            'name' => 'Ana Reyes',
+            'email' => 'ana.reyes@example.com',
+            'school_code' => '654321',
+            'school_name' => 'Rizal Elementary School',
+            'position' => 'Teacher I',
+        ]);
+
+        $this->actingAs($division)
+            ->get('/division/schools')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('division/Schools')
+                ->has('schools', 1)
+                ->where('schools.0.name', 'Rizal Elementary School')
+                ->where('schools.0.code', '654321'));
+
+        $this->actingAs($division)
+            ->get('/division/schools/654321')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('division/School')
+                ->where('school.name', 'Rizal Elementary School')
+                ->where('school.school_code', '654321')
+                ->where('heads.0.name', 'Maria Santos')
+                ->where('encoders.0.name', 'Ana Reyes')
+                ->where('encoders.0.email', $encoder->email)
+                ->has('packet'));
     }
 
     public function test_division_admin_can_accept_a_school_head_registration()

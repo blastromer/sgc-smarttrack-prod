@@ -69,10 +69,24 @@ class SchoolRegistrationController extends Controller
             ->get()
             ->map(fn (User $user) => $this->row($user));
 
-        return Inertia::render('division/Registrations', [
-            'title' => 'Encoder registrations',
-            'subtitle' => 'Accept teachers who will encode and upload MOVs for '.$head->school_name.'.',
+        $encoders = User::query()
+            ->where('role', 'school')
+            ->where('status', 'active')
+            ->where('school_code', $head->school_code)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $user) => $this->row($user));
+
+        return Inertia::render('school/Encoders', [
+            'title' => 'Encoders',
+            'subtitle' => 'Teachers who encode and upload MOVs for '.($head->school_name ?: 'this school').'.',
             'kpis' => [
+                [
+                    'label' => 'Active encoders',
+                    'value' => (string) $encoders->count(),
+                    'hint' => 'Can encode and upload MOVs',
+                    'tone' => $encoders->isEmpty() ? 'warn' : null,
+                ],
                 [
                     'label' => 'Pending encoders',
                     'value' => (string) $pending->count(),
@@ -80,9 +94,8 @@ class SchoolRegistrationController extends Controller
                     'tone' => $pending->isNotEmpty() ? 'warn' : null,
                 ],
             ],
-            'registrations' => $pending,
-            'accept_route' => 'school.encoders.accept',
-            'empty_text' => 'No pending Encoder requests for this school.',
+            'pending' => $pending,
+            'encoders' => $encoders,
         ]);
     }
 
@@ -121,6 +134,7 @@ class SchoolRegistrationController extends Controller
             'position' => $user->position,
             'role_label' => $user->role_label,
             'requested' => $user->created_at?->format('M j, Y g:i A'),
+            'joined' => $user->email_verified_at?->format('M j, Y') ?: $user->updated_at?->format('M j, Y'),
         ];
     }
 

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('cycles', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('level')->default('Public Elementary');
+            $table->string('level')->default('Public Elementary and Secondary');
             $table->date('opens_at');
             $table->date('deadline_at');
             $table->string('status', 20)->default('open');

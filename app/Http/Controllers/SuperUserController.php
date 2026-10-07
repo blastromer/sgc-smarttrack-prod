@@ -27,7 +27,7 @@ class SuperUserController extends Controller
             'kpis' => [
                 ['label' => 'Total users', 'value' => (string) $users->count(), 'hint' => 'All roles'],
                 ['label' => 'Super Admin', 'value' => (string) $users->where('role', 'super')->count(), 'hint' => 'System'],
-                ['label' => 'Division Admin', 'value' => (string) $users->where('role', 'division')->count(), 'hint' => 'SDO Cadiz City'],
+                ['label' => 'Division Admin', 'value' => (string) $users->where('role', 'division')->count(), 'hint' => 'SGC Focal / validator'],
                 ['label' => 'School accounts', 'value' => (string) $users->whereIn('role', ['school_head', 'school'])->count(), 'hint' => 'Heads + encoders'],
             ],
             'users' => $users->map(fn (User $user) => [

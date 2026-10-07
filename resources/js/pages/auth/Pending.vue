@@ -24,7 +24,7 @@ defineProps<{
             You cannot sign in yet. Use the same School ID as your School Head. They will see your request under Encoders and must Accept it.
         </p>
         <p v-else class="sub">
-            You cannot sign in yet. SDO Cadiz City Division Admin will accept your School Head registration first. Teachers can register as Encoder only after that.
+            You cannot sign in yet. Division Admin will accept your School Head registration first. Teachers can register as Encoder only after that.
         </p>
         <Link class="btn" href="/login" style="display: block; text-align: center; text-decoration: none; color: #062226">Return to sign in</Link>
     </SgcAuthLayout>

@@ -2,18 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assessment;
 use App\Models\Mov;
+use App\Models\SchoolFormProfile;
 use App\Models\User;
 use App\Notifications\MovRemovalRequested;
 use App\Notifications\PacketSubmitted;
 use App\Support\AssessmentEngine;
+use App\Support\DocxHtmlPreview;
+use App\Support\EncoderRecommendation;
 use App\Support\FatCatalog;
+use App\Support\FormFill;
+use App\Support\MovTemplates;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SchoolAssessmentController extends Controller
@@ -26,12 +34,20 @@ class SchoolAssessmentController extends Controller
         }
 
         $snap = AssessmentEngine::snapshot($assessment);
-        $indicators = $assessment->indicators->sortBy('code')->values();
+        $indicators = FatCatalog::sortIndicators($assessment->indicators);
         $bars = $indicators->map(function ($indicator) use ($assessment) {
-            $mov = $assessment->movs->firstWhere('indicator_code', $indicator->code);
+            $mins = FatCatalog::minimumSlots($indicator->code);
+            $movs = $assessment->movs->where('indicator_code', $indicator->code);
+            $returned = $movs->contains(fn ($mov) => $mov->status === 'returned');
+            $minReady = collect($mins)->every(function (array $slot) use ($assessment) {
+                $mov = $assessment->movs->firstWhere('code', $slot['code']);
+
+                return $mov && $mov->hasFile();
+            });
             $state = match (true) {
-                $mov?->status === 'returned' => ['value' => 'R', 'height' => 40, 'tone' => 'bad'],
-                $indicator->answer === 'yes' => ['value' => 'Y', 'height' => 100, 'tone' => null],
+                $returned => ['value' => 'R', 'height' => 40, 'tone' => 'bad'],
+                $indicator->answer === 'yes' && $minReady => ['value' => 'Y', 'height' => 100, 'tone' => null],
+                $indicator->answer === 'yes' => ['value' => 'Y', 'height' => 70, 'tone' => 'warn'],
                 $indicator->answer === 'no' => ['value' => 'N', 'height' => 20, 'tone' => 'warn'],
                 default => ['value' => '—', 'height' => 8, 'tone' => 'bad'],
             };
@@ -58,7 +74,7 @@ class SchoolAssessmentController extends Controller
         if ($snap['can_qa']) {
             $actions[] = '3. School Head QA, then submit to Division.';
         } elseif ($snap['can_submit']) {
-            $actions[] = '3. Submit the packet to SDO Cadiz City.';
+            $actions[] = '3. Submit the packet to Division.';
         }
 
         return Inertia::render('school/Dashboard', [
@@ -83,6 +99,52 @@ class SchoolAssessmentController extends Controller
                 'text' => $width.'% encoded · need '.$need.' more Yes FIs for functional (10/12)',
                 'actions' => $actions ?: ['Open Submit to see the rest of the path.'],
             ],
+            'templates' => MovTemplates::featured(),
+        ]);
+    }
+
+    public function formData(): Response
+    {
+        $user = request()->user();
+        $profile = SchoolFormProfile::forSchool($user);
+
+        return Inertia::render('school/FormData', [
+            'title' => 'Form data',
+            'subtitle' => 'Save school and SGC details once. Open or Download filled uses them on every MOV Word file.',
+            'form' => $profile->toForm($user),
+            'saved' => $profile->exists,
+            'filled' => $profile->filledCount(),
+        ]);
+    }
+
+    public function saveFormData(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user?->isSchoolStaff(), 403);
+
+        $data = $request->validate(SchoolFormProfile::rules());
+        $profile = SchoolFormProfile::forSchool($user);
+        $profile->fill($data);
+        $profile->school_code = $user->packetSchoolCode();
+        $profile->save();
+
+        return back()->with('status', 'Form data saved. Open or Download filled on Templates to stamp these values into the MOV.');
+    }
+
+    public function templates(): Response
+    {
+        $groups = MovTemplates::library();
+        $count = collect($groups)->sum(fn (array $group) => count($group['files']));
+
+        return Inertia::render('school/Templates', [
+            'title' => 'MOV templates',
+            'subtitle' => 'Official SGC FAT Word and PowerPoint files. Compose Form data first, then Open or Download filled.',
+            'kpis' => [
+                ['label' => 'Official files', 'value' => (string) $count, 'hint' => 'Download to edit in Word or PowerPoint', 'tone' => null],
+                ['label' => 'Word (.docx)', 'value' => (string) collect($groups)->sum(fn (array $group) => collect($group['files'])->where('ext', 'docx')->count()), 'hint' => 'Open in-app or download', 'tone' => null],
+                ['label' => 'PowerPoint', 'value' => (string) collect($groups)->sum(fn (array $group) => collect($group['files'])->where('ext', 'pptx')->count()), 'hint' => 'Download only', 'tone' => null],
+            ],
+            'groups' => $groups,
         ]);
     }
 
@@ -95,38 +157,73 @@ class SchoolAssessmentController extends Controller
                 'subtitle' => 'No open cycle',
                 'kpis' => [],
                 'indicators' => [],
+                'ai_enabled' => EncoderRecommendation::enabled(),
             ]);
         }
 
         $snap = AssessmentEngine::snapshot($assessment);
-        $rows = $assessment->indicators->sortBy('code')->map(function ($indicator) use ($assessment) {
-            $mov = $assessment->movs->firstWhere('indicator_code', $indicator->code);
+        AssessmentEngine::ensureRequiredMovs($assessment);
+        $assessment->load('movs');
+        $rows = FatCatalog::sortIndicators($assessment->indicators)->map(function ($indicator) use ($assessment) {
+            $meta = FatCatalog::indicator($indicator->code);
+            $mins = FatCatalog::minimumSlots($indicator->code);
+            $movs = $assessment->movs->where('indicator_code', $indicator->code);
+            $returned = $movs->firstWhere('status', 'returned');
+            $minReady = collect($mins)->every(function (array $slot) use ($assessment) {
+                $mov = $assessment->movs->firstWhere('code', $slot['code']);
+
+                return $mov && $mov->hasFile();
+            });
             $status = match (true) {
-                $mov?->status === 'returned' => ['badge' => 'Returned', 'tone' => 'bad'],
-                $indicator->answer === 'yes' && $mov?->hasFile() => ['badge' => 'Complete', 'tone' => 'ok'],
-                $indicator->answer !== null => ['badge' => 'In progress', 'tone' => 'warn'],
+                $returned !== null => ['badge' => 'Returned by SDO', 'tone' => 'bad'],
+                $indicator->answer === 'no' => ['badge' => 'Complete', 'tone' => 'ok'],
+                $indicator->answer === 'yes' && $minReady => ['badge' => 'Complete', 'tone' => 'ok'],
+                $indicator->answer === 'yes' => ['badge' => 'Incomplete', 'tone' => 'warn'],
                 default => ['badge' => 'Not started', 'tone' => 'warn'],
             };
+            $minCount = count($mins);
+            $ai = EncoderRecommendation::forIndicator($assessment, $indicator->code, $indicator->answer);
 
             return [
                 'code' => $indicator->code,
                 'title' => $indicator->title,
+                'group' => $meta['group_label'] ?? 'Structure for Shared Governance',
+                'primary_code' => $meta['primary_code'] ?? $indicator->code,
+                'primary' => $meta['primary'] ?? $indicator->title,
+                'others' => collect($meta['others'] ?? [])->map(fn (array $other) => $other['code'].' · '.$other['title'])->values()->all(),
                 'answer' => $indicator->answer,
-                'mov' => $mov?->status === 'returned' ? $mov->code.' returned' : ($mov?->hasFile() ? 'Minimum uploaded' : ($indicator->answer === 'yes' ? 'Missing' : 'None')),
+                'mov' => $returned
+                    ? $returned->code.' returned'
+                    : ($indicator->answer === 'yes'
+                        ? ($minReady ? ($minCount > 1 ? $minCount.' minimum uploaded' : 'Minimum uploaded') : 'Minimum MOV required ('.$minCount.')')
+                        : 'None if No'),
                 'status' => $status,
                 'locked' => $assessment->answersLocked(),
+                'ai' => $ai,
+                'templates' => MovTemplates::forIndicator($indicator->code),
+                'minimum' => collect($mins)->map(fn (array $slot) => $this->assessmentSlot($assessment, $slot))->values()->all(),
             ];
         })->values();
 
+        $polished = EncoderRecommendation::polishHints($rows->all());
+        $rows = $rows->map(function (array $row) use ($polished) {
+            if (isset($polished[$row['code']]) && filled($polished[$row['code']])) {
+                $row['ai']['hint'] = $polished[$row['code']];
+            }
+
+            return $row;
+        });
+
         return Inertia::render('school/Assessment', [
             'title' => 'My assessment',
-            'subtitle' => $assessment->cycle?->name.' · public elementary',
+            'subtitle' => $assessment->cycle?->name.($assessment->cycle?->level ? ' · '.$assessment->cycle->level : ''),
             'kpis' => [
                 ['label' => 'Complete', 'value' => (string) $snap['encoded'], 'hint' => null, 'tone' => null],
                 ['label' => 'Returned', 'value' => (string) $snap['returned_count'], 'hint' => null, 'tone' => $snap['returned_count'] ? 'bad' : null],
                 ['label' => 'Not started', 'value' => (string) (12 - $snap['encoded']), 'hint' => null, 'tone' => (12 - $snap['encoded']) ? 'warn' : null],
             ],
             'indicators' => $rows,
+            'ai_enabled' => EncoderRecommendation::enabled(),
         ]);
     }
 
@@ -170,23 +267,34 @@ class SchoolAssessmentController extends Controller
         AssessmentEngine::ensureRequiredMovs($assessment);
         $assessment->load('movs');
 
-        $slots = AssessmentEngine::requiredSlots($assessment)->map(function (array $slot) use ($assessment) {
+        $slots = AssessmentEngine::visibleSlots($assessment)->map(function (array $slot) use ($assessment) {
             $mov = $assessment->movs->firstWhere('code', $slot['code']);
+            $review = $this->movReviewBadge($assessment, $mov);
 
             return [
                 'id' => $mov?->id,
                 'code' => $slot['code'],
                 'title' => $slot['title'],
                 'indicator_code' => $slot['indicator_code'],
-                'kind' => $slot['kind'] === 'validity' ? 'Required' : 'Minimum',
+                'kind' => match ($slot['kind']) {
+                    'validity' => 'Required',
+                    'minimum' => 'Minimum (scored)',
+                    'additional' => 'Additional (no score)',
+                    'other' => 'Other sub-indicator (no score)',
+                    default => $slot['kind'],
+                },
                 'file' => $mov?->original_name,
                 'size' => $mov && $mov->size ? $this->humanSize($mov->size) : '—',
                 'status' => $mov?->status ?? 'draft',
+                'badge' => $review['badge'],
+                'tone' => $review['tone'],
                 'reason' => $mov?->return_reason,
                 'can_replace' => $mov ? $assessment->canReplaceMov($mov) : ! $assessment->answersLocked(),
                 'can_remove' => $mov ? $assessment->canRemoveMov($mov) && request()->user()->isSchoolHead() : false,
                 'can_request_remove' => $mov ? $assessment->canRemoveMov($mov) && request()->user()->isEncoder() : false,
                 'removal_requested' => (bool) $mov?->removal_requested_at,
+                'templates' => MovTemplates::forSlot($slot['code']),
+                'reuse' => MovTemplates::reuseOptions($assessment, $slot['code']),
             ];
         })->values();
 
@@ -195,7 +303,7 @@ class SchoolAssessmentController extends Controller
 
         return Inertia::render('school/Movs', [
             'title' => 'MOV files',
-            'subtitle' => 'Means of Verification for this cycle. If Division returns a file, replace only that file and resubmit.',
+            'subtitle' => 'Upload Minimum MOVs for every Yes. Additional and other-sub-indicator files are optional and do not score.',
             'kpis' => [
                 ['label' => 'Files', 'value' => (string) $slots->count(), 'hint' => null, 'tone' => null],
                 ['label' => 'Valid', 'value' => (string) $valid, 'hint' => null, 'tone' => null],
@@ -244,12 +352,15 @@ class SchoolAssessmentController extends Controller
             $assessment->update(['status' => 'in_progress']);
         }
 
+        $auto = AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $mov->fresh());
         $encoded = $assessment->fresh()->indicators()->whereNotNull('answer')->count();
-        $message = $encoded === 12
-            ? ($request->user()->isSchoolHead()
-                ? $mov->code.' uploaded. Certify School Head QA before submit.'
-                : $mov->code.' uploaded. Ask the School Head to certify QA, then submit.')
-            : $mov->code.' uploaded. Encode all 12 indicators before School Head QA.';
+        $message = $auto
+            ? $mov->code.' uploaded. '.$auto.' encoded Yes from this Minimum MOV. School Head QA still required. Tap No instead if the SGC did not do this.'
+            : ($encoded === 12
+                ? ($request->user()->isSchoolHead()
+                    ? $mov->code.' uploaded. Certify School Head QA before submit.'
+                    : $mov->code.' uploaded. Ask the School Head to certify QA, then submit.')
+                : $mov->code.' uploaded. Encode remaining FIs, or upload their Minimum MOVs to encode Yes.');
 
         return back()->with('status', $message);
     }
@@ -334,6 +445,92 @@ class SchoolAssessmentController extends Controller
         return Storage::disk('local')->download($mov->path, $mov->original_name ?: $mov->code.'.pdf');
     }
 
+    public function downloadTemplate(string $key, Request $request): BinaryFileResponse
+    {
+        abort_unless($request->user()?->isSchoolStaff(), 403);
+        $item = MovTemplates::find($key);
+        $path = MovTemplates::path($key);
+        abort_unless($item && $path, 404);
+
+        $ext = strtolower(pathinfo($item['file'], PATHINFO_EXTENSION));
+        $blank = $request->boolean('blank');
+        $downloadName = $item['label'].'.'.$ext;
+
+        if ($blank || $ext !== 'docx') {
+            return response()->download($path, $downloadName);
+        }
+
+        $filled = FormFill::docx($request->user(), $path);
+        $school = $request->user()->school_name ?: 'School';
+
+        return response()->download($filled, $item['label'].' — '.$school.'.docx')->deleteFileAfterSend(true);
+    }
+
+    public function previewTemplate(string $key, Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->isSchoolStaff(), 403);
+        $payload = MovTemplates::preview($key);
+        abort_unless($payload, 404);
+
+        $path = MovTemplates::path($key);
+        if ($payload['previewable'] && $path && ! $request->boolean('blank')) {
+            $filled = FormFill::docx($request->user(), $path);
+            $payload['html'] = DocxHtmlPreview::fromPath($filled);
+            $payload['note'] = 'Letterhead and officers come from Form data. Download filled, complete remaining blanks in Word, then upload. Attaching a Minimum MOV encodes Yes for that FI.';
+            @unlink($filled);
+        }
+
+        return response()->json($payload);
+    }
+
+    public function reuse(Request $request): RedirectResponse
+    {
+        $assessment = AssessmentEngine::forSchool($request->user());
+        abort_unless($assessment, 404);
+
+        $data = $request->validate([
+            'code' => ['required', 'string'],
+            'source_mov_id' => ['required', 'integer'],
+        ]);
+
+        AssessmentEngine::ensureRequiredMovs($assessment);
+        $target = $assessment->movs()->where('code', $data['code'])->firstOrFail();
+        abort_unless($assessment->canReplaceMov($target), 403, 'This slot cannot be replaced right now.');
+
+        $source = Mov::query()->with('assessment')->findOrFail($data['source_mov_id']);
+        abort_unless($source->assessment?->school_code === $assessment->school_code, 403);
+        abort_unless($source->hasFile() && Storage::disk('local')->exists($source->path), 404);
+
+        $kinds = MovTemplates::kindsForSlot($target->code);
+        abort_unless(array_intersect($kinds, MovTemplates::kindsForSlot($source->code)) !== [], 422, 'That file is not the same MOV type.');
+
+        if ($target->path) {
+            Storage::disk('local')->delete($target->path);
+        }
+
+        $ext = pathinfo((string) $source->path, PATHINFO_EXTENSION) ?: 'bin';
+        $path = 'movs/'.$assessment->id.'/'.$target->code.'-reused-'.uniqid().'.'.$ext;
+        Storage::disk('local')->copy($source->path, $path);
+
+        $target->update([
+            'original_name' => $source->original_name,
+            'path' => $path,
+            'mime' => $source->mime,
+            'size' => $source->size,
+            'status' => 'uploaded',
+            'return_reason' => null,
+            'removal_requested_at' => null,
+        ]);
+
+        $assessment->update(['qa_certified_at' => null]);
+
+        $auto = AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $target->fresh());
+
+        return back()->with('status', $auto
+            ? $target->code.' reused from '.$source->code.'. '.$auto.' encoded Yes from this Minimum MOV.'
+            : $target->code.' reused from '.$source->code.'. Review it, then continue encoding.');
+    }
+
     public function submitPage(): Response
     {
         $assessment = AssessmentEngine::forSchool(request()->user());
@@ -348,10 +545,10 @@ class SchoolAssessmentController extends Controller
                 'can_submit' => false,
                 'qa_done' => false,
                 'returned' => false,
-            'locked' => true,
-            'status' => 'none',
-            'is_school_head' => request()->user()->isSchoolHead(),
-            'can_withdraw' => false,
+                'locked' => true,
+                'status' => 'none',
+                'is_school_head' => request()->user()->isSchoolHead(),
+                'can_withdraw' => false,
             ]);
         }
         $snap = AssessmentEngine::snapshot($assessment);
@@ -364,7 +561,7 @@ class SchoolAssessmentController extends Controller
             ['mark' => $snap['returned_count'] ? '!' : ($snap['missing_count'] ? (string) $snap['missing_count'] : '✓'), 'tone' => ($snap['returned_count'] || $snap['missing_count']) ? ($snap['returned_count'] ? 'bad' : 'warn') : 'ok', 'title' => $snap['returned_count'] ? 'Replace returned or invalid MOVs' : 'Minimum MOVs complete', 'hint' => $snap['returned_count'] ? $snap['returned_count'].' returned — replace the flagged file only' : ($snap['missing_count'] ? $snap['missing_count'].' missing' : 'No returned files')],
             ['mark' => $snap['validity_ready'] ? '✓' : '○', 'tone' => $snap['validity_ready'] ? 'ok' : 'warn', 'title' => 'Finalize Validity Form', 'hint' => $snap['validity_ready'] ? 'Uploaded' : 'Still missing or returned'],
             ['mark' => $snap['qa_done'] ? '✓' : '3', 'tone' => $snap['qa_done'] ? 'ok' : ($snap['can_qa'] ? 'warn' : 'todo'), 'title' => 'School Head QA', 'hint' => $snap['qa_done'] ? 'Certified' : ($requestUser->isSchoolHead() ? 'Certify answers before send' : 'Waiting for School Head')],
-            ['mark' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? '✓' : '4', 'tone' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? 'ok' : 'todo', 'title' => 'Submit to SDO Cadiz City', 'hint' => 'Locks the school packet for validation'],
+            ['mark' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? '✓' : '4', 'tone' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? 'ok' : 'todo', 'title' => 'Submit to Division', 'hint' => 'Locks the school packet for validation'],
             ['mark' => in_array($assessment->status, ['under_review', 'validated'], true) ? '✓' : '5', 'tone' => $assessment->status === 'validated' ? 'ok' : 'todo', 'title' => 'Division review', 'hint' => 'Composite Team checks MOVs against FAT Volume 2'],
             ['mark' => $assessment->status === 'validated' ? '✓' : '6', 'tone' => $assessment->result === 'functional' ? 'ok' : 'todo', 'title' => 'Result', 'hint' => 'Functional if 10 of 12 FIs are validated'],
         ];
@@ -385,7 +582,7 @@ class SchoolAssessmentController extends Controller
                 'School ID '.($user->school_code ?: '—').' · '.($user->school_name ?: 'School'),
                 'Self-score: '.($assessment->result ?: 'not yet').' · '.$snap['yes_count'].' of 12 Yes',
                 'Returned MOVs: '.$snap['returned_count'].' · missing: '.$snap['missing_count'],
-                'Destination: SGC Focal, SDO Cadiz City',
+                'Destination: Division SGC Focal',
             ],
             'can_qa' => $snap['can_qa'] && $requestUser->isSchoolHead(),
             'can_submit' => $snap['can_submit'] && $requestUser->isSchoolHead(),
@@ -431,7 +628,7 @@ class SchoolAssessmentController extends Controller
             Notification::send($divisionAdmins, new PacketSubmitted($assessment->load('user')));
         }
 
-        return back()->with('status', 'Packet submitted to SDO Cadiz City.');
+        return back()->with('status', 'Packet submitted to Division.');
     }
 
     public function notifications(): Response
@@ -469,7 +666,61 @@ class SchoolAssessmentController extends Controller
             'kpis' => [],
             'charts' => [],
             'progress' => ['width' => 0, 'text' => 'Wait for Super Admin to open a cycle.', 'actions' => []],
+            'templates' => MovTemplates::featured(),
         ];
+    }
+
+    /**
+     * @param  array{code: string, title: string}  $slot
+     * @return array<string, mixed>
+     */
+    private function assessmentSlot(Assessment $assessment, array $slot): array
+    {
+        $mov = $assessment->movs->firstWhere('code', $slot['code']);
+        $review = $this->movReviewBadge($assessment, $mov);
+
+        return [
+            'code' => $slot['code'],
+            'title' => $slot['title'],
+            'id' => $mov?->id,
+            'has_file' => (bool) $mov?->hasFile(),
+            'file' => $mov?->original_name,
+            'size' => $mov && $mov->size ? $this->humanSize((int) $mov->size) : null,
+            'status' => $mov?->status ?? 'draft',
+            'badge' => $review['badge'],
+            'tone' => $review['tone'],
+            'reason' => $mov?->return_reason,
+            'removal_requested' => (bool) $mov?->removal_requested_at,
+            'can_replace' => $mov ? $assessment->canReplaceMov($mov) : false,
+            'templates' => MovTemplates::forSlot($slot['code']),
+            'reuse' => MovTemplates::reuseOptions($assessment, $slot['code']),
+        ];
+    }
+
+    /**
+     * School-facing review labels. Complete on the FI card is not SDO validation.
+     *
+     * @return array{badge: string, tone: string}
+     */
+    private function movReviewBadge(Assessment $assessment, ?Mov $mov): array
+    {
+        if (! $mov) {
+            return ['badge' => 'Empty', 'tone' => 'warn'];
+        }
+
+        $queued = in_array($assessment->status, ['submitted', 'under_review'], true);
+
+        return match (true) {
+            $mov->status === 'valid' => ['badge' => 'Accepted by SDO', 'tone' => 'ok'],
+            $mov->status === 'returned' => [
+                'badge' => $mov->return_reason ? 'Returned by SDO — '.$mov->return_reason : 'Returned by SDO',
+                'tone' => 'bad',
+            ],
+            $mov->removal_requested_at !== null => ['badge' => 'Removal requested', 'tone' => 'warn'],
+            $mov->hasFile() && $queued => ['badge' => 'Awaiting review', 'tone' => 'warn'],
+            $mov->hasFile() => ['badge' => 'Attached (draft)', 'tone' => 'warn'],
+            default => ['badge' => 'Empty', 'tone' => 'warn'],
+        };
     }
 
     private function humanSize(int $bytes): string

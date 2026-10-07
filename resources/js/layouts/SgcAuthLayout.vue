@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcLogo from '@/components/sgc/SgcLogo.vue';
 import { Head } from '@inertiajs/vue3';
 
 defineProps<{
@@ -8,10 +9,10 @@ defineProps<{
 
 <template>
     <Head :title="title" />
-    <main class="auth-shell grid min-h-full grid-cols-1 bg-sgc-bg text-sgc-ink sgc:grid-cols-2">
+    <main class="auth-shell grid min-h-[100dvh] grid-cols-1 bg-sgc-bg text-sgc-ink sgc:grid-cols-2">
         <section
             class="hero relative flex flex-col justify-between overflow-hidden px-5 py-5 pt-[max(20px,env(safe-area-inset-top))] sgc:p-12"
-            style="background: radial-gradient(600px 280px at 20% 0%, rgba(42,167,160,.16), transparent 60%), linear-gradient(180deg, #10202b 0%, #0b141c 100%)"
+            style="background: radial-gradient(600px 280px at 20% 0%, color-mix(in srgb, var(--sgc-teal) 18%, transparent), transparent 60%), linear-gradient(180deg, var(--sgc-panel) 0%, var(--sgc-bg) 100%)"
         >
             <div class="relative z-[1]">
                 <div class="flex items-center gap-4">
@@ -21,11 +22,12 @@ defineProps<{
                 <div class="[&_h1]:mb-2.5 [&_h1]:mt-3.5 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight sgc:[&_h1]:mb-2.5 sgc:[&_h1]:mt-7 sgc:[&_h1]:text-4xl [&_p]:max-w-none [&_p]:text-[13px] [&_p]:leading-relaxed [&_p]:text-sgc-muted sgc:[&_p]:max-w-[420px] sgc:[&_p]:text-[15px]">
                     <slot name="hero" />
                 </div>
-                <p class="mt-3 text-xs text-sgc-muted sgc:mt-7">Authorized DepEd personnel · SDO Cadiz City</p>
+                <p class="mt-3 text-xs text-sgc-muted sgc:mt-7">Authorized DepEd personnel</p>
             </div>
         </section>
         <section class="flex items-stretch justify-center border-t border-sgc-line bg-sgc-panel px-4 py-5 pb-8 sgc:items-center sgc:border-l sgc:border-t-0 sgc:px-6 sgc:py-10">
             <div class="w-full sgc:w-[400px]">
+                <SgcLogo class="mb-4 h-11 w-11" />
                 <slot />
             </div>
         </section>

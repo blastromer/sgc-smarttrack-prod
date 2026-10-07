@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import SgcAiAssist from '@/components/sgc/SgcAiAssist.vue';
+import SgcAiChat from '@/components/sgc/SgcAiChat.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
+import SgcLogo from '@/components/sgc/SgcLogo.vue';
+import SgcWalkthrough from '@/components/sgc/SgcWalkthrough.vue';
+import { useSgcWalkthrough } from '@/composables/useSgcWalkthrough';
 import type { SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     title: string;
@@ -14,10 +19,12 @@ const page = usePage<SharedData>();
 const noticesOpen = ref(false);
 const menuOpen = ref(false);
 const navOpen = ref(false);
+const aiOpen = ref(false);
 
 const user = computed(() => page.props.auth.user);
 const sgc = computed(() => page.props.sgc);
 const unread = computed(() => sgc.value?.notices.filter((notice) => notice.unread).length ?? 0);
+const ai = computed(() => sgc.value?.ai ?? null);
 const currentPath = computed(() => page.url.split('?')[0]);
 const flash = computed(() => page.props.flash?.status);
 const isSchool = computed(() => user.value?.role === 'school' || user.value?.role === 'school_head');
@@ -66,6 +73,7 @@ const tabLabel = (label: string) => {
         'Validation queue': 'Queue',
         'Users & roles': 'Users',
         Notifications: 'Inbox',
+        'Form data': 'Data',
         Registrations: 'Accept',
         Encoders: 'Staff',
         Divisions: 'SDOs',
@@ -95,13 +103,22 @@ const userItemClass = (href?: string) =>
 const openNotices = () => {
     menuOpen.value = false;
     navOpen.value = false;
+    aiOpen.value = false;
     noticesOpen.value = true;
 };
 
 const toggleMenu = () => {
     noticesOpen.value = false;
     navOpen.value = false;
+    aiOpen.value = false;
     menuOpen.value = !menuOpen.value;
+};
+
+const toggleAi = () => {
+    noticesOpen.value = false;
+    menuOpen.value = false;
+    navOpen.value = false;
+    aiOpen.value = !aiOpen.value;
 };
 
 const closeNotices = () => {
@@ -112,6 +129,23 @@ const closeMenu = () => {
     menuOpen.value = false;
 };
 
+const closeAi = () => {
+    aiOpen.value = false;
+};
+
+const walkthrough = useSgcWalkthrough();
+watch(
+    () => walkthrough.active.value,
+    (on) => {
+        if (on) {
+            noticesOpen.value = false;
+            menuOpen.value = false;
+            navOpen.value = false;
+            aiOpen.value = false;
+        }
+    },
+);
+
 const closeNav = () => {
     navOpen.value = false;
 };
@@ -119,32 +153,64 @@ const closeNav = () => {
 const signOut = () => {
     closeMenu();
     closeNav();
+    closeAi();
     router.post(route('logout'));
 };
+
+const unlockPageScroll = () => {
+    const html = document.documentElement;
+    const body = document.body;
+    html.removeAttribute('data-scroll-locked');
+    body.removeAttribute('data-scroll-locked');
+    html.style.removeProperty('overflow');
+    html.style.removeProperty('padding-right');
+    body.style.removeProperty('overflow');
+    body.style.removeProperty('pointer-events');
+    body.style.removeProperty('padding-right');
+    body.style.removeProperty('margin-right');
+};
+
+const openAiFromPage = () => {
+    noticesOpen.value = false;
+    menuOpen.value = false;
+    navOpen.value = false;
+    aiOpen.value = true;
+};
+
+onMounted(() => {
+    unlockPageScroll();
+    window.addEventListener('sgc-ai-open', openAiFromPage);
+});
+const stopNavigateUnlock = router.on('navigate', unlockPageScroll);
+onUnmounted(() => {
+    window.removeEventListener('sgc-ai-open', openAiFromPage);
+    stopNavigateUnlock();
+});
 </script>
 
 <template>
     <Head :title="props.title" />
-    <div class="app min-h-full overflow-visible bg-sgc-bg text-sgc-ink sgc:grid sgc:h-full sgc:grid-cols-[240px_1fr] sgc:overflow-hidden">
+    <div class="app min-h-screen overflow-visible bg-sgc-bg text-sgc-ink sgc:grid sgc:grid-cols-[240px_1fr]">
         <header class="no-print sticky top-0 z-30 flex items-center gap-2.5 border-b border-sgc-line bg-sgc-panel px-3 py-2.5 pt-[max(10px,env(safe-area-inset-top))] sgc:hidden">
             <button
                 class="grid h-10 w-10 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink"
                 type="button"
                 aria-label="Open menu"
-                @click="navOpen = true"
+                @click="aiOpen = false; noticesOpen = false; menuOpen = false; navOpen = true"
             >
                 <SgcIcon name="Menu" />
             </button>
             <div class="flex min-w-0 flex-1 items-center gap-2">
-                <img class="h-8 w-8 object-contain" src="/assets/cadiz-division-seal.png" alt="" />
+                <SgcLogo class="h-8 w-8 shrink-0" />
                 <div class="min-w-0">
                     <b class="block text-[13px] leading-tight">SGC SmartTrack</b>
                     <span class="muted text-[11px]">{{ user?.role_label }}</span>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3.5 overflow-visible pt-1">
+                <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                 <button
-                    class="relative grid h-10 w-10 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
+                    class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
                     type="button"
                     aria-label="Open notifications"
                     :aria-expanded="noticesOpen"
@@ -153,7 +219,7 @@ const signOut = () => {
                     <SgcIcon name="Notifications" />
                     <span
                         v-if="unread"
-                        class="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-sgc-coral px-1 text-[10px] font-extrabold text-[#1a0d0a]"
+                        class="pointer-events-none absolute -right-1.5 -top-1.5 z-[1] grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-sgc-panel bg-sgc-coral px-1 text-[9px] font-extrabold leading-none text-[#1a0d0a]"
                     >
                         {{ unread }}
                     </span>
@@ -182,6 +248,10 @@ const signOut = () => {
                             <SgcIcon name="Account" />
                             Account
                         </Link>
+                        <Link :class="userItemClass('/configuration')" href="/configuration" @click="closeMenu">
+                            <SgcIcon name="Configuration" />
+                            Configuration
+                        </Link>
                         <Link :class="userItemClass('/docs')" href="/docs" @click="closeMenu">
                             <SgcIcon name="Docs" />
                             Docs
@@ -205,11 +275,11 @@ const signOut = () => {
             @click="closeNav"
         />
         <aside
-            class="side fixed inset-y-0 left-0 z-40 flex h-full w-[min(280px,86vw)] flex-col border-r border-sgc-line bg-sgc-panel px-4 pb-4 pt-[max(24px,env(safe-area-inset-top))] transition-transform duration-200 sgc:relative sgc:inset-auto sgc:z-auto sgc:w-auto sgc:translate-x-0 sgc:pt-6"
+            class="side fixed inset-y-0 left-0 z-40 flex h-full w-[min(280px,86vw)] flex-col border-r border-sgc-line bg-sgc-panel px-4 pb-4 pt-[max(24px,env(safe-area-inset-top))] transition-transform duration-200 sgc:sticky sgc:top-0 sgc:z-auto sgc:h-screen sgc:w-auto sgc:translate-x-0 sgc:self-start sgc:overflow-y-auto sgc:pt-6"
             :class="navOpen ? 'translate-x-0' : '-translate-x-[105%]'"
         >
             <div class="mb-[22px] flex items-center gap-2.5">
-                <img class="h-10 w-10 object-contain" src="/assets/cadiz-division-seal.png" alt="SDO Cadiz City" />
+                <SgcLogo class="h-10 w-10 shrink-0" />
                 <div>
                     <b>SGC SmartTrack</b><br />
                     <span class="muted">{{ user?.role_label }}</span>
@@ -236,15 +306,16 @@ const signOut = () => {
                 Sign out
             </button>
         </aside>
-        <section class="main h-auto overflow-visible px-4 pb-[104px] pt-4 sgc:h-full sgc:overflow-auto sgc:px-8 sgc:py-7">
+        <section class="main h-auto overflow-visible px-4 pb-[104px] pt-4 sgc:px-8 sgc:py-7">
             <div class="mb-3.5 flex items-start justify-between gap-2 sgc:mb-[22px] sgc:items-center sgc:gap-4">
                 <div class="min-w-0">
                     <h1 class="text-[22px] font-bold leading-tight break-words sgc:text-[32px]">{{ props.title }}</h1>
                     <p class="muted break-words">{{ props.subtitle }}</p>
                 </div>
-                <div class="hidden items-center gap-3 sgc:flex">
+                <div class="hidden items-center gap-3.5 overflow-visible pt-1 sgc:flex">
+                    <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                     <button
-                        class="relative grid h-10 w-10 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
+                        class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
                         type="button"
                         aria-label="Open notifications"
                         :aria-expanded="noticesOpen"
@@ -253,7 +324,7 @@ const signOut = () => {
                         <SgcIcon name="Notifications" />
                         <span
                             v-if="unread"
-                            class="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-sgc-coral px-1 text-[10px] font-extrabold text-[#1a0d0a]"
+                            class="pointer-events-none absolute -right-1.5 -top-1.5 z-[1] grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-sgc-panel bg-sgc-coral px-1 text-[9px] font-extrabold leading-none text-[#1a0d0a]"
                         >
                             {{ unread }}
                         </span>
@@ -281,6 +352,10 @@ const signOut = () => {
                             <Link :class="userItemClass('/account')" href="/account" @click="closeMenu">
                                 <SgcIcon name="Account" />
                                 Account
+                            </Link>
+                            <Link :class="userItemClass('/configuration')" href="/configuration" @click="closeMenu">
+                                <SgcIcon name="Configuration" />
+                                Configuration
                             </Link>
                             <Link :class="userItemClass('/docs')" href="/docs" @click="closeMenu">
                                 <SgcIcon name="Docs" />
@@ -388,14 +463,16 @@ const signOut = () => {
                 <span>{{ tabLabel(item.label) }}</span>
             </Link>
         </nav>
+        <Teleport to="body">
         <div
             class="fixed inset-0 z-40 bg-[rgba(6,12,18,.45)]"
-            :class="noticesOpen ? 'block' : 'hidden'"
-            @click="closeNotices"
+            :class="noticesOpen || aiOpen ? 'block' : 'hidden'"
+            @click="closeNotices(); closeAi()"
         />
         <aside
             class="fixed top-0 right-0 z-50 flex h-full w-[min(380px,100%)] flex-col border-l border-sgc-line bg-sgc-panel transition-transform duration-200"
-            :class="noticesOpen ? 'translate-x-0' : 'translate-x-full'"
+            :class="noticesOpen ? 'translate-x-0 pointer-events-auto' : 'pointer-events-none translate-x-full'"
+            :aria-hidden="!noticesOpen"
         >
             <div class="flex items-center justify-between border-b border-sgc-line px-[18px] pb-3 pt-[18px]">
                 <div>
@@ -423,5 +500,24 @@ const signOut = () => {
                 <Link :href="sgc?.noticeHref || '#'" @click="closeNotices">Open notification page</Link>
             </div>
         </aside>
+        <aside
+            v-if="ai"
+            class="fixed top-0 right-0 z-50 flex h-full w-[min(380px,100%)] flex-col border-l border-sgc-line bg-sgc-panel transition-transform duration-200"
+            :class="aiOpen ? 'translate-x-0 pointer-events-auto' : 'pointer-events-none translate-x-full'"
+            :aria-hidden="!aiOpen"
+        >
+            <div class="flex items-center justify-between border-b border-sgc-line px-[18px] pb-3 pt-[18px]">
+                <div>
+                    <b class="text-[15px]">AI assistance</b>
+                    <p class="muted">{{ ai.live ? 'Live OpenAI hint' : 'Catalog hint' }}</p>
+                </div>
+                <button class="cursor-pointer border-0 bg-transparent text-lg leading-none text-sgc-muted" type="button" aria-label="Close" @click="closeAi">&times;</button>
+            </div>
+            <div class="flex min-h-0 flex-1 flex-col">
+                <SgcAiChat :open="aiOpen" @close="closeAi" />
+            </div>
+        </aside>
+        <SgcWalkthrough />
+        </Teleport>
     </div>
 </template>

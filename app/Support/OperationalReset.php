@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Assessment;
 use App\Models\Mov;
+use App\Models\SchoolFormProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -16,6 +17,7 @@ class OperationalReset
 
         DB::transaction(function () {
             Assessment::query()->delete();
+            SchoolFormProfile::query()->delete();
             User::query()->whereIn('role', ['school', 'school_head'])->delete();
             DB::table('notifications')->delete();
         });

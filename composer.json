@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "blastromer/sgc-smarttrack-prod",
     "type": "project",
-    "description": "SGC SmartTrack production app — DepEd SGC Functionality Assessment for SDO Cadiz City (Laravel + Inertia + Vue 3 + TypeScript).",
+    "description": "SGC SmartTrack — DepEd SGC Functionality Assessment for public elementary and secondary schools (Laravel + Inertia + Vue 3 + TypeScript).",
     "keywords": [
         "laravel",
         "framework"
