@@ -22,9 +22,21 @@ const submit = () => {
 </script>
 
 <template>
-    <SgcAuthLayout title="Sign in">
+    <SgcAuthLayout title="Sign in" :show-deped-seal="false" :show-division-seal="false">
         <template #hero>
-            <h1>SGC SmartTrack</h1>
+            <div class="mb-4 flex items-center gap-3 sgc:mb-5 sgc:gap-4">
+                <img
+                    class="h-14 w-14 shrink-0 object-contain sgc:h-[4.75rem] sgc:w-[4.75rem]"
+                    src="/assets/cadiz-division-seal.png"
+                    alt="Schools Division of Cadiz City seal"
+                />
+                <img
+                    class="max-h-[72px] w-auto min-w-0 max-w-full object-contain object-left sgc:max-h-[112px]"
+                    src="/assets/sgc-smarttrack-logo.png"
+                    alt="SGC SmartTrack"
+                />
+            </div>
+            <h1 class="sr-only">SGC SmartTrack</h1>
             <p>School Governance Council assessment, MOV validation, and division monitoring.</p>
             <ul class="hero-points">
                 <li>Encode indicators and MOV files</li>

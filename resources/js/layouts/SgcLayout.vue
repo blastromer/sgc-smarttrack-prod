@@ -438,11 +438,20 @@ onUnmounted(() => {
                     </div>
                     </div>
                 </div>
-                <div class="min-w-0">
-                    <p v-if="isHome" class="mb-0.5 text-[13px] leading-snug text-sgc-muted sgc:mb-1 sgc:text-sm">{{ greeting }}, {{ firstName }}</p>
-                    <h1 class="text-xl font-bold leading-tight tracking-tight sgc:text-2xl">{{ props.title }}</h1>
-                    <p v-if="isHome && contextLine" class="muted">{{ contextLine }}</p>
-                    <p class="muted">{{ props.subtitle }}</p>
+                <div class="min-w-0" :class="{ 'dash-hero': isHome }">
+                    <div class="min-w-0">
+                        <p v-if="isHome" class="dash-kicker mb-0.5 text-[13px] leading-snug sgc:mb-1 sgc:text-sm">{{ greeting }}, {{ firstName }}</p>
+                        <h1 class="text-xl font-bold leading-tight tracking-tight sgc:text-2xl">{{ props.title }}</h1>
+                        <p v-if="isHome && contextLine" class="dash-sub">{{ contextLine }}</p>
+                        <p :class="isHome ? 'dash-sub' : 'muted'">{{ props.subtitle }}</p>
+                    </div>
+                    <svg v-if="isHome" class="dash-mark" viewBox="0 0 148 72" aria-hidden="true">
+                        <path d="M16 36 74 12l58 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6" stroke-linejoin="round" />
+                        <path d="M30 36v26h88V36" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.4" />
+                        <path d="M64 62V46h20v16" fill="none" stroke="#9ed9e4" stroke-width="1.4" />
+                        <circle cx="120" cy="22" r="11" fill="none" stroke="#12b8c4" stroke-width="1.4" />
+                        <path d="M115 22.2 118.2 25.4 125.5 17" fill="none" stroke="#12b8c4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
                 </div>
             </div>
             <p v-if="props.chip" class="chip mb-2 mt-1 block sgc:hidden">{{ props.chip }}</p>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'sgc-ai-panel';
 const page = usePage<SharedData>();
 const ai = computed(() => page.props.sgc?.ai ?? null);
 const prompts = computed(() => (ai.value?.prompts ?? []).slice(0, 4));
+const hasDetail = computed(() => Boolean(ai.value?.hint || ai.value?.graphs || ai.value?.ideas?.length || prompts.value.length));
 const open = ref(false);
 
 const persist = (value: boolean) => {
@@ -47,11 +49,16 @@ const ask = (prompt?: string) => {
 <template>
     <section v-if="ai" class="box mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="min-w-0">
-                <b class="block text-[15px]">AI recommendation</b>
-                <p v-if="ai.live" class="muted mt-1">Live OpenAI</p>
+            <div class="flex min-w-0 items-center gap-2.5">
+                <span class="kpi-ico" aria-hidden="true">
+                    <SgcIcon name="AI assistance" />
+                </span>
+                <div class="min-w-0">
+                    <b class="block text-[15px]">AI recommendation</b>
+                    <p v-if="ai.live" class="muted mt-0.5">Live OpenAI</p>
+                </div>
             </div>
-            <div class="flex shrink-0 flex-wrap gap-2">
+            <div class="btn-pair flex shrink-0 flex-wrap gap-2">
                 <button class="btn inline ghost min-h-10 text-xs" type="button" :aria-expanded="open" @click="toggle">
                     {{ open ? 'Hide' : 'Show' }}
                 </button>
@@ -59,7 +66,8 @@ const ask = (prompt?: string) => {
             </div>
         </div>
         <div v-if="open">
-            <p class="muted mt-3 text-sm leading-relaxed">{{ ai.hint }}</p>
+            <p v-if="ai.hint" class="muted mt-3 text-sm leading-relaxed">{{ ai.hint }}</p>
+            <p v-else-if="!hasDetail" class="muted mt-3 text-sm leading-relaxed">No recommendation is available for this page yet.</p>
             <div v-if="ai.graphs" class="mt-3 rounded-[10px] border border-sgc-line bg-sgc-bg/40 px-3 py-2.5">
                 <p class="text-xs font-semibold text-sgc-ink">Graphs</p>
                 <p class="muted mt-1 text-sm leading-relaxed">{{ ai.graphs }}</p>

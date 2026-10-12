@@ -86,7 +86,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
                     <button class="cursor-pointer border-0 bg-transparent text-lg leading-none text-sgc-muted" type="button" aria-label="Close" @click="emit('close')">&times;</button>
                 </div>
                 <div class="flex-1 overflow-auto bg-sgc-bg p-3 sgc:p-4">
-                    <p v-if="loading" class="muted p-4">Opening official template…</p>
+                    <div v-if="loading" class="sgc-skeleton" aria-live="polite">
+                        <span class="sr-only">Opening official template…</span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
                     <p v-else-if="error" class="muted p-4">{{ error }}</p>
                     <div v-else-if="previewable" class="sgc-docx-paper" v-html="html" />
                     <div v-else class="rounded-[10px] border border-sgc-line bg-sgc-card p-4">

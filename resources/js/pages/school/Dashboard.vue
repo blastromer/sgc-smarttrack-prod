@@ -40,7 +40,8 @@ const closeTemplate = () => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
-        <KpiGrid v-if="kpis?.length" :items="kpis" />
+        <div class="dash-board">
+        <KpiGrid v-if="kpis?.length" :items="kpis" animate />
         <SgcAiPanel />
         <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <div v-for="chart in charts" :key="chart.title" class="box">
@@ -50,8 +51,16 @@ const closeTemplate = () => {
             </div>
             <div class="box">
                 <b>Progress to functional (10/12)</b>
-                <div class="bar" style="margin-top: 12px">
-                    <span :style="{ width: `${progress.width}%` }" />
+                <div
+                    class="bar"
+                    style="margin-top: 12px"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    :aria-valuenow="Math.max(0, Math.min(100, progress.width))"
+                    :aria-label="progress.text"
+                >
+                    <span :style="{ width: `${Math.max(0, Math.min(100, progress.width))}%` }" />
                 </div>
                 <p class="muted" style="margin-top: 10px">{{ progress.text }}</p>
                 <b style="display: block; margin-top: 16px">Next actions</b>
@@ -76,5 +85,6 @@ const closeTemplate = () => {
             <SgcTemplateLinks class="mt-3" :files="templates" @open="openTemplate" />
         </div>
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
+        </div>
     </SgcLayout>
 </template>
