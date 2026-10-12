@@ -213,7 +213,7 @@
   .kpi b { @apply m-0 block px-3.5 pb-1 pt-2 text-[28px] font-semibold tracking-tight text-sgc-ink; }
   .kpi.warn b { @apply text-sgc-gold; }
   .kpi.bad b { @apply text-[#f0a07a]; }
-  .kpi small { @apply m-0 block min-h-[1.7rem] px-3.5 pb-3.5 text-[11px] leading-snug text-sgc-muted; }
+  .kpi small { @apply m-0 block px-3.5 pb-3.5 text-[11px] leading-snug text-sgc-muted; }
 
   .data-table { @apply w-full border-collapse text-[13px]; }
   .data-table th { @apply whitespace-nowrap border-b border-sgc-line px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-sgc-muted; }

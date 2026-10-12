@@ -17,7 +17,7 @@ defineProps<{
                 <span>{{ kpi.label }}</span>
             </div>
             <b>{{ kpi.value }}</b>
-            <small>{{ kpi.hint }}</small>
+            <small v-if="kpi.hint">{{ kpi.hint }}</small>
         </div>
     </div>
 </template>

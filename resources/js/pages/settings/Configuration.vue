@@ -16,7 +16,7 @@ const canPublish = computed(() => appearance.value?.can_publish === true);
 
 const form = useForm({
     theme: appearance.value?.current.theme ?? 'day',
-    accent: appearance.value?.current.accent ?? '#2aa7a0',
+    accent: appearance.value?.current.accent ?? '#2563EB',
     font: appearance.value?.current.font ?? 'segoe',
     text_size: appearance.value?.current.text_size ?? 'md',
     density: appearance.value?.current.density ?? 'comfortable',
