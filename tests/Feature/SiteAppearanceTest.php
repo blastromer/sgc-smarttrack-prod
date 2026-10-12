@@ -21,7 +21,7 @@ class SiteAppearanceTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('settings/Configuration')
-                ->where('sgc.appearance.current.theme', 'night')
+                ->where('sgc.appearance.current.theme', 'day')
                 ->where('sgc.appearance.can_publish', false));
     }
 

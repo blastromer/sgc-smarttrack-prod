@@ -15,7 +15,7 @@ const appearance = computed(() => page.props.sgc?.appearance);
 const canPublish = computed(() => appearance.value?.can_publish === true);
 
 const form = useForm({
-    theme: appearance.value?.current.theme ?? 'night',
+    theme: appearance.value?.current.theme ?? 'day',
     accent: appearance.value?.current.accent ?? '#2aa7a0',
     font: appearance.value?.current.font ?? 'segoe',
     text_size: appearance.value?.current.text_size ?? 'md',
@@ -56,8 +56,8 @@ const reset = () => {
 };
 
 const themes: { id: SgcAppearance['theme']; label: string; hint: string; accent: string }[] = [
-    { id: 'night', label: 'Night', hint: 'Current SmartTrack dark teal', accent: '#2aa7a0' },
-    { id: 'day', label: 'Day', hint: 'Light panels for bright rooms', accent: '#1a7a75' },
+    { id: 'day', label: 'Day', hint: 'Light workspace with a navy sidebar', accent: '#2563EB' },
+    { id: 'night', label: 'Night', hint: 'Dark teal workspace', accent: '#2aa7a0' },
     { id: 'forest', label: 'Forest', hint: 'Green DepEd-leaning dark', accent: '#3cb88a' },
     { id: 'contrast', label: 'High contrast', hint: 'Stronger edges and type', accent: '#3dffd4' },
 ];

@@ -48,9 +48,8 @@ const ask = (prompt?: string) => {
     <section v-if="ai" class="box mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="min-w-0">
-                <p class="text-xs font-semibold tracking-wide text-sgc-teal">AI recommendation</p>
-                <b class="mt-1 block text-[15px]">Analytics</b>
-                <p class="muted mt-1 text-[11px]">Ideas · Interpretation · Graphs · Analytics{{ ai.live ? ' · Live OpenAI' : '' }}</p>
+                <b class="block text-[15px]">AI recommendation</b>
+                <p v-if="ai.live" class="muted mt-1">Live OpenAI</p>
             </div>
             <div class="flex shrink-0 flex-wrap gap-2">
                 <button class="btn inline ghost min-h-10 text-xs" type="button" :aria-expanded="open" @click="toggle">

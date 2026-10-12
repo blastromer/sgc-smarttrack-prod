@@ -30,4 +30,9 @@ export default defineConfig({
             plugins: [tailwindcss, autoprefixer],
         },
     },
+    server: {
+        watch: {
+            ignored: ['**/screenshots/**', '**/screenshots.zip'],
+        },
+    },
 });

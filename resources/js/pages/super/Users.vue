@@ -50,8 +50,8 @@ const resetData = () => {
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid :items="kpis" />
-        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
-            <form class="box" @submit.prevent="submit">
+        <div class="grid grid-cols-1 gap-3">
+            <form class="box max-w-3xl" @submit.prevent="submit">
                 <b>Create Division Admin</b>
                 <p class="muted">Only Super Admin can create this role. School Heads still register and wait for Division accept.</p>
                 <label for="division-name">Full name</label>
@@ -80,7 +80,7 @@ const resetData = () => {
             </form>
             <div class="box">
                 <b>Accounts</b>
-                <p v-if="!users.length" class="muted">No accounts yet.</p>
+                <p v-if="!users.length" class="empty">No accounts yet.</p>
                 <div v-else class="table-scroll">
                 <table class="data-table" style="margin-top: 12px">
                     <thead>

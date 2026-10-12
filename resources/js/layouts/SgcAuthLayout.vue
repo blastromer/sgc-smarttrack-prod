@@ -11,19 +11,16 @@ defineProps<{
     <Head :title="title" />
     <main class="auth-shell grid min-h-[100dvh] grid-cols-1 bg-sgc-bg text-sgc-ink sgc:grid-cols-2">
         <section
-            class="hero relative flex flex-col justify-between overflow-hidden px-5 py-5 pt-[max(20px,env(safe-area-inset-top))] sgc:p-12"
-            style="background: radial-gradient(600px 280px at 20% 0%, color-mix(in srgb, var(--sgc-teal) 18%, transparent), transparent 60%), linear-gradient(180deg, var(--sgc-panel) 0%, var(--sgc-bg) 100%)"
+            class="auth-hero relative flex flex-col overflow-hidden px-5 py-6 pt-[max(20px,env(safe-area-inset-top))] text-white sgc:min-h-dvh sgc:px-12 sgc:py-10"
         >
-            <div class="relative z-[1]">
-                <div class="flex items-center gap-4">
-                    <img class="h-[52px] w-[52px] object-contain sgc:h-[72px] sgc:w-[72px]" src="/assets/deped-seal.png" alt="DepEd official seal" />
-                    <img class="h-[52px] w-[52px] object-contain sgc:h-[72px] sgc:w-[72px]" src="/assets/cadiz-division-seal.png" alt="Schools Division of Cadiz City seal" />
-                </div>
-                <div class="[&_h1]:mb-2.5 [&_h1]:mt-3.5 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-tight sgc:[&_h1]:mb-2.5 sgc:[&_h1]:mt-7 sgc:[&_h1]:text-4xl [&_p]:max-w-none [&_p]:text-[13px] [&_p]:leading-relaxed [&_p]:text-sgc-muted sgc:[&_p]:max-w-[420px] sgc:[&_p]:text-[15px]">
-                    <slot name="hero" />
-                </div>
-                <p class="mt-3 text-xs text-sgc-muted sgc:mt-7">Authorized DepEd personnel</p>
+            <div class="relative z-[1] flex items-center gap-4">
+                <img class="h-[52px] w-[52px] object-contain sgc:h-16 sgc:w-16" src="/assets/deped-seal.png" alt="DepEd official seal" />
+                <img class="h-[52px] w-[52px] object-contain sgc:h-16 sgc:w-16" src="/assets/cadiz-division-seal.png" alt="Schools Division of Cadiz City seal" />
             </div>
+            <div class="auth-hero-copy relative z-[1] max-w-[26rem] [&_h1]:text-[1.75rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-white sgc:[&_h1]:text-[2.35rem] [&_p]:mt-3 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-white/80 sgc:[&_p]:text-[15px]">
+                <slot name="hero" />
+            </div>
+            <p class="relative z-[1] mt-8 text-xs text-white/70 sgc:mt-0">Authorized DepEd personnel</p>
         </section>
         <section class="flex items-stretch justify-center border-t border-sgc-line bg-sgc-panel px-4 py-5 pb-8 sgc:items-center sgc:border-l sgc:border-t-0 sgc:px-6 sgc:py-10">
             <div class="w-full sgc:w-[400px]">

@@ -30,6 +30,52 @@ const flash = computed(() => page.props.flash?.status);
 const isSchool = computed(() => user.value?.role === 'school' || user.value?.role === 'school_head');
 const hideSubmitButton = computed(() => currentPath.value === '/school/submit');
 const mobileTabs = computed(() => (sgc.value?.nav ?? []).slice(0, 4));
+const firstName = computed(() => (user.value?.name ?? '').trim().split(/\s+/)[0] || 'there');
+const greeting = computed(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+        return 'Good morning';
+    }
+    if (hour < 18) {
+        return 'Good afternoon';
+    }
+
+    return 'Good evening';
+});
+const isHome = computed(() => ['/super', '/division', '/school'].includes(currentPath.value));
+const contextLine = computed(() => user.value?.school_name || '');
+const navGroups = computed(() => {
+    const items = sgc.value?.nav ?? [];
+    const role = user.value?.role;
+    const groups: { label: string; items: { label: string; href: string }[] }[] = [];
+    const take = (label: string, hrefs: string[]) => {
+        const found = hrefs
+            .map((href) => items.find((item) => item.href === href))
+            .filter((item): item is { label: string; href: string } => Boolean(item));
+        if (found.length) {
+            groups.push({ label, items: found });
+        }
+    };
+
+    if (role === 'super') {
+        take('Workspace', ['/super']);
+        take('Administration', ['/super/divisions', '/super/users', '/super/cycles']);
+    } else if (role === 'division') {
+        take('Workspace', ['/division', '/division/queue', '/division/alerts']);
+        take('Records', ['/division/schools', '/division/registrations']);
+    } else {
+        take('Workspace', ['/school', '/school/assessment', '/school/movs', '/school/submit', '/school/notifications']);
+        take('Records', ['/school/templates', '/school/form-data', '/school/encoders']);
+    }
+
+    const used = new Set(groups.flatMap((group) => group.items.map((item) => item.href)));
+    const rest = items.filter((item) => !used.has(item.href));
+    if (rest.length) {
+        groups.push({ label: 'More', items: rest });
+    }
+
+    return groups;
+});
 const flowSteps = computed(() => sgc.value?.flow?.steps ?? []);
 const snakeTop = computed(() => flowSteps.value.slice(0, 3));
 const snakeBottom = computed(() => [...flowSteps.value.slice(3, 6)].reverse());
@@ -64,7 +110,18 @@ const initials = computed(() => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 });
 
-const isActive = (href: string) => currentPath.value === href;
+const isActive = (href: string) => {
+    if (currentPath.value === href) {
+        return true;
+    }
+
+    const roots = ['/super', '/division', '/school'];
+    if (roots.includes(href)) {
+        return false;
+    }
+
+    return currentPath.value.startsWith(`${href}/`);
+};
 
 const tabLabel = (label: string) => {
     const labels: Record<string, string> = {
@@ -84,8 +141,10 @@ const tabLabel = (label: string) => {
 
 const navClass = (href: string) =>
     [
-        'mb-1 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm no-underline hover:bg-sgc-deep hover:no-underline',
-        isActive(href) ? 'bg-sgc-deep text-sgc-mint' : 'text-sgc-ink',
+        'mb-0.5 flex items-center gap-2.5 rounded-lg border-l-2 px-2.5 py-2 text-sm no-underline transition-colors duration-150 hover:bg-[var(--sgc-side-active)] hover:text-white hover:no-underline',
+        isActive(href)
+            ? 'border-[var(--sgc-brand)] bg-[var(--sgc-side-active)] font-semibold text-white'
+            : 'border-transparent text-[var(--sgc-side-ink)]',
     ].join(' ');
 
 const tabClass = (href: string) =>
@@ -191,9 +250,9 @@ onUnmounted(() => {
 <template>
     <Head :title="props.title" />
     <div class="app min-h-screen overflow-visible bg-sgc-bg text-sgc-ink sgc:grid sgc:grid-cols-[240px_1fr]">
-        <header class="no-print sticky top-0 z-30 flex items-center gap-2.5 border-b border-sgc-line bg-sgc-panel px-3 py-2.5 pt-[max(10px,env(safe-area-inset-top))] sgc:hidden">
+        <header class="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-sgc-line bg-sgc-panel px-2 py-2 pt-[max(8px,env(safe-area-inset-top))] sgc:hidden">
             <button
-                class="grid h-10 w-10 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink"
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink"
                 type="button"
                 aria-label="Open menu"
                 @click="aiOpen = false; noticesOpen = false; menuOpen = false; navOpen = true"
@@ -203,14 +262,14 @@ onUnmounted(() => {
             <div class="flex min-w-0 flex-1 items-center gap-2">
                 <SgcLogo class="h-8 w-8 shrink-0" />
                 <div class="min-w-0">
-                    <b class="block text-[13px] leading-tight">SGC SmartTrack</b>
-                    <span class="muted text-[11px]">{{ user?.role_label }}</span>
+                    <b class="block truncate text-[13px] leading-tight">SGC SmartTrack</b>
+                    <span class="muted block truncate text-[11px]">{{ user?.role_label }}</span>
                 </div>
             </div>
-            <div class="flex items-center gap-3.5 overflow-visible pt-1">
+            <div class="flex shrink-0 items-center gap-1 overflow-visible">
                 <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                 <button
-                    class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
+                    class="relative grid h-9 w-9 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
                     type="button"
                     aria-label="Open notifications"
                     :aria-expanded="noticesOpen"
@@ -226,7 +285,7 @@ onUnmounted(() => {
                 </button>
                 <div class="relative">
                     <button
-                        class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint"
+                        class="grid h-9 w-9 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[12px] font-bold text-sgc-mint"
                         :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_rgba(42,167,160,.28)]' : ''"
                         type="button"
                         aria-label="Open account menu"
@@ -240,8 +299,8 @@ onUnmounted(() => {
                         <div class="mb-1 flex items-center gap-2.5 border-b border-sgc-line px-2 pb-3 pt-2">
                             <span class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint">{{ initials }}</span>
                             <div>
-                                <b class="block text-xs uppercase tracking-wide">{{ user?.name }}</b>
-                                <p class="muted mt-0.5 text-xs">{{ user?.email }}</p>
+                                <b class="block text-sm">{{ user?.name }}</b>
+                                <p class="muted mt-0.5 text-xs">{{ user?.role_label }}</p>
                             </div>
                         </div>
                         <Link :class="userItemClass('/account')" href="/account" @click="closeMenu">
@@ -275,30 +334,34 @@ onUnmounted(() => {
             @click="closeNav"
         />
         <aside
-            class="side fixed inset-y-0 left-0 z-40 flex h-full w-[min(280px,86vw)] flex-col border-r border-sgc-line bg-sgc-panel px-4 pb-4 pt-[max(24px,env(safe-area-inset-top))] transition-transform duration-200 sgc:sticky sgc:top-0 sgc:z-auto sgc:h-screen sgc:w-auto sgc:translate-x-0 sgc:self-start sgc:overflow-y-auto sgc:pt-6"
+            class="side fixed inset-y-0 left-0 z-40 flex h-full w-[min(280px,86vw)] flex-col border-r border-white/10 bg-[var(--sgc-side)] px-3 pb-4 pt-[max(20px,env(safe-area-inset-top))] text-[var(--sgc-side-ink)] transition-transform duration-200 sgc:sticky sgc:top-0 sgc:z-auto sgc:h-screen sgc:w-auto sgc:translate-x-0 sgc:self-start sgc:overflow-y-auto sgc:pt-5"
             :class="navOpen ? 'translate-x-0' : '-translate-x-[105%]'"
         >
-            <div class="mb-[22px] flex items-center gap-2.5">
+            <div class="mb-5 flex items-center gap-2.5 px-2">
                 <SgcLogo class="h-10 w-10 shrink-0" />
                 <div>
-                    <b>SGC SmartTrack</b><br />
-                    <span class="muted">{{ user?.role_label }}</span>
+                    <b class="block text-sm leading-tight text-white">SGC SmartTrack</b>
+                    <span class="text-xs text-[var(--sgc-side-muted)]">{{ user?.role_label }}</span>
                 </div>
             </div>
-            <nav class="flex-1">
-                <Link
-                    v-for="item in sgc?.nav"
-                    :key="item.href"
-                    :href="item.href"
-                    :class="navClass(item.href)"
-                    @click="closeNav"
-                >
-                    <SgcIcon :name="item.label" />
-                    {{ item.label }}
-                </Link>
+            <nav class="flex-1" aria-label="Primary">
+                <div v-for="group in navGroups" :key="group.label" class="mb-3">
+                    <p class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--sgc-side-muted)]">{{ group.label }}</p>
+                    <Link
+                        v-for="item in group.items"
+                        :key="item.href"
+                        :href="item.href"
+                        :class="navClass(item.href)"
+                        :aria-current="isActive(item.href) ? 'page' : undefined"
+                        @click="closeNav"
+                    >
+                        <SgcIcon :name="item.label" />
+                        {{ item.label }}
+                    </Link>
+                </div>
             </nav>
             <button
-                class="mt-auto flex w-full cursor-pointer items-center gap-2.5 rounded-b-lg border-0 border-t border-sgc-line bg-transparent pt-3.5 text-left text-sm text-sgc-muted hover:bg-sgc-deep"
+                class="mt-auto flex w-full cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-3 text-left text-sm text-[var(--sgc-side-muted)] hover:bg-[var(--sgc-side-active)] hover:text-white"
                 type="button"
                 @click="signOut"
             >
@@ -306,13 +369,11 @@ onUnmounted(() => {
                 Sign out
             </button>
         </aside>
-        <section class="main h-auto overflow-visible px-4 pb-[104px] pt-4 sgc:px-8 sgc:py-7">
-            <div class="mb-3.5 flex items-start justify-between gap-2 sgc:mb-[22px] sgc:items-center sgc:gap-4">
-                <div class="min-w-0">
-                    <h1 class="text-[22px] font-bold leading-tight break-words sgc:text-[32px]">{{ props.title }}</h1>
-                    <p class="muted break-words">{{ props.subtitle }}</p>
-                </div>
-                <div class="hidden items-center gap-3.5 overflow-visible pt-1 sgc:flex">
+        <section class="main h-auto overflow-visible px-4 pb-[104px] pt-3 sgc:px-8 sgc:py-7">
+            <div class="mb-2 flex flex-col gap-1 sgc:mb-5 sgc:gap-4">
+                <div class="hidden items-center gap-3 overflow-visible border-b border-sgc-line pb-3 sgc:flex">
+                    <span v-if="props.chip" class="chip">{{ props.chip }}</span>
+                    <div class="ml-auto flex items-center gap-3">
                     <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                     <button
                         class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
@@ -329,7 +390,11 @@ onUnmounted(() => {
                             {{ unread }}
                         </span>
                     </button>
-                    <div class="relative">
+                    <div class="relative flex items-center gap-2">
+                        <span class="hidden text-right sgc:block">
+                            <b class="block text-sm leading-tight">{{ user?.name }}</b>
+                            <span class="text-xs text-sgc-muted">{{ user?.role_label }}</span>
+                        </span>
                         <button
                             class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint"
                             :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_rgba(42,167,160,.28)]' : ''"
@@ -345,8 +410,8 @@ onUnmounted(() => {
                             <div class="mb-1 flex items-center gap-2.5 border-b border-sgc-line px-2 pb-3 pt-2">
                                 <span class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint">{{ initials }}</span>
                                 <div>
-                                    <b class="block text-xs uppercase tracking-wide">{{ user?.name }}</b>
-                                    <p class="muted mt-0.5 text-xs">{{ user?.email }}</p>
+                                    <b class="block text-sm">{{ user?.name }}</b>
+                                    <p class="muted mt-0.5 text-xs">{{ user?.role_label }}</p>
                                 </div>
                             </div>
                             <Link :class="userItemClass('/account')" href="/account" @click="closeMenu">
@@ -371,10 +436,16 @@ onUnmounted(() => {
                             </button>
                         </div>
                     </div>
-                    <span v-if="props.chip" class="chip">{{ props.chip }}</span>
+                    </div>
+                </div>
+                <div class="min-w-0">
+                    <p v-if="isHome" class="mb-0.5 text-[13px] leading-snug text-sgc-muted sgc:mb-1 sgc:text-sm">{{ greeting }}, {{ firstName }}</p>
+                    <h1 class="text-xl font-bold leading-tight tracking-tight sgc:text-2xl">{{ props.title }}</h1>
+                    <p v-if="isHome && contextLine" class="muted">{{ contextLine }}</p>
+                    <p class="muted">{{ props.subtitle }}</p>
                 </div>
             </div>
-            <p v-if="props.chip" class="chip -mt-2 mb-3.5 block sgc:hidden">{{ props.chip }}</p>
+            <p v-if="props.chip" class="chip mb-2 mt-1 block sgc:hidden">{{ props.chip }}</p>
             <div v-if="flash" class="flash">{{ flash }}</div>
             <div v-if="isSchool && sgc?.flow" class="mb-4">
                 <div class="flow hidden sgc:flex">
@@ -458,6 +529,7 @@ onUnmounted(() => {
                 :key="item.href"
                 :href="item.href"
                 :class="tabClass(item.href)"
+                :aria-current="isActive(item.href) ? 'page' : undefined"
             >
                 <SgcIcon :name="item.label" />
                 <span>{{ tabLabel(item.label) }}</span>

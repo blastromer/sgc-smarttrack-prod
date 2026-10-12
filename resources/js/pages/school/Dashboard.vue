@@ -40,8 +40,8 @@ const closeTemplate = () => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
-        <SgcAiPanel />
         <KpiGrid v-if="kpis?.length" :items="kpis" />
+        <SgcAiPanel />
         <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <div v-for="chart in charts" :key="chart.title" class="box">
                 <b>{{ chart.title }}</b>

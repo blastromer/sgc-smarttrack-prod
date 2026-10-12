@@ -28,7 +28,7 @@ const open = (code: string) => {
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
-            <p v-if="!schools.length" class="muted">{{ empty_text || 'No School Heads have registered yet.' }}</p>
+            <p v-if="!schools.length" class="empty">{{ empty_text || 'No School Heads have registered yet.' }}</p>
             <div v-else class="table-scroll">
                 <table class="data-table">
                     <thead>

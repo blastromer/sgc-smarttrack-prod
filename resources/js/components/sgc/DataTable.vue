@@ -10,7 +10,7 @@ defineProps<{
 
 <template>
     <div class="box">
-        <p v-if="!rows.length" class="muted">{{ empty_text || 'No records yet.' }}</p>
+        <p v-if="!rows.length" class="empty">{{ empty_text || 'No records yet.' }}</p>
         <div v-else class="table-scroll">
         <table class="data-table">
             <thead>

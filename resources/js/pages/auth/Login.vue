@@ -24,12 +24,13 @@ const submit = () => {
 <template>
     <SgcAuthLayout title="Sign in">
         <template #hero>
-            <img
-                class="mb-2 max-h-[88px] w-auto max-w-full object-contain object-left sgc:mb-3 sgc:max-h-[120px]"
-                src="/assets/sgc-smarttrack-logo.png"
-                alt="SGC SmartTrack"
-            />
-            <p>School Governance Council assessment, MOV validation, and division monitoring. Role is assigned to your account after sign-in.</p>
+            <h1>SGC SmartTrack</h1>
+            <p>School Governance Council assessment, MOV validation, and division monitoring.</p>
+            <ul class="hero-points">
+                <li>Encode indicators and MOV files</li>
+                <li>Review the division validation queue</li>
+                <li>Follow each assessment cycle</li>
+            </ul>
         </template>
 
         <form @submit.prevent="submit">
@@ -44,7 +45,7 @@ const submit = () => {
 
             <div class="row">
                 <span></span>
-                <a href="#">Forgot password?</a>
+                <Link v-if="canResetPassword" :href="route('password.request')">Forgot password?</Link>
             </div>
 
             <button class="btn" type="submit" :disabled="form.processing">Sign in to SmartTrack</button>

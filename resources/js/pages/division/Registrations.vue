@@ -31,7 +31,7 @@ const accept = (id: number) => {
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid :items="kpis" />
         <div class="box">
-            <p v-if="!registrations.length" class="muted">{{ empty_text }}</p>
+            <p v-if="!registrations.length" class="empty">{{ empty_text }}</p>
             <div v-else class="table-scroll">
             <table class="data-table">
                 <thead>

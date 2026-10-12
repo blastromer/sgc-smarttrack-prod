@@ -5,12 +5,11 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { type BreadcrumbItem, type SharedData, type User } from '@/types';
+import SgcLayout from '@/layouts/SgcLayout.vue';
+import { type SharedData, type User } from '@/types';
 
 interface Props {
     mustVerifyEmail: boolean;
@@ -19,13 +18,6 @@ interface Props {
 }
 
 defineProps<Props>();
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: '/settings/profile',
-    },
-];
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
@@ -43,8 +35,8 @@ const submit = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Profile settings" />
+    <SgcLayout title="Profile" subtitle="Update the name and email on your account.">
+        <Head title="Profile" />
 
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
@@ -90,7 +82,7 @@ const submit = () => {
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save</Button>
+                        <button class="btn inline" type="submit" :disabled="form.processing">Save</button>
 
                         <TransitionRoot
                             :show="form.recentlySuccessful"
@@ -107,5 +99,5 @@ const submit = () => {
 
             <DeleteUser />
         </SettingsLayout>
-    </AppLayout>
+    </SgcLayout>
 </template>

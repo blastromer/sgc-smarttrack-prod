@@ -51,9 +51,9 @@ export const applySgcAppearance = (prefs: SgcAppearance) => {
     const fontFamily = prefs.font_family || FONT_FAMILY[prefs.font] || FONT_FAMILY.segoe;
     const fontSize = prefs.font_size || FONT_SIZE[prefs.text_size] || FONT_SIZE.md;
 
-    root.setAttribute('data-theme', prefs.theme || 'night');
+    root.setAttribute('data-theme', prefs.theme || 'day');
     root.setAttribute('data-density', prefs.density || 'comfortable');
-    root.style.setProperty('--sgc-teal', prefs.accent || '#2aa7a0');
+    root.style.setProperty('--sgc-teal', prefs.accent || '#2563EB');
     root.style.setProperty('--sgc-font', fontFamily);
     root.style.fontFamily = fontFamily;
     root.style.fontSize = fontSize;
