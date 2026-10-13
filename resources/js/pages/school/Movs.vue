@@ -3,6 +3,7 @@ import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcMovSlotMenu from '@/components/sgc/SgcMovSlotMenu.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
@@ -121,7 +122,7 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
             </p>
             <p v-if="can_withdraw" class="muted" style="margin-top: 8px">This packet is in the Division queue and no MOV has been accepted yet.</p>
             <div v-if="can_withdraw" class="actions">
-                <button class="btn inline ghost" type="button" @click="withdraw">Withdraw from Division</button>
+                <button class="btn inline ghost" type="button" @click="withdraw"><SgcIcon name="Withdraw" />Withdraw from Division</button>
             </div>
             <div class="mt-3 space-y-3 sgc:hidden">
                 <article v-for="slot in slots" :key="`m-${slot.code}`" class="mov-file-card rounded-[10px] border border-sgc-line bg-sgc-card p-4">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -23,19 +24,40 @@ const props = defineProps<{
 }>();
 
 const reasons = ref<Record<number, string>>({});
+const busy = ref<{ id: number | 'complete'; action: 'accept' | 'return' | 'complete' } | null>(null);
+const updated = ref<number | null>(null);
+let updatedTimer: ReturnType<typeof setTimeout> | undefined;
 
-const accept = (id: number) => router.post(route('division.movs.accept', { mov: id }));
-const returnMov = (id: number) => {
-    router.post(route('division.movs.return', { mov: id }), {
-        reason: reasons.value[id] || 'Invalid MOV',
+const isBusy = (id: number | 'complete', action: string) => busy.value?.id === id && busy.value.action === action;
+
+const send = (url: string, data: Record<string, string>, id: number | 'complete', action: 'accept' | 'return' | 'complete') => {
+    if (busy.value) return;
+    busy.value = { id, action };
+    router.post(url, data, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (typeof id !== 'number') return;
+            updated.value = id;
+            clearTimeout(updatedTimer);
+            updatedTimer = setTimeout(() => (updated.value = null), 1700);
+        },
+        onFinish: () => (busy.value = null),
     });
 };
-const complete = () => router.post(route('division.review.complete', { assessment: props.assessment_id }));
+
+const accept = (id: number) => send(route('division.movs.accept', { mov: id }), {}, id, 'accept');
+const returnMov = (id: number) => send(route('division.movs.return', { mov: id }), { reason: reasons.value[id] || 'Invalid MOV' }, id, 'return');
+const complete = () => send(route('division.review.complete', { assessment: props.assessment_id }), {}, 'complete', 'complete');
 
 const tone = (status: string) => {
     if (status === 'valid') return 'ok';
     if (status === 'returned') return 'bad';
     return 'warn';
+};
+const statusIcon = (status: string) => {
+    if (status === 'valid') return 'Accept';
+    if (status === 'returned') return 'Return';
+    return 'Pending';
 };
 </script>
 
@@ -65,7 +87,7 @@ const tone = (status: string) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="mov in movs" :key="mov.id">
+                    <tr v-for="mov in movs" :key="mov.id" :class="{ 'is-updated': updated === mov.id, 'is-busy': busy?.id === mov.id }">
                         <td data-label="MOV">{{ mov.code }}</td>
                         <td data-label="Title">{{ mov.title }}</td>
                         <td data-label="Type">{{ mov.kind }}</td>
@@ -73,7 +95,9 @@ const tone = (status: string) => {
                             <a v-if="mov.file" :href="route('movs.download', { mov: mov.id })">{{ mov.file }}</a>
                             <span v-else class="muted">No file</span>
                         </td>
-                        <td data-label="Status"><span class="badge" :class="tone(mov.status)">{{ mov.status }}</span></td>
+                        <td data-label="Status">
+                            <span class="badge" :class="tone(mov.status)"><SgcIcon :name="statusIcon(mov.status)" />{{ mov.status }}</span>
+                        </td>
                         <td data-label="Return reason">
                             <input v-model="reasons[mov.id]" placeholder="Why invalid?" />
                         </td>
@@ -82,13 +106,26 @@ const tone = (status: string) => {
                                 <button
                                     class="btn inline min-h-11"
                                     type="button"
-                                    :disabled="status === 'validated' && mov.status === 'valid'"
+                                    :disabled="(status === 'validated' && mov.status === 'valid') || busy?.id === mov.id"
                                     :class="{ disabled: status === 'validated' && mov.status === 'valid' }"
+                                    :aria-busy="isBusy(mov.id, 'accept')"
                                     @click="accept(mov.id)"
                                 >
+                                    <span v-if="isBusy(mov.id, 'accept')" class="sgc-spin" aria-hidden="true" />
+                                    <SgcIcon v-else name="Accept" />
                                     Accept
                                 </button>
-                                <button class="btn inline ghost min-h-11" type="button" @click="returnMov(mov.id)">Return</button>
+                                <button
+                                    class="btn inline ghost min-h-11"
+                                    type="button"
+                                    :disabled="busy?.id === mov.id"
+                                    :aria-busy="isBusy(mov.id, 'return')"
+                                    @click="returnMov(mov.id)"
+                                >
+                                    <span v-if="isBusy(mov.id, 'return')" class="sgc-spin" aria-hidden="true" />
+                                    <SgcIcon v-else name="Return" />
+                                    Return
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -96,7 +133,16 @@ const tone = (status: string) => {
             </table>
             </div>
             <div class="actions">
-                <button class="btn inline" type="button" :disabled="!can_complete" :class="{ disabled: !can_complete }" @click="complete">
+                <button
+                    class="btn inline"
+                    type="button"
+                    :disabled="!can_complete || busy?.id === 'complete'"
+                    :class="{ disabled: !can_complete }"
+                    :aria-busy="isBusy('complete', 'complete')"
+                    @click="complete"
+                >
+                    <span v-if="isBusy('complete', 'complete')" class="sgc-spin" aria-hidden="true" />
+                    <SgcIcon v-else name="Validated" />
                     {{ status === 'validated' ? (result === 'functional' ? 'Functional (10/12 met)' : 'Not yet functional') : 'Complete validation' }}
                 </button>
             </div>

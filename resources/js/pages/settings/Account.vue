@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { SharedData } from '@/types';
 import { useForm, usePage } from '@inertiajs/vue3';
@@ -79,7 +80,7 @@ const savePassword = () => {
                     <input id="account-position" v-model="account.position" />
                 </template>
                 <div class="actions">
-                    <button class="btn inline" type="submit" :disabled="account.processing">Save account</button>
+                    <button class="btn inline" type="submit" :disabled="account.processing"><SgcIcon name="Save" />Save account</button>
                 </div>
             </form>
             <form class="box" @submit.prevent="savePassword">
@@ -94,7 +95,7 @@ const savePassword = () => {
                 <label for="account-confirm">Confirm new password</label>
                 <input id="account-confirm" v-model="password.password_confirmation" type="password" autocomplete="new-password" />
                 <div class="actions">
-                    <button class="btn inline" type="submit" :disabled="password.processing">Update password</button>
+                    <button class="btn inline" type="submit" :disabled="password.processing"><SgcIcon name="Lock" />Update password</button>
                 </div>
             </form>
         </div>

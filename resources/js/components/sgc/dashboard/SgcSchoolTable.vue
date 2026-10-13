@@ -131,7 +131,7 @@ const onCycle = (event: Event) => emit('cycle', Number((event.target as HTMLSele
                             >
                                 {{ row.can_validate ? 'Review' : 'View' }}
                             </Link>
-                            <Link v-else-if="row.view_href" class="btn inline ghost dash-action" :href="row.view_href">View</Link>
+                            <Link v-else-if="row.view_href" class="btn inline ghost dash-action" :href="row.view_href"><SgcIcon name="View" />View</Link>
                             <span v-else class="muted">–</span>
                         </td>
                     </tr>

@@ -4,6 +4,7 @@ import SgcAiPanel from '@/components/sgc/SgcAiPanel.vue';
 import SgcTemplateLinks from '@/components/sgc/SgcTemplateLinks.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import VChart from '@/components/sgc/VChart.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { ChartBlock, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -77,7 +78,7 @@ const closeTemplate = () => {
                 <b class="progress-next">Next actions</b>
                 <p v-for="action in progress.actions" :key="action" class="muted progress-copy">{{ action }}</p>
                 <div class="actions">
-                    <Link class="btn inline" href="/school/submit">See submission flow</Link>
+                    <Link class="btn inline" href="/school/submit"><SgcIcon name="Next" />See submission flow</Link>
                 </div>
             </div>
         </div>
@@ -91,7 +92,7 @@ const closeTemplate = () => {
                         once, then download filled Word files. Letterhead and officers are stamped; complete the remaining blanks and upload on MOV files.
                     </p>
                 </div>
-                <Link class="btn inline ghost min-h-10 text-xs" href="/school/templates">All templates</Link>
+                <Link class="btn inline ghost min-h-10 text-xs" href="/school/templates"><SgcIcon name="Templates" />All templates</Link>
             </div>
             <SgcTemplateLinks class="mt-3" :files="templates" @open="openTemplate" />
         </div>

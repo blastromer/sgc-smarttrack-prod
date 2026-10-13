@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { useForm } from '@inertiajs/vue3';
@@ -76,7 +77,7 @@ const resetData = () => {
                 <label for="division-password-confirm">Confirm password</label>
                 <input id="division-password-confirm" v-model="form.password_confirmation" type="password" required minlength="8" />
                 <div class="actions">
-                    <button class="btn inline" type="submit" :disabled="form.processing">Create Division Admin</button>
+                    <button class="btn inline" type="submit" :disabled="form.processing"><SgcIcon name="Users" />Create Division Admin</button>
                 </div>
             </form>
             <div class="box">
@@ -115,7 +116,7 @@ const resetData = () => {
             <input id="reset-confirm" v-model="resetForm.confirm" required placeholder="RESET FAT DATA" autocomplete="off" />
             <p v-if="resetForm.errors.confirm" class="err" style="display: block">{{ resetForm.errors.confirm }}</p>
             <div class="actions">
-                <button class="btn inline ghost" type="submit" :disabled="resetForm.processing">Clear school and FAT data</button>
+                <button class="btn inline ghost" type="submit" :disabled="resetForm.processing"><SgcIcon name="Delete" />Clear school and FAT data</button>
             </div>
         </form>
     </SgcLayout>

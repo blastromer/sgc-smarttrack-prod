@@ -27,10 +27,11 @@ const badge = computed(() => {
 <template>
     <button
         v-if="ai"
-        class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
-        :class="open ? 'border-sgc-teal' : ''"
+        class="sgc-ai-btn sgc-icon-btn relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
+        :class="open ? 'border-sgc-teal' : 'is-idle'"
         type="button"
         aria-label="Open AI assistance"
+        title="AI assistance"
         :aria-expanded="open"
         @click="emit('toggle')"
     >

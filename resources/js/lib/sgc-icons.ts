@@ -84,6 +84,11 @@ export const ICONS: Record<string, string> = {
     'Validated today': '<circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.5 2.5 5-5"/>',
     'Overdue schools': '<circle cx="12" cy="12" r="8"/><path d="M12 7v6l4 2"/>',
     'Emails queued': '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/>',
+    Save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h8V3"/><path d="M8 21v-7h8v7"/>',
+    Send: '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+    Print: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+    Next: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>',
+    Reset: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
 };
 
 export function iconMarkup(name: string): string {
@@ -172,6 +177,30 @@ const FILE_ICONS: Record<string, string> = {
     'Division Interface': 'users',
     'Super Admin Interface': 'settings',
     'Assessment Form': 'assessment',
+    Close: 'close',
+    Upload: 'upload-cloud',
+    Download: 'download',
+    View: 'eye',
+    Preview: 'preview',
+    Replace: 'refresh',
+    Withdraw: 'refresh',
+    Delete: 'trash',
+    Review: 'review',
+    Return: 'rejected',
+    Accept: 'approved',
+    Approve: 'approved',
+    Certify: 'shield',
+    Edit: 'edit',
+    Filter: 'filter',
+    Lock: 'lock',
+    Email: 'mail',
+    Reports: 'reports',
+    Success: 'approved',
+    Error: 'rejected',
+    Pending: 'pending',
+    Open: 'arrow-up-right',
+    Generate: 'template',
+    Users: 'users',
 };
 
 export function assetIconFile(name: string): string | null {

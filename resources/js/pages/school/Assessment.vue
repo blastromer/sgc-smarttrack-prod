@@ -3,6 +3,7 @@ import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcTemplateLinks from '@/components/sgc/SgcTemplateLinks.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
@@ -196,7 +197,7 @@ const slotTone = (row: AssessmentRow, slot: AssessmentSlot) => {
                             <p v-else class="muted mt-2 text-xs">Download a filled template, complete it, then choose the file — that encodes Yes. Or tap No if the SGC did not do this.</p>
 
                             <div v-if="(slot.id && slot.has_file) || slot.can_replace" class="slot-actions">
-                                <a v-if="slot.id && slot.has_file" class="btn inline ghost min-h-11 text-xs" :href="route('movs.download', { mov: slot.id })">View</a>
+                                <a v-if="slot.id && slot.has_file" class="btn inline ghost min-h-11 text-xs" :href="route('movs.download', { mov: slot.id })"><SgcIcon name="View" />View</a>
                                 <label
                                     v-if="slot.can_replace"
                                     class="btn inline min-h-11 text-xs"

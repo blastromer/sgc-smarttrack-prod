@@ -328,9 +328,10 @@ onUnmounted(() => {
     <div class="app min-h-screen min-w-0 overflow-visible bg-sgc-bg text-sgc-ink" :class="{ 'is-home': isHome, 'has-showcase': showShowcase }">
         <header class="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-sgc-line bg-sgc-panel px-2 py-2 pt-[max(8px,env(safe-area-inset-top))] sgc:hidden">
             <button
-                class="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink"
+                class="sgc-icon-btn grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
                 type="button"
                 aria-label="Open menu"
+                title="Menu"
                 @click="aiOpen = false; noticesOpen = false; menuOpen = false; navOpen = true"
             >
                 <SgcIcon name="Menu" />
@@ -345,9 +346,10 @@ onUnmounted(() => {
             <div class="flex shrink-0 items-center gap-1 overflow-visible">
                 <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                 <button
-                    class="relative grid h-9 w-9 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
+                    class="sgc-icon-btn relative grid h-9 w-9 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
                     type="button"
                     aria-label="Open notifications"
+                    title="Notifications"
                     :aria-expanded="noticesOpen"
                     @click="openNotices"
                 >
@@ -361,17 +363,18 @@ onUnmounted(() => {
                 </button>
                 <div class="relative">
                     <button
-                        class="grid h-9 w-9 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[12px] font-bold text-sgc-mint"
+                        class="grid h-9 w-9 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[12px] font-bold text-sgc-mint transition-[border-color,box-shadow] duration-150 hover:border-sgc-teal"
                         :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_color-mix(in_srgb,var(--sgc-teal)_28%,transparent)]' : ''"
                         type="button"
                         aria-label="Open account menu"
+                        title="Account"
                         :aria-expanded="menuOpen"
                         @click="toggleMenu"
                     >
                         {{ initials }}
                     </button>
                     <div v-if="menuOpen" class="fixed inset-0 z-[45]" @click="closeMenu" />
-                    <div v-if="menuOpen" class="absolute right-0 top-[calc(100%+10px)] z-[60] w-[min(280px,calc(100vw-24px))] rounded-2xl border border-sgc-line bg-sgc-panel p-2 shadow-[0_18px_40px_rgba(0,0,0,.4)]" role="menu">
+                    <div v-if="menuOpen" class="sgc-pop absolute right-0 top-[calc(100%+10px)] z-[60] w-[min(280px,calc(100vw-24px))] rounded-2xl border border-sgc-line bg-sgc-panel p-2 shadow-[0_18px_40px_rgba(0,0,0,.4)]" role="menu">
                         <div class="mb-1 flex items-center gap-2.5 border-b border-sgc-line px-2 pb-3 pt-2">
                             <span class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint">{{ initials }}</span>
                             <div class="min-w-0">
@@ -408,7 +411,7 @@ onUnmounted(() => {
 
         <div class="app-body">
         <div
-            class="fixed inset-0 z-[35] bg-[rgba(6,12,18,.5)] sgc:hidden"
+            class="sgc-overlay fixed inset-0 z-[35] bg-[rgba(6,12,18,.5)] sgc:hidden"
             :class="navOpen ? 'block' : 'hidden'"
             @click="closeNav"
         />
@@ -518,9 +521,10 @@ onUnmounted(() => {
                     </button>
                     <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                     <button
-                        class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
+                        class="sgc-icon-btn relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
                         type="button"
                         aria-label="Open notifications"
+                        title="Notifications"
                         :aria-expanded="noticesOpen"
                         @click="openNotices"
                     >
@@ -538,17 +542,18 @@ onUnmounted(() => {
                             <span class="block truncate text-xs text-sgc-muted">{{ user?.role_label }}</span>
                         </span>
                         <button
-                            class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint"
+                            class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint transition-[border-color,box-shadow] duration-150 hover:border-sgc-teal"
                             :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_color-mix(in_srgb,var(--sgc-teal)_28%,transparent)]' : ''"
                             type="button"
                             aria-label="Open account menu"
+                            title="Account"
                             :aria-expanded="menuOpen"
                             @click="toggleMenu"
                         >
                             {{ initials }}
                         </button>
                         <div v-if="menuOpen" class="fixed inset-0 z-[45]" @click="closeMenu" />
-                        <div v-if="menuOpen" class="absolute right-0 top-[calc(100%+10px)] z-[60] w-[280px] rounded-2xl border border-sgc-line bg-sgc-panel p-2 shadow-[0_18px_40px_rgba(0,0,0,.4)]" role="menu">
+                        <div v-if="menuOpen" class="sgc-pop absolute right-0 top-[calc(100%+10px)] z-[60] w-[280px] rounded-2xl border border-sgc-line bg-sgc-panel p-2 shadow-[0_18px_40px_rgba(0,0,0,.4)]" role="menu">
                             <div class="mb-1 flex items-center gap-2.5 border-b border-sgc-line px-2 pb-3 pt-2">
                                 <span class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint">{{ initials }}</span>
                                 <div>
@@ -688,11 +693,14 @@ onUnmounted(() => {
                         class="btn inline min-h-11 w-full justify-center sgc:w-auto"
                         href="/school/submit"
                     >
+                        <SgcIcon name="Submit" />
                         Open submit
                     </Link>
                 </div>
             </div>
-            <slot />
+            <div class="sgc-page">
+                <slot />
+            </div>
         </section>
         <SgcUxPanel v-if="showShowcase" />
         </div>
@@ -714,7 +722,7 @@ onUnmounted(() => {
         </nav>
         <Teleport to="body">
         <div
-            class="fixed inset-0 z-40 bg-[rgba(6,12,18,.45)]"
+            class="sgc-overlay fixed inset-0 z-40 bg-[rgba(6,12,18,.45)]"
             :class="noticesOpen || aiOpen ? 'block' : 'hidden'"
             @click="closeNotices(); closeAi()"
         />
@@ -728,7 +736,7 @@ onUnmounted(() => {
                     <b class="text-[15px]">Notifications</b>
                     <p class="muted">{{ unread }} unread</p>
                 </div>
-                <button class="cursor-pointer border-0 bg-transparent text-lg leading-none text-sgc-muted" type="button" aria-label="Close" @click="closeNotices">&times;</button>
+                <button class="sgc-close" type="button" aria-label="Close notifications" title="Close" @click="closeNotices"><SgcIcon name="Close" /></button>
             </div>
             <div class="flex-1 overflow-auto">
                 <Link
@@ -760,7 +768,7 @@ onUnmounted(() => {
                     <b class="text-[15px]">AI assistance</b>
                     <p class="muted">{{ ai.live ? 'Live OpenAI hint' : 'Catalog hint' }}</p>
                 </div>
-                <button class="cursor-pointer border-0 bg-transparent text-lg leading-none text-sgc-muted" type="button" aria-label="Close" @click="closeAi">&times;</button>
+                <button class="sgc-close" type="button" aria-label="Close AI assistance" title="Close" @click="closeAi"><SgcIcon name="Close" /></button>
             </div>
             <div class="flex min-h-0 flex-1 flex-col">
                 <SgcAiChat :open="aiOpen" @close="closeAi" />

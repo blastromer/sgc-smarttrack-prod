@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
+
 export type TemplateFile = {
     key: string;
     label: string;
@@ -34,7 +36,7 @@ const canOpen = (file: TemplateFile) => file.previewable ?? file.ext === 'docx';
                 >
                     Open
                 </button>
-                <a class="btn inline ghost" :href="route('school.templates.download', { key: file.key })">Download filled</a>
+                <a class="btn inline ghost" :href="route('school.templates.download', { key: file.key })"><SgcIcon name="Download" />Download filled</a>
                 <a
                     v-if="props.showBlank"
                     class="btn inline ghost"

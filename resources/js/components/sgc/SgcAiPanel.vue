@@ -47,7 +47,7 @@ const ask = (prompt?: string) => {
 </script>
 
 <template>
-    <section v-if="ai" class="box mb-4">
+    <section v-if="ai" class="ai-card box mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex min-w-0 items-center gap-2.5">
                 <span class="kpi-ico" aria-hidden="true">
@@ -62,7 +62,7 @@ const ask = (prompt?: string) => {
                 <button class="btn inline ghost min-h-10 text-xs" type="button" :aria-expanded="open" @click="toggle">
                     {{ open ? 'Hide' : 'Show' }}
                 </button>
-                <button class="btn inline min-h-10 text-xs" type="button" @click="ask()">Ask AI</button>
+                <button class="btn inline min-h-10 text-xs" type="button" @click="ask()"><SgcIcon name="AI assistance" />Ask AI</button>
             </div>
         </div>
         <div v-if="open">

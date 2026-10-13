@@ -40,7 +40,7 @@ defineProps<{
             <p class="relative z-[1] mt-auto pt-8 text-xs text-white/70">Authorized DepEd personnel</p>
         </section>
         <section class="flex items-stretch justify-center border-t border-sgc-line bg-sgc-panel px-4 py-5 pb-8 sgc:items-center sgc:border-l sgc:border-t-0 sgc:px-6 sgc:py-10">
-            <div class="w-full sgc:w-[400px]">
+            <div class="sgc-page w-full sgc:w-[400px]">
                 <SgcLogo class="mb-4 h-11 w-11" />
                 <slot />
             </div>

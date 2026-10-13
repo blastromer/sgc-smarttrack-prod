@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -71,9 +72,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
 <template>
     <Teleport to="body">
         <div v-if="open" class="fixed inset-0 z-[90] flex justify-end">
-            <button class="absolute inset-0 border-0 bg-[rgba(6,12,18,.55)]" type="button" aria-label="Close template" @click="emit('close')" />
+            <button class="sgc-overlay absolute inset-0 border-0 bg-[rgba(6,12,18,.55)]" type="button" aria-label="Close template" @click="emit('close')" />
             <aside
-                class="relative z-[1] flex h-full w-[min(760px,100%)] flex-col border-l border-sgc-line bg-sgc-panel"
+                class="sgc-drawer relative z-[1] flex h-full w-[min(760px,100%)] flex-col border-l border-sgc-line bg-sgc-panel"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="label"
@@ -83,7 +84,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
                         <b class="block text-[15px]">{{ label }}</b>
                         <p class="muted mt-1 text-xs leading-relaxed">{{ note || 'Read-only official template.' }}</p>
                     </div>
-                    <button class="cursor-pointer border-0 bg-transparent text-lg leading-none text-sgc-muted" type="button" aria-label="Close" @click="emit('close')">&times;</button>
+                    <button class="sgc-close" type="button" aria-label="Close preview" title="Close" @click="emit('close')"><SgcIcon name="Close" /></button>
                 </div>
                 <div class="flex-1 overflow-auto bg-sgc-bg p-3 sgc:p-4">
                     <div v-if="loading" class="sgc-skeleton" aria-live="polite">

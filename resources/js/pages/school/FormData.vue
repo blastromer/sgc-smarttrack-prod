@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 
@@ -95,8 +96,8 @@ const save = () => {
                 <label for="form-purpose">Purpose</label>
                 <textarea id="form-purpose" v-model="data.meeting_purpose" rows="3" />
                 <div class="actions">
-                    <button class="btn inline" type="submit" :disabled="data.processing">{{ data.processing ? 'Saving…' : 'Save form data' }}</button>
-                    <Link class="btn inline ghost" href="/school/templates">Generate MOV forms</Link>
+                    <button class="btn inline" type="submit" :disabled="data.processing"><SgcIcon name="Save" />{{ data.processing ? 'Saving…' : 'Save form data' }}</button>
+                    <Link class="btn inline ghost" href="/school/templates"><SgcIcon name="Generate" />Generate MOV forms</Link>
                 </div>
             </div>
         </form>

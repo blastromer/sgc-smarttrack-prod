@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { applySgcAppearance, type SgcAppearance } from '@/lib/sgc-appearance';
 import type { SharedData } from '@/types';
@@ -122,9 +123,9 @@ const pickTheme = (item: (typeof themes)[number]) => {
             </select>
 
             <div class="actions">
-                <button class="btn inline min-h-11" type="button" :disabled="form.processing" @click="save(false)">Save for me</button>
-                <button v-if="canPublish" class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="save(true)">Save as site default</button>
-                <button class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="reset">Reset to site default</button>
+                <button class="btn inline min-h-11" type="button" :disabled="form.processing" @click="save(false)"><SgcIcon name="Save" />Save for me</button>
+                <button v-if="canPublish" class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="save(true)"><SgcIcon name="Settings" />Save as site default</button>
+                <button class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="reset"><SgcIcon name="Reset" />Reset to site default</button>
             </div>
             <p v-if="canPublish" class="muted mt-2">
                 Site default applies to the login page and to anyone who has not saved their own settings.
