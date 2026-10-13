@@ -78,7 +78,7 @@ const tone = (status: string) => {
                             <input v-model="reasons[mov.id]" placeholder="Why invalid?" />
                         </td>
                         <td>
-                            <div class="actions" style="margin-top: 0">
+                            <div class="actions mt-0">
                                 <button
                                     class="btn inline min-h-11"
                                     type="button"
@@ -100,7 +100,7 @@ const tone = (status: string) => {
                     {{ status === 'validated' ? (result === 'functional' ? 'Functional (10/12 met)' : 'Not yet functional') : 'Complete validation' }}
                 </button>
             </div>
-            <p class="muted" style="margin-top: 12px">
+            <p class="muted mt-3">
                 This packet has {{ yes_count }} of 12 primary Yes. Completing records the Division decision. Functional needs 10 of 12 primary Yes, each with every Minimum MOV marked valid. Additional and other-sub-indicator files do not score.
             </p>
         </div>

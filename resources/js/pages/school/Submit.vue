@@ -42,7 +42,7 @@ const withdraw = () => {
                         <span class="mark" :class="check.tone">{{ check.mark }}</span>
                         <div>
                             {{ check.title }}
-                            <small class="muted" style="display: block">{{ check.hint }}</small>
+                            <small class="muted mt-1 block">{{ check.hint }}</small>
                         </div>
                     </li>
                 </ul>
@@ -64,21 +64,21 @@ const withdraw = () => {
                         Withdraw from Division
                     </button>
                 </div>
-                <p v-if="!is_school_head" class="muted" style="margin-top: 12px">
+                <p v-if="!is_school_head" class="muted mt-3">
                     Teachers encode and upload MOVs. Only the School Head can certify QA and submit to Division.
                 </p>
-                <p v-if="is_school_head && atDivision() && !can_withdraw" class="muted" style="margin-top: 12px">
+                <p v-if="is_school_head && atDivision() && !can_withdraw" class="muted mt-3">
                     Withdraw is closed after Division accepts a MOV. If a file is returned or invalid, replace that file, certify QA, and resubmit.
                 </p>
-                <p class="muted" style="margin-top: 12px">
+                <p class="muted mt-3">
                     If a MOV is returned or invalid: (1) the encoder replaces that file, (2) the School Head certifies QA again, (3) the School Head resubmits.
                 </p>
             </div>
             <div class="box">
                 <b>What happens after you submit</b>
-                <p v-for="line in after" :key="line" class="muted" style="margin-top: 10px">{{ line }}</p>
-                <b style="display: block; margin-top: 16px">Packet preview</b>
-                <p v-for="line in packet" :key="line" class="muted" style="margin-top: 8px">{{ line }}</p>
+                <p v-for="line in after" :key="line" class="muted progress-copy">{{ line }}</p>
+                <b class="progress-next">Packet preview</b>
+                <p v-for="line in packet" :key="line" class="muted progress-copy">{{ line }}</p>
             </div>
         </div>
     </SgcLayout>

@@ -142,10 +142,14 @@ const slotTone = (row: AssessmentRow, slot: AssessmentSlot) => {
                 once, then download filled templates. Tap No yourself if the SGC did not do this. AI does not decide Yes or No.
             </p>
 
+            <nav v-if="indicators.length" class="fi-jumps" aria-label="Indicators">
+                <a v-for="row in indicators" :key="row.code" class="fi-jump" :href="`#indicator-${row.code}`">{{ row.code }}</a>
+            </nav>
+
             <div class="mt-4 space-y-4">
                 <template v-for="(row, index) in indicators" :key="row.code">
-                    <p v-if="showGroup(indicators, index)" class="muted mt-6 first:mt-0 text-xs font-semibold uppercase tracking-wide text-sgc-ink">{{ row.group }}</p>
-                    <article class="rounded-[12px] border border-sgc-line bg-sgc-card p-4 sgc:p-5">
+                    <p v-if="showGroup(indicators, index)" class="fi-group">{{ row.group }}</p>
+                    <article :id="`indicator-${row.code}`" class="indicator-card rounded-[12px] border border-sgc-line bg-sgc-card p-4 sgc:p-5">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <p class="text-xs font-semibold tracking-wide text-sgc-teal">{{ row.code }}</p>
@@ -227,7 +231,7 @@ const slotTone = (row: AssessmentRow, slot: AssessmentSlot) => {
                         </details>
 
                         <div class="mt-4 flex flex-wrap items-center gap-2">
-                            <span class="flex flex-wrap gap-2" :data-tour="isTourRow(row) ? 'encode' : undefined">
+                            <span class="btn-pair flex flex-wrap gap-2" :data-tour="isTourRow(row) ? 'encode' : undefined">
                                 <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'yes' }" type="button" :disabled="row.locked" @click="encode(row.code, 'yes')">Yes</button>
                                 <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'no' }" type="button" :disabled="row.locked" @click="encode(row.code, 'no')">No</button>
                             </span>

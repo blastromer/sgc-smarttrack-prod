@@ -110,10 +110,10 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
                 <button class="btn inline ghost" type="button" @click="withdraw">Withdraw from Division</button>
             </div>
             <div class="mt-3 space-y-3 sgc:hidden">
-                <article v-for="slot in slots" :key="`m-${slot.code}`" class="rounded-[10px] border border-[var(--line)] bg-[#0e1a24] p-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <b class="break-all">{{ slot.file || slot.title }}</b>
+                <article v-for="slot in slots" :key="`m-${slot.code}`" class="mov-file-card rounded-[10px] border border-sgc-line bg-sgc-card p-4">
+                    <div class="mov-file-head flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <b class="mov-file-name">{{ slot.file || slot.title }}</b>
                             <p class="muted mt-1">{{ slot.code }} · {{ slot.kind }} · {{ slot.size }}</p>
                             <p class="muted mt-1">{{ slot.title }}</p>
                         </div>

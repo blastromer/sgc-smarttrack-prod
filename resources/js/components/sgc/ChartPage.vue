@@ -20,7 +20,7 @@ defineProps<{
         <KpiGrid :items="kpis" animate />
         <SgcAiPanel />
         <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
-            <div v-for="chart in charts" :key="chart.title" class="box">
+            <div v-for="chart in charts" :key="chart.title" class="box chart-card">
                 <b>{{ chart.title }}</b>
                 <p class="muted">{{ chart.hint }}</p>
                 <VChart :bars="chart.bars" />

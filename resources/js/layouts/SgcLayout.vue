@@ -43,7 +43,14 @@ const greeting = computed(() => {
     return 'Good evening';
 });
 const isHome = computed(() => ['/super', '/division', '/school'].includes(currentPath.value));
-const contextLine = computed(() => user.value?.school_name || '');
+const contextLine = computed(() => {
+    const school = (user.value?.school_name ?? '').trim();
+    if (!school || props.subtitle.includes(school)) {
+        return '';
+    }
+
+    return school;
+});
 const navGroups = computed(() => {
     const items = sgc.value?.nav ?? [];
     const role = user.value?.role;
@@ -249,7 +256,7 @@ onUnmounted(() => {
 
 <template>
     <Head :title="props.title" />
-    <div class="app min-h-screen overflow-visible bg-sgc-bg text-sgc-ink sgc:grid sgc:grid-cols-[240px_1fr]">
+    <div class="app min-h-screen min-w-0 overflow-visible bg-sgc-bg text-sgc-ink sgc:grid sgc:grid-cols-[240px_minmax(0,1fr)]">
         <header class="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-sgc-line bg-sgc-panel px-2 py-2 pt-[max(8px,env(safe-area-inset-top))] sgc:hidden">
             <button
                 class="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink"
@@ -286,7 +293,7 @@ onUnmounted(() => {
                 <div class="relative">
                     <button
                         class="grid h-9 w-9 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[12px] font-bold text-sgc-mint"
-                        :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_rgba(42,167,160,.28)]' : ''"
+                        :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_color-mix(in_srgb,var(--sgc-teal)_28%,transparent)]' : ''"
                         type="button"
                         aria-label="Open account menu"
                         :aria-expanded="menuOpen"
@@ -298,9 +305,9 @@ onUnmounted(() => {
                     <div v-if="menuOpen" class="absolute right-0 top-[calc(100%+10px)] z-[60] w-[min(280px,calc(100vw-24px))] rounded-2xl border border-sgc-line bg-sgc-panel p-2 shadow-[0_18px_40px_rgba(0,0,0,.4)]" role="menu">
                         <div class="mb-1 flex items-center gap-2.5 border-b border-sgc-line px-2 pb-3 pt-2">
                             <span class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint">{{ initials }}</span>
-                            <div>
-                                <b class="block text-sm">{{ user?.name }}</b>
-                                <p class="muted mt-0.5 text-xs">{{ user?.role_label }}</p>
+                            <div class="min-w-0">
+                                <b class="block truncate text-sm">{{ user?.name }}</b>
+                                <p class="muted mt-0.5 truncate text-xs">{{ user?.role_label }}</p>
                             </div>
                         </div>
                         <Link :class="userItemClass('/account')" href="/account" @click="closeMenu">
@@ -339,9 +346,9 @@ onUnmounted(() => {
         >
             <div class="mb-5 flex items-center gap-2.5 px-2">
                 <SgcLogo class="h-10 w-10 shrink-0" />
-                <div>
-                    <b class="block text-sm leading-tight text-white">SGC SmartTrack</b>
-                    <span class="text-xs text-[var(--sgc-side-muted)]">{{ user?.role_label }}</span>
+                <div class="min-w-0">
+                    <b class="block truncate text-sm leading-tight text-white">SGC SmartTrack</b>
+                    <span class="block truncate text-xs text-[var(--sgc-side-muted)]">{{ user?.role_label }}</span>
                 </div>
             </div>
             <nav class="flex-1" aria-label="Primary">
@@ -369,8 +376,8 @@ onUnmounted(() => {
                 Sign out
             </button>
         </aside>
-        <section class="main h-auto overflow-visible px-4 pb-[104px] pt-3 sgc:px-8 sgc:py-7">
-            <div class="mb-2 flex flex-col gap-1 sgc:mb-5 sgc:gap-4">
+        <section class="main h-auto min-w-0 overflow-visible px-4 pb-[104px] pt-3 sgc:px-8 sgc:py-7">
+            <div class="mb-2 flex min-w-0 flex-col gap-1" :class="isHome ? 'sgc:mb-3 sgc:gap-3' : 'sgc:mb-5 sgc:gap-4'">
                 <div class="hidden items-center gap-3 overflow-visible border-b border-sgc-line pb-3 sgc:flex">
                     <span v-if="props.chip" class="chip">{{ props.chip }}</span>
                     <div class="ml-auto flex items-center gap-3">
@@ -391,13 +398,13 @@ onUnmounted(() => {
                         </span>
                     </button>
                     <div class="relative flex items-center gap-2">
-                        <span class="hidden text-right sgc:block">
-                            <b class="block text-sm leading-tight">{{ user?.name }}</b>
-                            <span class="text-xs text-sgc-muted">{{ user?.role_label }}</span>
+                        <span class="hidden max-w-[11rem] min-w-0 text-right sgc:block">
+                            <b class="block truncate text-sm leading-tight">{{ user?.name }}</b>
+                            <span class="block truncate text-xs text-sgc-muted">{{ user?.role_label }}</span>
                         </span>
                         <button
                             class="grid h-10 w-10 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[13px] font-bold text-sgc-mint"
-                            :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_rgba(42,167,160,.28)]' : ''"
+                            :class="menuOpen ? 'border-sgc-teal shadow-[0_0_0_3px_color-mix(in_srgb,var(--sgc-teal)_28%,transparent)]' : ''"
                             type="button"
                             aria-label="Open account menu"
                             :aria-expanded="menuOpen"
@@ -439,8 +446,8 @@ onUnmounted(() => {
                     </div>
                 </div>
                 <div class="min-w-0" :class="{ 'dash-hero': isHome }">
-                    <div class="min-w-0">
-                        <p v-if="isHome" class="dash-kicker mb-0.5 text-[13px] leading-snug sgc:mb-1 sgc:text-sm">{{ greeting }}, {{ firstName }}</p>
+                    <div class="flex min-w-0 flex-col" :class="isHome ? 'gap-0.5' : 'gap-1'">
+                        <p v-if="isHome" class="dash-kicker text-[13px] leading-snug sgc:text-sm">{{ greeting }}, {{ firstName }}</p>
                         <h1 class="text-xl font-bold leading-tight tracking-tight sgc:text-2xl">{{ props.title }}</h1>
                         <p v-if="isHome && contextLine" class="dash-sub">{{ contextLine }}</p>
                         <p :class="isHome ? 'dash-sub' : 'muted'">{{ props.subtitle }}</p>
@@ -477,12 +484,12 @@ onUnmounted(() => {
                     aria-label="FAT path"
                 >
                     <span
-                        class="pointer-events-none absolute right-[calc(16.66%-4px)] top-[31px] z-0 h-[84px] w-2 rounded-full bg-[#314650]"
+                        class="flow-rail pointer-events-none absolute right-[calc(16.66%-4px)] top-[31px] z-0 h-[84px] w-2 rounded-full"
                         aria-hidden="true"
                     />
                     <div class="relative z-[1] grid grid-cols-3">
                         <span
-                            class="pointer-events-none absolute inset-x-[16.66%] top-[17px] z-0 h-2 rounded-full bg-[#314650]"
+                            class="flow-rail pointer-events-none absolute inset-x-[16.66%] top-[17px] z-0 h-2 rounded-full"
                             aria-hidden="true"
                         />
                         <Link
@@ -498,7 +505,7 @@ onUnmounted(() => {
                     </div>
                     <div class="relative z-[1] mt-5 grid grid-cols-3">
                         <span
-                            class="pointer-events-none absolute inset-x-[16.66%] top-[17px] z-0 h-2 rounded-full bg-[#314650]"
+                            class="flow-rail pointer-events-none absolute inset-x-[16.66%] top-[17px] z-0 h-2 rounded-full"
                             aria-hidden="true"
                         />
                         <Link

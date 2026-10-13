@@ -87,7 +87,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
                 </div>
                 <div class="flex-1 overflow-auto bg-sgc-bg p-3 sgc:p-4">
                     <div v-if="loading" class="sgc-skeleton" aria-live="polite">
-                        <span class="sr-only">Opening official template…</span>
+                        <p class="muted text-sm">Opening official template…</p>
                         <span></span>
                         <span></span>
                         <span></span>

@@ -43,8 +43,8 @@ const closeTemplate = () => {
         <div class="dash-board">
         <KpiGrid v-if="kpis?.length" :items="kpis" animate />
         <SgcAiPanel />
-        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
-            <div v-for="chart in charts" :key="chart.title" class="box">
+        <div class="grid grid-cols-1 gap-3">
+            <div v-for="chart in charts" :key="chart.title" class="box chart-card">
                 <b>{{ chart.title }}</b>
                 <p class="muted">{{ chart.hint }}</p>
                 <VChart :bars="chart.bars" />
@@ -52,8 +52,7 @@ const closeTemplate = () => {
             <div class="box">
                 <b>Progress to functional (10/12)</b>
                 <div
-                    class="bar"
-                    style="margin-top: 12px"
+                    class="bar mt-3"
                     role="progressbar"
                     aria-valuemin="0"
                     aria-valuemax="100"
@@ -62,9 +61,9 @@ const closeTemplate = () => {
                 >
                     <span :style="{ width: `${Math.max(0, Math.min(100, progress.width))}%` }" />
                 </div>
-                <p class="muted" style="margin-top: 10px">{{ progress.text }}</p>
-                <b style="display: block; margin-top: 16px">Next actions</b>
-                <p v-for="action in progress.actions" :key="action" class="muted" style="margin-top: 8px">{{ action }}</p>
+                <p class="muted progress-copy">{{ progress.text }}</p>
+                <b class="progress-next">Next actions</b>
+                <p v-for="action in progress.actions" :key="action" class="muted progress-copy">{{ action }}</p>
                 <div class="actions">
                     <Link class="btn inline" href="/school/submit">See submission flow</Link>
                 </div>
