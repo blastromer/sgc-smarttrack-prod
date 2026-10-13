@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { router } from '@inertiajs/vue3';
@@ -31,7 +32,7 @@ const accept = (id: number) => {
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid :items="kpis" />
         <div class="box">
-            <p v-if="!registrations.length" class="empty">{{ empty_text }}</p>
+            <SgcEmpty v-if="!registrations.length" art="users" :message="empty_text" />
             <div v-else class="table-scroll">
             <table class="data-table">
                 <thead>

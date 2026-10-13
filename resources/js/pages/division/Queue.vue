@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { BadgeCell, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -23,7 +24,7 @@ defineProps<{
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
-            <p v-if="!packets.length" class="empty">No school packets in the queue yet.</p>
+            <SgcEmpty v-if="!packets.length" art="assessment" message="No school packets in the queue yet." />
             <div v-else class="table-scroll">
             <table class="data-table">
                 <thead>

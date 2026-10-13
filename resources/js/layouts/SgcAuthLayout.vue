@@ -28,6 +28,15 @@ defineProps<{
             <div class="auth-hero-copy relative z-[1] max-w-[26rem] [&_h1]:text-[1.75rem] [&_h1]:font-bold [&_h1]:leading-tight [&_h1]:tracking-tight [&_h1]:text-white sgc:[&_h1]:text-[2.35rem] [&_p]:mt-3 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-white/80 sgc:[&_p]:text-[15px]">
                 <slot name="hero" />
             </div>
+            <img
+                class="auth-hero-art"
+                src="/assets/sgc-smarttrack/illustrations/login-collaboration.svg"
+                alt=""
+                aria-hidden="true"
+                width="420"
+                height="280"
+                decoding="async"
+            />
             <p class="relative z-[1] mt-auto pt-8 text-xs text-white/70">Authorized DepEd personnel</p>
         </section>
         <section class="flex items-stretch justify-center border-t border-sgc-line bg-sgc-panel px-4 py-5 pb-8 sgc:items-center sgc:border-l sgc:border-t-0 sgc:px-6 sgc:py-10">

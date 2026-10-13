@@ -4,6 +4,11 @@ import SgcAiChat from '@/components/sgc/SgcAiChat.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLogo from '@/components/sgc/SgcLogo.vue';
 import SgcWalkthrough from '@/components/sgc/SgcWalkthrough.vue';
+import SgcBanner from '@/components/sgc/shell/SgcBanner.vue';
+import SgcInterfacePreviews from '@/components/sgc/shell/SgcInterfacePreviews.vue';
+import SgcUxPanel from '@/components/sgc/shell/SgcUxPanel.vue';
+import { applySgcAppearance, type SgcAppearance } from '@/lib/sgc-appearance';
+import { setSgcShowcase, sgcSearchExtras, sgcShowcase } from '@/lib/sgc-shell';
 import { useSgcWalkthrough } from '@/composables/useSgcWalkthrough';
 import type { SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -20,6 +25,7 @@ const noticesOpen = ref(false);
 const menuOpen = ref(false);
 const navOpen = ref(false);
 const aiOpen = ref(false);
+const navQuery = ref('');
 
 const user = computed(() => page.props.auth.user);
 const sgc = computed(() => page.props.sgc);
@@ -30,18 +36,6 @@ const flash = computed(() => page.props.flash?.status);
 const isSchool = computed(() => user.value?.role === 'school' || user.value?.role === 'school_head');
 const hideSubmitButton = computed(() => currentPath.value === '/school/submit');
 const mobileTabs = computed(() => (sgc.value?.nav ?? []).slice(0, 4));
-const firstName = computed(() => (user.value?.name ?? '').trim().split(/\s+/)[0] || 'there');
-const greeting = computed(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) {
-        return 'Good morning';
-    }
-    if (hour < 18) {
-        return 'Good afternoon';
-    }
-
-    return 'Good evening';
-});
 const isHome = computed(() => ['/super', '/division', '/school'].includes(currentPath.value));
 const contextLine = computed(() => {
     const school = (user.value?.school_name ?? '').trim();
@@ -65,24 +59,66 @@ const navGroups = computed(() => {
     };
 
     if (role === 'super') {
-        take('Workspace', ['/super']);
-        take('Administration', ['/super/divisions', '/super/users', '/super/cycles']);
+        take('', ['/super']);
+        take('Assessment Management', ['/super/cycles']);
+        take('Master Data', ['/super/divisions', '/super/users']);
     } else if (role === 'division') {
-        take('Workspace', ['/division', '/division/queue', '/division/alerts']);
-        take('Records', ['/division/schools', '/division/registrations']);
+        take('', ['/division']);
+        take('Assessment Management', ['/division/queue', '/division/alerts']);
+        take('Master Data', ['/division/schools', '/division/registrations']);
     } else {
-        take('Workspace', ['/school', '/school/assessment', '/school/movs', '/school/submit', '/school/notifications']);
-        take('Records', ['/school/templates', '/school/form-data', '/school/encoders']);
+        take('', ['/school']);
+        take('Assessment Management', ['/school/assessment', '/school/movs', '/school/submit']);
+        take('Master Data', ['/school/templates', '/school/form-data', '/school/encoders']);
     }
 
     const used = new Set(groups.flatMap((group) => group.items.map((item) => item.href)));
-    const rest = items.filter((item) => !used.has(item.href));
+    const rest = items.filter((item) => !used.has(item.href) && item.href !== '/school/notifications');
     if (rest.length) {
         groups.push({ label: 'More', items: rest });
     }
 
     return groups;
 });
+
+/** Sidebar wording from the reference design. Routes and permissions are unchanged. */
+const SIDE_LABELS: Record<string, string> = {
+    '/super': 'Dashboard',
+    '/division': 'Dashboard',
+    '/super/cycles': 'Assessment Cycles',
+    '/super/users': 'Users',
+    '/division/queue': 'Validation Queue',
+    '/division/alerts': 'Returned Items',
+    '/division/registrations': 'School Registrations',
+};
+const sideLabel = (item: { label: string; href: string }) => SIDE_LABELS[item.href] ?? item.label;
+const navCount = (href: string) => sgc.value?.counts?.[href] ?? 0;
+const hasNoticePage = computed(() => (sgc.value?.nav ?? []).some((item) => item.href === '/school/notifications'));
+
+const searchItems = computed(() => [
+    ...(sgc.value?.nav ?? []).map((item) => ({ label: sideLabel(item), href: item.href, hint: 'Page' })),
+    { label: 'Settings', href: '/configuration', hint: 'Page' },
+    { label: 'Account', href: '/account', hint: 'Page' },
+    { label: 'Help', href: '/help', hint: 'Page' },
+    ...sgcSearchExtras.value,
+]);
+const searchPlaceholder = computed(() =>
+    sgcSearchExtras.value.length ? 'Search schools, submissions, or indicators...' : 'Search pages...',
+);
+
+const isDark = computed(() => (sgc.value?.appearance?.current?.theme ?? 'day') !== 'day');
+const toggleTheme = () => {
+    const current = sgc.value?.appearance?.current;
+    if (!current) {
+        return;
+    }
+
+    const next = { ...current, theme: isDark.value ? 'day' : 'night' } as SgcAppearance;
+    applySgcAppearance(next);
+    router.post('/configuration', next, { preserveScroll: true, preserveState: true });
+};
+
+const showShowcase = computed(() => isHome.value && sgcShowcase.value);
 const flowSteps = computed(() => sgc.value?.flow?.steps ?? []);
 const snakeTop = computed(() => flowSteps.value.slice(0, 3));
 const snakeBottom = computed(() => [...flowSteps.value.slice(3, 6)].reverse());
@@ -146,12 +182,43 @@ const tabLabel = (label: string) => {
     return labels[label] ?? label.split(' ')[0];
 };
 
+const navMatches = computed(() => {
+    const query = navQuery.value.trim().toLowerCase();
+    if (!query) {
+        return [];
+    }
+
+    return searchItems.value.filter((item) => item.label.toLowerCase().includes(query)).slice(0, 8);
+});
+
+const searchInput = ref<HTMLInputElement | null>(null);
+const onShortcut = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && (navOpen.value || menuOpen.value)) {
+        navOpen.value = false;
+        menuOpen.value = false;
+        return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && searchInput.value?.offsetParent) {
+        event.preventDefault();
+        searchInput.value.focus();
+        searchInput.value.select();
+    }
+};
+
+const goSearch = () => {
+    const match = navMatches.value[0];
+    if (!match) {
+        return;
+    }
+
+    navQuery.value = '';
+    router.visit(match.href);
+};
+
 const navClass = (href: string) =>
     [
-        'mb-0.5 flex items-center gap-2.5 rounded-lg border-l-2 px-2.5 py-2 text-sm no-underline transition-colors duration-150 hover:bg-[var(--sgc-side-active)] hover:text-white hover:no-underline',
-        isActive(href)
-            ? 'border-[var(--sgc-brand)] bg-[var(--sgc-side-active)] font-semibold text-white'
-            : 'border-transparent text-[var(--sgc-side-ink)]',
+        'side-link',
+        isActive(href) ? 'is-active' : '',
     ].join(' ');
 
 const tabClass = (href: string) =>
@@ -246,17 +313,19 @@ const openAiFromPage = () => {
 onMounted(() => {
     unlockPageScroll();
     window.addEventListener('sgc-ai-open', openAiFromPage);
+    window.addEventListener('keydown', onShortcut);
 });
 const stopNavigateUnlock = router.on('navigate', unlockPageScroll);
 onUnmounted(() => {
     window.removeEventListener('sgc-ai-open', openAiFromPage);
+    window.removeEventListener('keydown', onShortcut);
     stopNavigateUnlock();
 });
 </script>
 
 <template>
     <Head :title="props.title" />
-    <div class="app min-h-screen min-w-0 overflow-visible bg-sgc-bg text-sgc-ink sgc:grid sgc:grid-cols-[240px_minmax(0,1fr)]">
+    <div class="app min-h-screen min-w-0 overflow-visible bg-sgc-bg text-sgc-ink" :class="{ 'is-home': isHome, 'has-showcase': showShowcase }">
         <header class="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-sgc-line bg-sgc-panel px-2 py-2 pt-[max(8px,env(safe-area-inset-top))] sgc:hidden">
             <button
                 class="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink"
@@ -335,25 +404,28 @@ onUnmounted(() => {
             </div>
         </header>
 
+        <SgcBanner v-if="isHome" />
+
+        <div class="app-body">
         <div
             class="fixed inset-0 z-[35] bg-[rgba(6,12,18,.5)] sgc:hidden"
             :class="navOpen ? 'block' : 'hidden'"
             @click="closeNav"
         />
         <aside
-            class="side fixed inset-y-0 left-0 z-40 flex h-full w-[min(280px,86vw)] flex-col border-r border-white/10 bg-[var(--sgc-side)] px-3 pb-4 pt-[max(20px,env(safe-area-inset-top))] text-[var(--sgc-side-ink)] transition-transform duration-200 sgc:sticky sgc:top-0 sgc:z-auto sgc:h-screen sgc:w-auto sgc:translate-x-0 sgc:self-start sgc:overflow-y-auto sgc:pt-5"
+            class="side fixed inset-y-0 left-0 z-40 flex h-full w-[min(280px,86vw)] flex-col bg-[var(--sgc-side)] px-2.5 pb-3 pt-[max(16px,env(safe-area-inset-top))] text-[var(--sgc-side-ink)] transition-transform duration-200 sgc:sticky sgc:top-2.5 sgc:z-auto sgc:h-[calc(100vh-20px)] sgc:w-auto sgc:translate-x-0 sgc:self-start sgc:overflow-y-auto sgc:rounded-xl sgc:pt-4"
             :class="navOpen ? 'translate-x-0' : '-translate-x-[105%]'"
         >
-            <div class="mb-5 flex items-center gap-2.5 px-2">
+            <div class="side-brand">
                 <SgcLogo class="h-10 w-10 shrink-0" />
                 <div class="min-w-0">
-                    <b class="block truncate text-sm leading-tight text-white">SGC SmartTrack</b>
-                    <span class="block truncate text-xs text-[var(--sgc-side-muted)]">{{ user?.role_label }}</span>
+                    <b><span>SGC</span> SmartTrack</b>
+                    <small>DepEd Division of Cadiz City</small>
                 </div>
             </div>
             <nav class="flex-1" aria-label="Primary">
-                <div v-for="group in navGroups" :key="group.label" class="mb-3">
-                    <p class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--sgc-side-muted)]">{{ group.label }}</p>
+                <div v-for="group in navGroups" :key="group.label || 'home'" class="side-group">
+                    <p v-if="group.label" class="side-label">{{ group.label }}</p>
                     <Link
                         v-for="item in group.items"
                         :key="item.href"
@@ -363,24 +435,87 @@ onUnmounted(() => {
                         @click="closeNav"
                     >
                         <SgcIcon :name="item.label" />
-                        {{ item.label }}
+                        <span class="min-w-0 flex-1 truncate">{{ sideLabel(item) }}</span>
+                        <span v-if="navCount(item.href)" class="side-count" :class="item.href.endsWith('alerts') ? 'is-amber' : ''">
+                            {{ navCount(item.href) }}
+                        </span>
+                    </Link>
+                </div>
+                <div class="side-group">
+                    <p class="side-label">System</p>
+                    <Link
+                        v-if="hasNoticePage"
+                        href="/school/notifications"
+                        :class="navClass('/school/notifications')"
+                        :aria-current="isActive('/school/notifications') ? 'page' : undefined"
+                        @click="closeNav"
+                    >
+                        <SgcIcon name="Notifications" />
+                        <span class="min-w-0 flex-1 truncate">Notifications</span>
+                        <span v-if="unread" class="side-count">{{ unread }}</span>
+                    </Link>
+                    <button v-else type="button" :class="navClass('#notices')" @click="closeNav(); openNotices()">
+                        <SgcIcon name="Notifications" />
+                        <span class="min-w-0 flex-1 truncate text-left">Notifications</span>
+                        <span v-if="unread" class="side-count">{{ unread }}</span>
+                    </button>
+                    <Link
+                        href="/configuration"
+                        :class="navClass('/configuration')"
+                        :aria-current="isActive('/configuration') ? 'page' : undefined"
+                        @click="closeNav"
+                    >
+                        <SgcIcon name="Settings" />
+                        <span class="min-w-0 flex-1 truncate">Settings</span>
                     </Link>
                 </div>
             </nav>
-            <button
-                class="mt-auto flex w-full cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-3 text-left text-sm text-[var(--sgc-side-muted)] hover:bg-[var(--sgc-side-active)] hover:text-white"
-                type="button"
-                @click="signOut"
-            >
-                <SgcIcon name="Sign out" />
-                Sign out
-            </button>
+            <div class="side-foot">
+                <button class="side-signout" type="button" @click="signOut">
+                    <SgcIcon name="Sign out" />
+                    Sign out
+                </button>
+            </div>
         </aside>
-        <section class="main h-auto min-w-0 overflow-visible px-4 pb-[104px] pt-3 sgc:px-8 sgc:py-7">
-            <div class="mb-2 flex min-w-0 flex-col gap-1" :class="isHome ? 'sgc:mb-3 sgc:gap-3' : 'sgc:mb-5 sgc:gap-4'">
-                <div class="hidden items-center gap-3 overflow-visible border-b border-sgc-line pb-3 sgc:flex">
+        <section class="main h-auto min-w-0 overflow-visible px-4 pb-[104px] pt-3 sgc:px-0 sgc:pb-6 sgc:pt-0">
+            <div class="mb-2 flex min-w-0 flex-col gap-1" :class="isHome ? 'sgc:mb-3 sgc:gap-2.5' : 'sgc:mb-5 sgc:gap-4'">
+                <div class="app-toolbar hidden items-center gap-3 overflow-visible sgc:flex">
+                    <label class="app-search">
+                        <SgcIcon name="Search" />
+                        <span class="sr-only">Search</span>
+                        <input
+                            ref="searchInput"
+                            v-model="navQuery"
+                            type="search"
+                            :placeholder="searchPlaceholder"
+                            autocomplete="off"
+                            @keydown.enter.prevent="goSearch"
+                            @keydown.esc="navQuery = ''"
+                        />
+                        <kbd>Ctrl + K</kbd>
+                        <div v-if="navMatches.length" class="app-search-menu" role="listbox">
+                            <Link v-for="item in navMatches" :key="item.href + item.label" :href="item.href" @click="navQuery = ''">
+                                <span class="truncate">{{ item.label }}</span>
+                                <small v-if="item.hint">{{ item.hint }}</small>
+                            </Link>
+                        </div>
+                        <div v-else-if="navQuery.trim()" class="app-search-menu">
+                            <p class="muted px-2 py-1.5 text-xs">No match for “{{ navQuery.trim() }}”.</p>
+                        </div>
+                    </label>
                     <span v-if="props.chip" class="chip">{{ props.chip }}</span>
-                    <div class="ml-auto flex items-center gap-3">
+                    <div class="ml-auto flex items-center gap-2.5">
+                    <button
+                        v-if="sgc?.appearance?.current"
+                        class="tool-btn"
+                        type="button"
+                        :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+                        :title="isDark ? 'Light mode' : 'Dark mode'"
+                        @click="toggleTheme"
+                    >
+                        <svg v-if="isDark" class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+                        <svg v-else class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+                    </button>
                     <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                     <button
                         class="relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
@@ -437,6 +572,16 @@ onUnmounted(() => {
                                 <SgcIcon name="Help" />
                                 Help
                             </Link>
+                            <button
+                                :class="userItemClass()"
+                                type="button"
+                                role="menuitemcheckbox"
+                                :aria-checked="sgcShowcase"
+                                @click="setSgcShowcase(!sgcShowcase); closeMenu()"
+                            >
+                                <SgcIcon name="Role Interfaces" />
+                                {{ sgcShowcase ? 'Hide design showcase' : 'Show design showcase' }}
+                            </button>
                             <button :class="userItemClass()" type="button" @click="signOut">
                                 <SgcIcon name="Sign out" />
                                 Sign out
@@ -445,20 +590,33 @@ onUnmounted(() => {
                     </div>
                     </div>
                 </div>
-                <div class="min-w-0" :class="{ 'dash-hero': isHome }">
-                    <div class="flex min-w-0 flex-col" :class="isHome ? 'gap-0.5' : 'gap-1'">
-                        <p v-if="isHome" class="dash-kicker text-[13px] leading-snug sgc:text-sm">{{ greeting }}, {{ firstName }}</p>
-                        <h1 class="text-xl font-bold leading-tight tracking-tight sgc:text-2xl">{{ props.title }}</h1>
-                        <p v-if="isHome && contextLine" class="dash-sub">{{ contextLine }}</p>
-                        <p :class="isHome ? 'dash-sub' : 'muted'">{{ props.subtitle }}</p>
+                <div v-if="isHome" class="dash-hero">
+                    <div class="dash-hero-copy">
+                        <p class="dash-kicker">Good day,</p>
+                        <h1>{{ user?.name }}!</h1>
+                        <p v-if="contextLine" class="dash-sub">{{ contextLine }}</p>
+                        <p class="dash-sub">{{ props.subtitle }}</p>
                     </div>
-                    <svg v-if="isHome" class="dash-mark" viewBox="0 0 148 72" aria-hidden="true">
-                        <path d="M16 36 74 12l58 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6" stroke-linejoin="round" />
-                        <path d="M30 36v26h88V36" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.4" />
-                        <path d="M64 62V46h20v16" fill="none" stroke="#9ed9e4" stroke-width="1.4" />
-                        <circle cx="120" cy="22" r="11" fill="none" stroke="#12b8c4" stroke-width="1.4" />
-                        <path d="M115 22.2 118.2 25.4 125.5 17" fill="none" stroke="#12b8c4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                    <div class="dash-hero-scene" aria-hidden="true">
+                        <img
+                            class="dash-mark"
+                            src="/assets/sgc-smarttrack/deped-cadiz-division-building.jpg"
+                            alt=""
+                            width="1024"
+                            height="423"
+                            decoding="async"
+                        />
+                        <p class="dash-slogan">“Empowered SGCs<br />for Stronger Schools”</p>
+                    </div>
+                </div>
+                <div v-else class="page-head">
+                    <nav class="crumbs" aria-label="Breadcrumb">
+                        <Link :href="mobileTabs[0]?.href || '/'">Dashboard</Link>
+                        <span aria-hidden="true">›</span>
+                        <span aria-current="page">{{ props.title }}</span>
+                    </nav>
+                    <h1 class="text-xl font-bold leading-tight tracking-tight sgc:text-2xl">{{ props.title }}</h1>
+                    <p class="muted">{{ props.subtitle }}</p>
                 </div>
             </div>
             <p v-if="props.chip" class="chip mb-2 mt-1 block sgc:hidden">{{ props.chip }}</p>
@@ -536,6 +694,9 @@ onUnmounted(() => {
             </div>
             <slot />
         </section>
+        <SgcUxPanel v-if="showShowcase" />
+        </div>
+        <SgcInterfacePreviews v-if="showShowcase" />
         <nav
             class="mobile-tabs no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-sgc-line bg-sgc-panel px-1.5 pb-[max(8px,env(safe-area-inset-bottom))] pt-1.5 sgc:hidden"
             aria-label="Primary"

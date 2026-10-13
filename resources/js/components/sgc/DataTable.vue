@@ -1,16 +1,18 @@
 <script setup lang="ts">
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import { isBadge, type TableCell } from '@/types/sgc';
 
 defineProps<{
     headers: string[];
     rows: TableCell[][];
     empty_text?: string;
+    empty_art?: 'records' | 'movs' | 'assessment' | 'users' | 'notifications' | 'templates';
 }>();
 </script>
 
 <template>
     <div class="box">
-        <p v-if="!rows.length" class="empty">{{ empty_text || 'No records yet.' }}</p>
+        <SgcEmpty v-if="!rows.length" :art="empty_art" :message="empty_text || 'No records yet.'" />
         <div v-else class="table-scroll">
         <table class="data-table">
             <thead>

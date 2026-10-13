@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">No templates available</title>
+
+<ellipse cx="160" cy="205" rx="106" ry="15" fill="#DBEAFE"/>
+<path d="M68 104 160 68l92 36-92 41Z" fill="#BFDBFE" stroke="#2562EB" stroke-width="3" stroke-linejoin="round"/>
+<path d="M68 104v67l92 43v-69Z" fill="#DBEAFE" stroke="#2562EB" stroke-width="3" stroke-linejoin="round"/>
+<path d="M252 104v67l-92 43v-69Z" fill="#93C5FD" stroke="#2562EB" stroke-width="3" stroke-linejoin="round"/>
+<path d="m124 83 91 36-19 10-92-37Z" fill="#FFFFFF" stroke="#CBDDF7" stroke-width="2"/>
+<path d="M160 145v69" stroke="#2562EB" stroke-width="3"/>
+<path d="M44 73l5 11 11 5-11 5-5 11-5-11-11-5 11-5Z" fill="#FBBF24"/>
+
+</svg>

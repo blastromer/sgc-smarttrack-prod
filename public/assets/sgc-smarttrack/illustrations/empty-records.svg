@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">No records found</title>
+
+<ellipse cx="160" cy="204" rx="104" ry="15" fill="#DBEAFE"/>
+<path d="M87 48h91l28 28v95H87Z" fill="#FFFFFF" stroke="#CBDDF7" stroke-width="3"/>
+<path d="M178 48v30h28" fill="#DBEAFE" stroke="#CBDDF7" stroke-width="3"/>
+<path d="M108 92h57M108 111h67M108 130h44" stroke="#93C5FD" stroke-width="6" stroke-linecap="round"/>
+<circle cx="192" cy="147" r="33" fill="#DBEAFE" stroke="#2562EB" stroke-width="7"/>
+<path d="m216 172 26 26" stroke="#2562EB" stroke-width="10" stroke-linecap="round"/>
+<path d="m53 66 5 12 12 5-12 5-5 12-5-12-12-5 12-5Z" fill="#FDE68A"/>
+
+</svg>

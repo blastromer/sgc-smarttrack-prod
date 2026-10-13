@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">No notifications</title>
+
+<ellipse cx="160" cy="205" rx="104" ry="15" fill="#DBEAFE"/>
+<path d="M92 156h136l-17-23V96a51 51 0 0 0-102 0v37Z" fill="#60A5FA" stroke="#2562EB" stroke-width="4" stroke-linejoin="round"/>
+<path d="M137 170a24 24 0 0 0 46 0" stroke="#2562EB" stroke-width="9" stroke-linecap="round"/>
+<path d="M66 72l5 11 11 5-11 5-5 11-5-11-11-5 11-5Z" fill="#FBBF24"/>
+<circle cx="242" cy="75" r="8" fill="#14B8A6"/><circle cx="74" cy="145" r="5" fill="#93C5FD"/>
+
+</svg>

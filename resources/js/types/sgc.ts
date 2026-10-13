@@ -19,6 +19,8 @@ export interface Kpi {
     value: string;
     hint?: string | null;
     tone?: string | null;
+    /** Optional card color: blue, green, orange, red, or purple. */
+    accent?: string | null;
 }
 
 export interface ChartBar {
@@ -96,6 +98,32 @@ export interface CheckItem {
     tone: Tone | string;
     title: string;
     hint: string;
+}
+
+export type DashboardStatusKey = 'validated' | 'for_validation' | 'returned' | 'in_progress' | 'not_started';
+
+export interface DashboardPayload {
+    cycles: { id: number; name: string }[];
+    cycle_id: number | null;
+    cycle_name: string | null;
+    total: number;
+    kpis: { key: string; label: string; value: number; hint: string }[];
+    status: { key: DashboardStatusKey; label: string; count: number; pct: number }[];
+    indicators: { code: string; title: string; pct: number }[];
+    activities: { type: 'submitted' | 'validated' | 'returned' | 'account' | string; text: string; when: string }[];
+    schools: {
+        id: number;
+        name: string;
+        school_code: string;
+        status: DashboardStatusKey;
+        score: string;
+        submitted: string | null;
+        validated: string | null;
+        review_id: number | null;
+        can_validate: boolean;
+        view_href: string | null;
+    }[];
+    hrefs: { indicators: string; activities: string; schools: string; queue: string | null };
 }
 
 export function isBadge(cell: TableCell): cell is BadgeCell {

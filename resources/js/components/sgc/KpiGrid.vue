@@ -7,8 +7,9 @@ const props = withDefaults(
     defineProps<{
         items: Kpi[];
         animate?: boolean;
+        columns?: number;
     }>(),
-    { animate: false },
+    { animate: false, columns: 0 },
 );
 
 const shown = ref<string[]>(props.items.map((item) => item.value));
@@ -74,19 +75,19 @@ onUnmounted(stop);
 </script>
 
 <template>
-    <div class="kpis mb-4">
-        <div v-for="(kpi, index) in items" :key="kpi.label" class="kpi" :class="kpi.tone || undefined">
-            <div class="kpi-head">
-                <span class="kpi-ico" aria-hidden="true">
-                    <SgcIcon :name="kpi.label" />
-                </span>
+    <div class="kpis mb-4" :class="columns === 5 ? 'kpis-5' : undefined">
+        <div v-for="(kpi, index) in items" :key="kpi.label" class="kpi" :class="[kpi.tone || undefined, kpi.accent ? `kpi-accent kpi-${kpi.accent}` : undefined]">
+            <span class="kpi-ico" aria-hidden="true">
+                <SgcIcon :name="kpi.label" />
+            </span>
+            <div class="kpi-copy">
                 <span>{{ kpi.label }}</span>
+                <b class="tabular-nums">
+                    <span class="sr-only">{{ kpi.value }}</span>
+                    <span aria-hidden="true">{{ shown[index] ?? kpi.value }}</span>
+                </b>
+                <small v-if="kpi.hint">{{ kpi.hint }}</small>
             </div>
-            <b class="tabular-nums">
-                <span class="sr-only">{{ kpi.value }}</span>
-                <span aria-hidden="true">{{ shown[index] ?? kpi.value }}</span>
-            </b>
-            <small v-if="kpi.hint">{{ kpi.hint }}</small>
         </div>
     </div>
 </template>

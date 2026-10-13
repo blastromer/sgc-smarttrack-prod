@@ -49,8 +49,20 @@ const closeTemplate = () => {
                 <p class="muted">{{ chart.hint }}</p>
                 <VChart :bars="chart.bars" />
             </div>
-            <div class="box">
-                <b>Progress to functional (10/12)</b>
+            <div class="box school-surface">
+                <div class="flex items-start justify-between gap-3">
+                    <b>Progress to functional (10/12)</b>
+                    <img
+                        class="ui-scene"
+                        src="/assets/sgc-smarttrack/illustrations/progress.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width="96"
+                        height="72"
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </div>
                 <div
                     class="bar mt-3"
                     role="progressbar"

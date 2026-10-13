@@ -10,9 +10,11 @@ use Inertia\Response;
 
 class PortalController extends Controller
 {
-    public function superOverview(): Response
+    public function superOverview(Request $request): Response
     {
-        return Inertia::render('super/Overview', PortalMetrics::superOverview());
+        return Inertia::render('super/Overview', PortalMetrics::superOverview() + [
+            'dashboard' => PortalMetrics::dashboard('super', $request->integer('cycle') ?: null),
+        ]);
     }
 
     public function superDivisions(): Response
@@ -27,7 +29,9 @@ class PortalController extends Controller
 
     public function divisionOverview(Request $request): Response
     {
-        return Inertia::render('division/Overview', PortalMetrics::divisionOverview($request->user()));
+        return Inertia::render('division/Overview', PortalMetrics::divisionOverview($request->user()) + [
+            'dashboard' => PortalMetrics::dashboard('division', $request->integer('cycle') ?: null),
+        ]);
     }
 
     public function divisionQueue(): Response

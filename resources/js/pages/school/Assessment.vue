@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcTemplateLinks from '@/components/sgc/SgcTemplateLinks.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
@@ -141,107 +142,112 @@ const slotTone = (row: AssessmentRow, slot: AssessmentSlot) => {
                 <Link href="/school/form-data">Form data</Link>
                 once, then download filled templates. Tap No yourself if the SGC did not do this. AI does not decide Yes or No.
             </p>
+            <p class="mt-2 text-xs">
+                <Link href="/school/movs">All MOV files</Link>
+            </p>
 
             <nav v-if="indicators.length" class="fi-jumps" aria-label="Indicators">
                 <a v-for="row in indicators" :key="row.code" class="fi-jump" :href="`#indicator-${row.code}`">{{ row.code }}</a>
             </nav>
+        </div>
 
-            <div class="mt-4 space-y-4">
-                <template v-for="(row, index) in indicators" :key="row.code">
-                    <p v-if="showGroup(indicators, index)" class="fi-group">{{ row.group }}</p>
-                    <article :id="`indicator-${row.code}`" class="indicator-card rounded-[12px] border border-sgc-line bg-sgc-card p-4 sgc:p-5">
-                        <div class="flex flex-wrap items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold tracking-wide text-sgc-teal">{{ row.code }}</p>
-                                <h2 class="mt-1 text-base font-bold text-sgc-ink">{{ row.title }}</h2>
-                                <p class="muted mt-2 text-sm leading-relaxed">
-                                    <span class="text-sgc-ink">{{ row.primary_code }} (scores).</span>
-                                    {{ row.primary }}
-                                </p>
-                            </div>
-                            <span class="badge shrink-0" :class="row.status.tone">{{ row.status.badge }}</span>
+        <div v-if="indicators.length" class="assessment-list">
+            <template v-for="(row, index) in indicators" :key="row.code">
+                <h2 v-if="showGroup(indicators, index)" class="fi-group">{{ row.group }}</h2>
+                <article :id="`indicator-${row.code}`" class="indicator-card">
+                    <header class="indicator-head">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold tracking-wide text-sgc-teal">{{ row.code }}</p>
+                            <h3 class="mt-1 text-base font-bold text-sgc-ink">{{ row.title }}</h3>
                         </div>
+                        <span class="badge shrink-0" :class="row.status.tone">{{ row.status.badge }}</span>
+                    </header>
 
-                        <p class="mt-3 text-sm leading-relaxed text-sgc-ink">{{ row.ai.hint }}</p>
+                    <p class="muted mt-2 text-sm leading-relaxed">
+                        <span class="font-semibold text-sgc-ink">{{ row.primary_code }} (scores).</span>
+                        {{ row.primary }}
+                    </p>
+                    <p class="mt-2 text-sm leading-relaxed text-sgc-ink">{{ row.ai.hint }}</p>
 
-                        <div v-if="row.minimum.length" class="mt-4 space-y-3">
-                            <section
-                                v-for="slot in row.minimum"
-                                :key="slot.code"
-                                class="rounded-[10px] border border-sgc-line bg-sgc-bg/40 p-3"
-                            >
-                                <p class="text-xs font-semibold" :class="slotTone(row, slot)">
-                                    {{ slotNeed(row, slot) }} · {{ slot.code }} · {{ slot.title }}
-                                </p>
-                                <p v-if="slot.has_file" class="mt-1 break-all text-sm text-sgc-ink">
-                                    {{ slot.file }}<span v-if="slot.size" class="text-sgc-muted"> ({{ slot.size }})</span>
-                                </p>
-                                <p v-else-if="row.answer === 'yes'" class="muted mt-1 text-xs">No file yet. Download the filled template, complete the blanks, then choose the file for this slot only.</p>
-                                <p v-else-if="row.answer === 'no'" class="muted mt-1 text-xs">A No answer does not need a Minimum MOV.</p>
-                                <p v-else class="muted mt-1 text-xs">Download a filled template, complete it, then choose the file — that encodes Yes. Or tap No if the SGC did not do this.</p>
-                                <span
-                                    v-if="slot.has_file || slot.status === 'returned'"
-                                    class="badge mt-2"
-                                    :class="slot.tone"
+                    <div class="indicator-answer">
+                        <span class="indicator-answer-label">Primary answer</span>
+                        <span class="btn-pair" :data-tour="isTourRow(row) ? 'encode' : undefined">
+                            <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'yes' }" type="button" :disabled="row.locked" @click="encode(row.code, 'yes')">Yes</button>
+                            <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'no' }" type="button" :disabled="row.locked" @click="encode(row.code, 'no')">No</button>
+                        </span>
+                    </div>
+
+                    <div v-if="row.minimum.length" class="indicator-slots">
+                        <p class="slot-section">Minimum MOV</p>
+                        <section v-for="slot in row.minimum" :key="slot.code" class="slot-card">
+                            <div class="slot-top">
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold" :class="slotTone(row, slot)">{{ slotNeed(row, slot) }} · {{ slot.code }}</p>
+                                    <p class="mt-1 text-sm font-medium leading-snug text-sgc-ink">{{ slot.title }}</p>
+                                </div>
+                                <span v-if="slot.has_file || slot.status === 'returned'" class="badge shrink-0" :class="slot.tone">{{ slot.badge }}</span>
+                            </div>
+
+                            <p v-if="slot.has_file" class="mt-2 break-all text-sm text-sgc-ink">
+                                {{ slot.file }}<span v-if="slot.size" class="text-sgc-muted"> ({{ slot.size }})</span>
+                            </p>
+                            <p v-else-if="row.answer === 'yes'" class="muted mt-2 text-xs">No file yet. Download the filled template, complete the blanks, then choose the file for this slot only.</p>
+                            <p v-else-if="row.answer === 'no'" class="muted mt-2 text-xs">A No answer does not need a Minimum MOV.</p>
+                            <p v-else class="muted mt-2 text-xs">Download a filled template, complete it, then choose the file — that encodes Yes. Or tap No if the SGC did not do this.</p>
+
+                            <div v-if="(slot.id && slot.has_file) || slot.can_replace" class="slot-actions">
+                                <a v-if="slot.id && slot.has_file" class="btn inline ghost min-h-11 text-xs" :href="route('movs.download', { mov: slot.id })">View</a>
+                                <label
+                                    v-if="slot.can_replace"
+                                    class="btn inline min-h-11 text-xs"
+                                    :data-tour="isTourRow(row) && slot.can_replace && slot.code === row.minimum.find((item) => item.can_replace)?.code ? 'choose-file' : undefined"
                                 >
-                                    {{ slot.badge }}
-                                </span>
+                                    {{ slot.has_file ? 'Replace file' : 'Choose file' }}
+                                    <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="upload(slot.code, $event)" />
+                                </label>
+                            </div>
 
+                            <div v-if="slot.templates.length" class="slot-block">
+                                <p class="slot-label">Templates</p>
                                 <SgcTemplateLinks
-                                    v-if="slot.templates.length"
-                                    class="mt-3"
+                                    stacked
                                     :files="slot.templates"
                                     :tour="isTourRow(row) && slot.code === row.minimum[0]?.code"
                                     @open="openTemplate"
                                 />
+                            </div>
 
-                                <div class="mt-3 flex flex-wrap items-center gap-2">
-                                    <a v-if="slot.id && slot.has_file" class="btn inline ghost min-h-11 text-xs" :href="route('movs.download', { mov: slot.id })">View</a>
-                                    <label
-                                        v-if="slot.can_replace"
-                                        class="btn inline min-h-11 text-xs"
-                                        :data-tour="isTourRow(row) && slot.can_replace && slot.code === row.minimum.find((item) => item.can_replace)?.code ? 'choose-file' : undefined"
+                            <details v-if="slot.can_replace && slot.reuse.length" class="slot-reuse">
+                                <summary>Reuse a file from this school ({{ slot.reuse.length }})</summary>
+                                <p class="muted mt-2 text-[11px] leading-relaxed">
+                                    Select a document previously uploaded to your school library. This attaches an independent file copy directly to this specific requirement slot.
+                                </p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <button
+                                        v-for="item in slot.reuse"
+                                        :key="item.id"
+                                        class="btn inline ghost min-h-10 text-xs"
+                                        type="button"
+                                        @click="reuse(slot.code, item.id)"
                                     >
-                                        {{ slot.has_file ? 'Replace file' : 'Choose file' }}
-                                        <input type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="upload(slot.code, $event)" />
-                                    </label>
+                                        {{ item.file }}
+                                        <span class="font-normal text-sgc-muted"> · {{ item.source }}</span>
+                                    </button>
                                 </div>
-                                <div v-if="slot.can_replace && slot.reuse.length" class="mt-2 space-y-2">
-                                    <p class="muted text-[11px] leading-relaxed">
-                                        Select a document previously uploaded to your school library. This attaches an independent file copy directly to this specific requirement slot.
-                                    </p>
-                                    <div class="flex flex-wrap gap-2">
-                                        <button
-                                            v-for="item in slot.reuse"
-                                            :key="item.id"
-                                            class="btn inline ghost min-h-10 text-xs"
-                                            type="button"
-                                            @click="reuse(slot.code, item.id)"
-                                        >
-                                            Reuse copy · {{ item.file }} ({{ item.source }})
-                                        </button>
-                                    </div>
-                                </div>
-                            </section>
-                        </div>
+                            </details>
+                        </section>
+                    </div>
 
-                        <details v-if="row.others.length" class="mt-3">
-                            <summary class="cursor-pointer text-xs text-sgc-muted">Other sub-indicators (no score)</summary>
-                            <p class="muted mt-2 text-xs leading-relaxed">{{ row.others.join(' · ') }}</p>
-                        </details>
-
-                        <div class="mt-4 flex flex-wrap items-center gap-2">
-                            <span class="btn-pair flex flex-wrap gap-2" :data-tour="isTourRow(row) ? 'encode' : undefined">
-                                <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'yes' }" type="button" :disabled="row.locked" @click="encode(row.code, 'yes')">Yes</button>
-                                <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'no' }" type="button" :disabled="row.locked" @click="encode(row.code, 'no')">No</button>
-                            </span>
-                            <Link class="text-xs" href="/school/movs">All MOV files</Link>
-                        </div>
-                    </article>
-                </template>
-            </div>
-            <p v-if="!indicators.length" class="muted mt-3">No open cycle.</p>
+                    <details v-if="row.others.length" class="indicator-more">
+                        <summary>Other sub-indicators (no score)</summary>
+                        <ul>
+                            <li v-for="item in row.others" :key="item">{{ item }}</li>
+                        </ul>
+                    </details>
+                </article>
+            </template>
         </div>
+        <SgcEmpty v-if="!indicators.length" art="assessment" message="No open cycle." />
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
     </SgcLayout>
 </template>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">No users found</title>
+
+<ellipse cx="160" cy="205" rx="104" ry="15" fill="#DBEAFE"/>
+<circle cx="130" cy="89" r="28" fill="#F3C49B"/>
+<path d="M101 88q-3-34 29-36 27 1 30 33l-16-10-23-4-16 17Z" fill="#0F2D5B"/>
+<path d="M77 183q6-63 53-63t53 63v11H77Z" fill="#2562EB"/>
+<circle cx="204" cy="108" r="23" fill="#DFA778"/>
+<path d="M180 106q-2-30 25-31 24 1 25 28l-13-9-18-3-15 15Z" fill="#334155"/>
+<path d="M170 184q4-48 36-48t36 48v10h-72Z" fill="#14B8A6"/>
+<circle cx="218" cy="55" r="20" fill="#DBEAFE" stroke="#2562EB" stroke-width="5"/>
+<path d="m233 70 18 18" stroke="#2562EB" stroke-width="8" stroke-linecap="round"/>
+
+</svg>

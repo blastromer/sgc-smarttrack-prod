@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="320" viewBox="0 0 600 320" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">School Outline</title>
+<rect width="600" height="320" fill="#F8FBFF"/><g stroke="#93C5FD" stroke-width="2" fill="none" opacity=".45"><path d="M210 215 300 150 390 215v70H210Z"/><path d="M190 215 300 135 410 215"/><path d="M240 235h24v25h-24zM286 235h28v45h-28zM336 235h24v25h-24z"/><path d="M80 280h440M100 250v30M500 250v30"/></g><g fill="#BFDBFE" opacity=".5"><circle cx="120" cy="75" r="22"/><circle cx="490" cy="65" r="30"/></g>
+</svg>

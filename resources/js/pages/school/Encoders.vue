@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { router } from '@inertiajs/vue3';
@@ -31,7 +32,7 @@ const accept = (id: number) => {
         <KpiGrid :items="kpis" />
         <div class="box mb-3">
             <b>Pending requests</b>
-            <p v-if="!pending.length" class="muted mt-2">No pending Encoder requests for this school.</p>
+            <SgcEmpty v-if="!pending.length" art="users" message="No pending Encoder requests for this school." />
             <div v-else class="table-scroll mt-3">
                 <table class="data-table">
                     <thead>
@@ -60,7 +61,7 @@ const accept = (id: number) => {
         <div class="box">
             <b>Encoders in this school</b>
             <p class="muted mt-1">Accepted teachers who can encode FIs and upload MOVs. They share this school’s Form data and packet.</p>
-            <p v-if="!encoders.length" class="muted mt-2">No accepted Encoders yet. When a teacher registers with this School ID, they appear under Pending requests.</p>
+            <SgcEmpty v-if="!encoders.length" art="users" message="No accepted Encoders yet. When a teacher registers with this School ID, they appear under Pending requests." />
             <div v-else class="table-scroll mt-3">
                 <table class="data-table">
                     <thead>

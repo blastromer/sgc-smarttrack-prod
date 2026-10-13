@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">Progress</title>
+
+<path d="M22 188h246" stroke="#CBDDF7" stroke-width="4" stroke-linecap="round"/>
+<rect x="48" y="130" width="38" height="58" rx="5" fill="#93C5FD"/>
+<rect x="102" y="99" width="38" height="89" rx="5" fill="#60A5FA"/>
+<rect x="156" y="65" width="38" height="123" rx="5" fill="#2562EB"/>
+<path d="m55 112 47-32 48-24 38-20" stroke="#14B8A6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="m172 36 18-3-5 18" stroke="#14B8A6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="226" cy="54" r="22" fill="#D1FAE5"/><path d="m216 54 7 7 14-15" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

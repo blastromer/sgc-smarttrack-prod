@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcMovSlotMenu from '@/components/sgc/SgcMovSlotMenu.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
@@ -99,7 +100,20 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
-            <p class="muted">If Division has not accepted a file, the School Head can remove it. Encoders request removal. After submit, withdraw the packet first if no MOV is accepted yet. Open the official Word template to read it, download it to fill, then upload — or reuse a file this school already submitted. Minimum files score. Additional and other-sub-indicator files are optional.</p>
+            <div class="flex items-start justify-between gap-3">
+                <p class="muted min-w-0">If Division has not accepted a file, the School Head can remove it. Encoders request removal. After submit, withdraw the packet first if no MOV is accepted yet. Open the official Word template to read it, download it to fill, then upload — or reuse a file this school already submitted. Minimum files score. Additional and other-sub-indicator files are optional.</p>
+                <img
+                    v-if="slots.length"
+                    class="ui-scene"
+                    src="/assets/sgc-smarttrack/illustrations/upload.svg"
+                    alt=""
+                    aria-hidden="true"
+                    width="96"
+                    height="72"
+                    loading="lazy"
+                    decoding="async"
+                />
+            </div>
             <p class="muted mt-2">
                 All official templates are on
                 <Link href="/school/templates">Templates</Link>
@@ -174,7 +188,7 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
                 </tbody>
             </table>
             </div>
-            <p v-if="!slots.length" class="muted" style="margin-top: 12px">Encode Yes on an indicator first, then upload its Minimum MOV here.</p>
+            <SgcEmpty v-if="!slots.length" art="movs" message="Encode Yes on an indicator first, then upload its Minimum MOV here." />
         </div>
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
     </SgcLayout>

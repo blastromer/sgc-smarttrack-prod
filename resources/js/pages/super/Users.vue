@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { useForm } from '@inertiajs/vue3';
@@ -80,7 +81,7 @@ const resetData = () => {
             </form>
             <div class="box">
                 <b>Accounts</b>
-                <p v-if="!users.length" class="empty">No accounts yet.</p>
+                <SgcEmpty v-if="!users.length" art="users" message="No accounts yet." />
                 <div v-else class="table-scroll">
                 <table class="data-table" style="margin-top: 12px">
                     <thead>

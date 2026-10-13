@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { BadgeCell, Kpi } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
@@ -28,7 +29,7 @@ const open = (code: string) => {
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
-            <p v-if="!schools.length" class="empty">{{ empty_text || 'No School Heads have registered yet.' }}</p>
+            <SgcEmpty v-if="!schools.length" art="users" :message="empty_text || 'No School Heads have registered yet.'" />
             <div v-else class="table-scroll">
                 <table class="data-table">
                     <thead>

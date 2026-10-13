@@ -12,5 +12,5 @@ defineProps<{
 </script>
 
 <template>
-    <TablePage v-bind="$props" />
+    <TablePage v-bind="$props" empty_art="notifications" />
 </template>

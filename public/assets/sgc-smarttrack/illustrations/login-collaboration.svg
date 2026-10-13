@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="440" viewBox="0 0 520 440" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">School governance collaboration login artwork</title>
+
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#EAF5FF"/><stop offset="1" stop-color="#D1FAE5"/></linearGradient></defs>
+<rect width="520" height="440" rx="28" fill="url(#bg)"/>
+<circle cx="425" cy="75" r="31" fill="#FDE68A"/>
+<g fill="#FFFFFF" opacity=".92"><path d="M20 49c-8 0-8-12 0-12 2-9 15-10 19-2 8-2 14 8 7 14Z"/><path d="M246 34c-7 0-7-10 0-10 2-8 13-8 16-1 7-2 11 7 5 11Z"/></g>
+<path d="M0 330Q130 275 260 330T520 315V440H0Z" fill="#A7F3D0"/>
+<g stroke="#D7E7F8" stroke-width="3" stroke-linejoin="round">
+ <path d="M55 190 145 130 235 190v130H55Z" fill="#FFFFFF"/>
+ <path d="M40 190 145 116 250 190Z" fill="#2562EB"/>
+ <rect x="77" y="210" width="30" height="35" rx="4" fill="#BFDBFE"/>
+ <rect x="124" y="210" width="42" height="35" rx="4" fill="#BFDBFE"/>
+ <rect x="182" y="210" width="30" height="35" rx="4" fill="#BFDBFE"/>
+ <rect x="125" y="263" width="40" height="57" rx="5" fill="#93C5FD"/>
+</g>
+<!-- person with tablet -->
+<path d="M270 351q6-92 70-92t67 92v68H270Z" fill="#2562EB"/>
+<circle cx="340" cy="215" r="38" fill="#F3C49B"/>
+<path d="M301 215q-3-48 40-50 36 1 39 44l-18-17-27-5-24 23Z" fill="#0F2D5B"/>
+<path d="M319 228q21 18 42 0" stroke="#9A5B43" stroke-width="3" stroke-linecap="round"/>
+<path d="M301 317l-23 61M374 317l27 61" stroke="#F3C49B" stroke-width="15" stroke-linecap="round"/>
+<rect x="298" y="286" width="88" height="58" rx="7" fill="#FFFFFF" stroke="#93C5FD" stroke-width="3" transform="rotate(-8 298 286)"/>
+<path d="m315 306 7 7 14-16" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M320 325h45" stroke="#BFDBFE" stroke-width="4" stroke-linecap="round"/>
+<g><rect x="365" y="125" width="110" height="65" rx="13" fill="#FFFFFF" stroke="#D7E7F8" stroke-width="2"/>
+<circle cx="388" cy="148" r="10" fill="#DBEAFE"/><path d="M383 148h10M388 143v10" stroke="#2562EB" stroke-width="2" stroke-linecap="round"/>
+<path d="M406 145h50M406 158h39M382 174h75" stroke="#BFDBFE" stroke-width="4" stroke-linecap="round"/>
+</g>
+
+</svg>

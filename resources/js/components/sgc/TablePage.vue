@@ -12,12 +12,13 @@ defineProps<{
     headers: string[];
     rows: TableCell[][];
     empty_text?: string;
+    empty_art?: 'records' | 'movs' | 'assessment' | 'users' | 'notifications' | 'templates';
 }>();
 </script>
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
-        <DataTable :headers="headers" :rows="rows" :empty_text="empty_text" />
+        <DataTable :headers="headers" :rows="rows" :empty_text="empty_text" :empty_art="empty_art" />
     </SgcLayout>
 </template>

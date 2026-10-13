@@ -75,7 +75,31 @@ const withdraw = () => {
                 </p>
             </div>
             <div class="box">
-                <b>What happens after you submit</b>
+                <div class="flex items-start justify-between gap-3">
+                    <b>What happens after you submit</b>
+                    <img
+                        v-if="status === 'validated'"
+                        class="ui-scene"
+                        src="/assets/sgc-smarttrack/illustrations/completion.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width="96"
+                        height="72"
+                        loading="lazy"
+                        decoding="async"
+                    />
+                    <img
+                        v-else
+                        class="ui-scene"
+                        src="/assets/sgc-smarttrack/illustrations/progress.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width="96"
+                        height="72"
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </div>
                 <p v-for="line in after" :key="line" class="muted progress-copy">{{ line }}</p>
                 <b class="progress-next">Packet preview</b>
                 <p v-for="line in packet" :key="line" class="muted progress-copy">{{ line }}</p>

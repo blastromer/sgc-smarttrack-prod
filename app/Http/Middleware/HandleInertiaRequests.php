@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Assessment;
+use App\Models\Mov;
 use App\Models\User;
 use App\Support\AssessmentEngine;
 use App\Support\SgcAi;
@@ -52,6 +54,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'sgc' => $user ? [
                 'nav' => SgcSample::nav($user->role),
+                'counts' => $this->navCounts($user),
                 'notices' => $this->noticesFor($user),
                 'noticeHref' => SgcSample::noticeHref($user->role),
                 'flow' => $user->isSchoolStaff() ? AssessmentEngine::flowFor($user) : null,
@@ -63,6 +66,24 @@ class HandleInertiaRequests extends Middleware
                 ],
             ] : null,
         ]);
+    }
+
+    /**
+     * Sidebar counters for the Division Admin. Other roles get none.
+     *
+     * @return array<string, int>
+     */
+    private function navCounts(User $user): array
+    {
+        if ($user->role !== 'division') {
+            return [];
+        }
+
+        return [
+            '/division/queue' => Assessment::query()->whereIn('status', ['submitted', 'under_review'])->count(),
+            '/division/alerts' => Mov::query()->where('status', 'returned')->count(),
+            '/division/registrations' => User::query()->where('role', 'school_head')->where('status', 'pending')->count(),
+        ];
     }
 
     /**
