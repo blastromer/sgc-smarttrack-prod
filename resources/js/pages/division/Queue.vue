@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { BadgeCell, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -23,7 +25,7 @@ defineProps<{
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
-            <p v-if="!packets.length" class="muted">No school packets in the queue yet.</p>
+            <SgcEmpty v-if="!packets.length" art="assessment" message="No school packets in the queue yet." />
             <div v-else class="table-scroll">
             <table class="data-table">
                 <thead>
@@ -43,7 +45,7 @@ defineProps<{
                         <td data-label="Self-score">{{ packet.score }}</td>
                         <td data-label="Status"><span class="badge" :class="packet.status.tone">{{ packet.status.badge }}</span></td>
                         <td data-label="Submitted">{{ packet.submitted || '—' }}</td>
-                        <td><Link class="btn inline min-h-11" :href="route('division.review', { assessment: packet.id })">Review</Link></td>
+                        <td><Link class="btn inline" :href="route('division.review', { assessment: packet.id })"><SgcIcon name="Review" />Review</Link></td>
                     </tr>
                 </tbody>
             </table>

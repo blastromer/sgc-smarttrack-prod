@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">No assessment data yet</title>
+
+<ellipse cx="160" cy="205" rx="105" ry="15" fill="#DBEAFE"/>
+<rect x="88" y="38" width="145" height="156" rx="13" fill="#FFFFFF" stroke="#CBDDF7" stroke-width="3"/>
+<rect x="126" y="28" width="69" height="24" rx="8" fill="#2562EB"/>
+<path d="M111 83l7 7 12-14M144 86h63M111 119l7 7 12-14M144 122h63M111 155l7 7 12-14M144 158h45" stroke="#14B8A6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="234" cy="172" r="20" fill="#DBEAFE"/>
+<path d="m225 172 6 6 12-13" stroke="#2562EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

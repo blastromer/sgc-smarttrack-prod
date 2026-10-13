@@ -1,12 +1,6 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthLayout from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import SgcAuthLayout from '@/layouts/SgcAuthLayout.vue';
+import { Link, useForm } from '@inertiajs/vue3';
 
 defineProps<{
     status?: string;
@@ -22,33 +16,23 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthLayout title="Forgot password" description="Enter your email to receive a password reset link">
-        <Head title="Forgot password" />
+    <SgcAuthLayout title="Forgot password">
+        <template #hero>
+            <h1>Reset your password</h1>
+            <p>Enter the DepEd email on your account. A reset link will be sent there.</p>
+        </template>
 
-        <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
-            {{ status }}
-        </div>
+        <form @submit.prevent="submit">
+            <h2>Forgot password</h2>
+            <p class="sub">Use the email address registered on this account.</p>
+            <p v-if="status" class="flash">{{ status }}</p>
 
-        <div class="space-y-6">
-            <form @submit.prevent="submit">
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input id="email" type="email" name="email" autocomplete="off" v-model="form.email" autofocus placeholder="email@example.com" />
-                    <InputError :message="form.errors.email" />
-                </div>
+            <label for="email">DepEd email</label>
+            <input id="email" v-model="form.email" type="email" name="email" autocomplete="username" placeholder="juan.delacruz@deped.gov.ph" required autofocus />
+            <p v-if="form.errors.email" class="err" style="display: block">{{ form.errors.email }}</p>
 
-                <div class="my-6 flex items-center justify-start">
-                    <Button class="w-full" :disabled="form.processing">
-                        <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                        Email password reset link
-                    </Button>
-                </div>
-            </form>
-
-            <div class="space-x-1 text-center text-sm text-muted-foreground">
-                <span>Or, return to</span>
-                <TextLink :href="route('login')">log in</TextLink>
-            </div>
-        </div>
-    </AuthLayout>
+            <button class="btn" type="submit" :disabled="form.processing" style="margin-top: 16px">Email password reset link</button>
+            <p class="foot">Remembered it? <Link :href="route('login')">Sign in</Link></p>
+        </form>
+    </SgcAuthLayout>
 </template>

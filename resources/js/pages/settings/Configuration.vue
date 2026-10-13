@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { applySgcAppearance, type SgcAppearance } from '@/lib/sgc-appearance';
 import type { SharedData } from '@/types';
@@ -15,8 +16,8 @@ const appearance = computed(() => page.props.sgc?.appearance);
 const canPublish = computed(() => appearance.value?.can_publish === true);
 
 const form = useForm({
-    theme: appearance.value?.current.theme ?? 'night',
-    accent: appearance.value?.current.accent ?? '#2aa7a0',
+    theme: appearance.value?.current.theme ?? 'day',
+    accent: appearance.value?.current.accent ?? '#2563EB',
     font: appearance.value?.current.font ?? 'segoe',
     text_size: appearance.value?.current.text_size ?? 'md',
     density: appearance.value?.current.density ?? 'comfortable',
@@ -56,8 +57,8 @@ const reset = () => {
 };
 
 const themes: { id: SgcAppearance['theme']; label: string; hint: string; accent: string }[] = [
-    { id: 'night', label: 'Night', hint: 'Current SmartTrack dark teal', accent: '#2aa7a0' },
-    { id: 'day', label: 'Day', hint: 'Light panels for bright rooms', accent: '#1a7a75' },
+    { id: 'day', label: 'Day', hint: 'Light workspace with a navy sidebar', accent: '#2563EB' },
+    { id: 'night', label: 'Night', hint: 'Dark teal workspace', accent: '#2aa7a0' },
     { id: 'forest', label: 'Forest', hint: 'Green DepEd-leaning dark', accent: '#3cb88a' },
     { id: 'contrast', label: 'High contrast', hint: 'Stronger edges and type', accent: '#3dffd4' },
 ];
@@ -122,9 +123,9 @@ const pickTheme = (item: (typeof themes)[number]) => {
             </select>
 
             <div class="actions">
-                <button class="btn inline min-h-11" type="button" :disabled="form.processing" @click="save(false)">Save for me</button>
-                <button v-if="canPublish" class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="save(true)">Save as site default</button>
-                <button class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="reset">Reset to site default</button>
+                <button class="btn inline min-h-11" type="button" :disabled="form.processing" @click="save(false)"><SgcIcon name="Save" />Save for me</button>
+                <button v-if="canPublish" class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="save(true)"><SgcIcon name="Settings" />Save as site default</button>
+                <button class="btn inline ghost min-h-11" type="button" :disabled="form.processing" @click="reset"><SgcIcon name="Reset" />Reset to site default</button>
             </div>
             <p v-if="canPublish" class="muted mt-2">
                 Site default applies to the login page and to anyone who has not saved their own settings.

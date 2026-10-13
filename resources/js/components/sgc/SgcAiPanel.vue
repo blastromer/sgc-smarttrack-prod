@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'sgc-ai-panel';
 const page = usePage<SharedData>();
 const ai = computed(() => page.props.sgc?.ai ?? null);
 const prompts = computed(() => (ai.value?.prompts ?? []).slice(0, 4));
+const hasDetail = computed(() => Boolean(ai.value?.hint || ai.value?.graphs || ai.value?.ideas?.length || prompts.value.length));
 const open = ref(false);
 
 const persist = (value: boolean) => {
@@ -45,37 +47,42 @@ const ask = (prompt?: string) => {
 </script>
 
 <template>
-    <section v-if="ai" class="box mb-4">
+    <section v-if="ai" class="ai-card box mb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="min-w-0">
-                <p class="text-xs font-semibold tracking-wide text-sgc-teal">AI recommendation</p>
-                <b class="mt-1 block text-[15px]">Analytics</b>
-                <p class="muted mt-1 text-[11px]">Ideas · Interpretation · Graphs · Analytics{{ ai.live ? ' · Live OpenAI' : '' }}</p>
+            <div class="flex min-w-0 items-center gap-2.5">
+                <span class="kpi-ico" aria-hidden="true">
+                    <SgcIcon name="AI assistance" />
+                </span>
+                <div class="min-w-0">
+                    <b class="block text-[15px]">AI recommendation</b>
+                    <p v-if="ai.live" class="muted mt-0.5">Live OpenAI</p>
+                </div>
             </div>
-            <div class="flex shrink-0 flex-wrap gap-2">
+            <div class="btn-pair flex shrink-0 flex-wrap gap-2">
                 <button class="btn inline ghost min-h-10 text-xs" type="button" :aria-expanded="open" @click="toggle">
                     {{ open ? 'Hide' : 'Show' }}
                 </button>
-                <button class="btn inline min-h-10 text-xs" type="button" @click="ask()">Ask AI</button>
+                <button class="btn inline min-h-10 text-xs" type="button" @click="ask()"><SgcIcon name="AI assistance" />Ask AI</button>
             </div>
         </div>
         <div v-if="open">
-            <p class="muted mt-3 text-sm leading-relaxed">{{ ai.hint }}</p>
-            <div v-if="ai.graphs" class="mt-3 rounded-[10px] border border-sgc-line bg-sgc-bg/40 px-3 py-2.5">
+            <p v-if="ai.hint" class="ai-note text-sm leading-relaxed text-sgc-ink">{{ ai.hint }}</p>
+            <p v-else-if="!hasDetail" class="ai-note text-sm leading-relaxed text-sgc-muted">No recommendation is available for this page yet.</p>
+            <div v-if="ai.graphs" class="ai-note">
                 <p class="text-xs font-semibold text-sgc-ink">Graphs</p>
                 <p class="muted mt-1 text-sm leading-relaxed">{{ ai.graphs }}</p>
             </div>
             <div v-if="ai.ideas?.length" class="mt-3">
                 <p class="text-xs font-semibold text-sgc-ink">Ideas</p>
-                <ul class="mt-1.5 list-none space-y-1.5 p-0">
-                    <li v-for="idea in ai.ideas" :key="idea" class="muted text-sm leading-relaxed">{{ idea }}</li>
+                <ul class="ai-ideas">
+                    <li v-for="idea in ai.ideas" :key="idea">{{ idea }}</li>
                 </ul>
             </div>
             <div v-if="prompts.length" class="mt-3 flex flex-wrap gap-2">
                 <button
                     v-for="prompt in prompts"
                     :key="prompt"
-                    class="cursor-pointer rounded-lg border border-sgc-line bg-sgc-bg px-2.5 py-1.5 text-left text-[12px] leading-snug text-sgc-ink hover:border-sgc-teal hover:text-sgc-teal"
+                    class="min-h-10 cursor-pointer rounded-lg border border-sgc-line bg-sgc-bg px-2.5 py-1.5 text-left text-[12px] leading-snug text-sgc-ink hover:border-sgc-teal hover:text-sgc-teal"
                     type="button"
                     @click="ask(prompt)"
                 >

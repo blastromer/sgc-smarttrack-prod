@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" viewBox="0 0 720 440" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">School community dashboard hero</title>
+
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#EAF5FF"/><stop offset="1" stop-color="#CDEBFF"/></linearGradient>
+ <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#A7F3D0"/><stop offset="1" stop-color="#5EEAD4"/></linearGradient>
+</defs>
+<rect width="720" height="440" rx="28" fill="url(#sky)"/>
+<g fill="#FFFFFF" opacity=".92"><path d="M20 49c-8 0-8-12 0-12 2-9 15-10 19-2 8-2 14 8 7 14Z"/><path d="M246 34c-7 0-7-10 0-10 2-8 13-8 16-1 7-2 11 7 5 11Z"/></g>
+<circle cx="640" cy="72" r="34" fill="#FDE68A"/>
+<path d="M0 305Q160 225 330 295T720 265V440H0Z" fill="#D1FAE5"/>
+<path d="M0 355Q180 300 380 355T720 320V440H0Z" fill="url(#hill)"/>
+<!-- school -->
+<g stroke="#D7E7F8" stroke-width="3" stroke-linejoin="round">
+ <path d="M260 165 365 103 470 165V302H260Z" fill="#FFFFFF"/>
+ <path d="M240 166 365 90 490 166Z" fill="#2562EB"/>
+ <rect x="285" y="185" width="36" height="43" rx="4" fill="#BFDBFE"/>
+ <rect x="340" y="185" width="50" height="43" rx="4" fill="#BFDBFE"/>
+ <rect x="410" y="185" width="36" height="43" rx="4" fill="#BFDBFE"/>
+ <rect x="342" y="246" width="48" height="56" rx="5" fill="#93C5FD"/>
+ <path d="M365 246v56" stroke="#FFFFFF"/>
+ <rect x="300" y="133" width="130" height="12" rx="6" fill="#DBEAFE"/>
+</g>
+<!-- flag -->
+<path d="M540 90v183" stroke="#0F2D5B" stroke-width="5" stroke-linecap="round"/>
+<path d="M543 93h82l-17 20 17 20h-82Z" fill="#2563EB"/>
+<path d="M543 113h82l-17 20 17 20h-82Z" fill="#EF4444" transform="translate(0 -1)"/>
+<path d="M543 113h82v8h-82Z" fill="#FFFFFF"/>
+<!-- foliage -->
+<g fill="#10B981"><circle cx="215" cy="230" r="34"/><circle cx="225" cy="200" r="28"/><circle cx="500" cy="238" r="36"/><circle cx="512" cy="203" r="29"/></g>
+<g stroke="#0F766E" stroke-width="5" stroke-linecap="round"><path d="M220 246v74M505 252v67"/></g>
+<!-- people group -->
+<g stroke-linecap="round" stroke-linejoin="round">
+ <!-- left person -->
+ <path d="M80 354q6-70 52-70t51 70v48H80Z" fill="#2562EB"/>
+ <path d="M106 289q26 28 53 0" stroke="#FFFFFF" stroke-width="6"/>
+ <circle cx="132" cy="253" r="28" fill="#F3C49B"/>
+ <path d="M105 250q-4-34 29-36 27 0 29 29l-9-9-20-4-20 16Z" fill="#0F2D5B"/>
+ <path d="M112 258q19 17 38 0" stroke="#9A5B43" stroke-width="2.5"/>
+ <path d="M105 360l-22 37M157 360l25 37" stroke="#F3C49B" stroke-width="12"/>
+ <!-- middle left -->
+ <path d="M215 338q7-65 48-65t48 65v65H215Z" fill="#0EA5E9"/>
+ <circle cx="263" cy="248" r="28" fill="#DFA778"/>
+ <path d="M235 248q-4-36 28-38 28 2 29 34l-13-10-19-4-18 16Z" fill="#1E293B"/>
+ <rect x="243" y="246" width="17" height="11" rx="4" stroke="#0F2D5B" stroke-width="3" fill="none"/>
+ <rect x="266" y="246" width="17" height="11" rx="4" stroke="#0F2D5B" stroke-width="3" fill="none"/>
+ <path d="M260 251h6" stroke="#0F2D5B" stroke-width="3"/>
+ <path d="M242 261q20 14 39-1" stroke="#9A5B43" stroke-width="2.5"/>
+ <!-- laptop -->
+ <rect x="232" y="321" width="70" height="47" rx="5" fill="#E2E8F0" stroke="#94A3B8" stroke-width="3"/>
+ <path d="M221 370h91l-8 8h-75Z" fill="#64748B"/>
+ <!-- right person -->
+ <path d="M385 351q7-72 51-72t52 72v51H385Z" fill="#0F2D5B"/>
+ <circle cx="436" cy="250" r="29" fill="#F0BE92"/>
+ <path d="M407 250q-2-36 29-39 28 2 30 35l-13-13-24-5-15 18Z" fill="#334155"/>
+ <path d="M418 260q18 15 36 0" stroke="#9A5B43" stroke-width="2.5"/>
+ <path d="M410 354l-22 43M461 354l24 43" stroke="#F0BE92" stroke-width="12"/>
+ <!-- front school head -->
+ <path d="M305 363q8-78 58-78t58 78v42H305Z" fill="#FFFFFF" stroke="#D7E7F8" stroke-width="3"/>
+ <circle cx="363" cy="258" r="31" fill="#E9B58C"/>
+ <path d="M331 255q-4-37 32-41 29 0 32 35l-12-13-25-5-20 18Z" fill="#3F2D25"/>
+ <path d="M343 266q20 16 40-1" stroke="#9A5B43" stroke-width="2.5"/>
+ <path d="M344 295v29h38v-29" fill="#FFFFFF"/>
+ <path d="M353 296v26M373 296v26" stroke="#2562EB" stroke-width="3"/>
+ <rect x="337" y="330" width="53" height="39" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="2"/>
+ <path d="M347 342h32M347 351h24" stroke="#2562EB" stroke-width="3" stroke-linecap="round"/>
+</g>
+<!-- floating cards -->
+<g>
+ <rect x="520" y="285" width="165" height="54" rx="14" fill="#FFFFFF" stroke="#D7E7F8" stroke-width="2"/>
+ <circle cx="545" cy="312" r="13" fill="#DBEAFE"/><path d="m539 312 4 4 8-9" stroke="#2562EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+ <text x="566" y="309" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#0F2D5B">Assessment</text>
+ <text x="566" y="325" font-family="Arial,sans-serif" font-size="10" fill="#64748B">Track school progress</text>
+</g>
+
+</svg>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcMovSlotMenu from '@/components/sgc/SgcMovSlotMenu.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
@@ -99,7 +101,20 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box">
-            <p class="muted">If Division has not accepted a file, the School Head can remove it. Encoders request removal. After submit, withdraw the packet first if no MOV is accepted yet. Open the official Word template to read it, download it to fill, then upload — or reuse a file this school already submitted. Minimum files score. Additional and other-sub-indicator files are optional.</p>
+            <div class="flex items-start justify-between gap-3">
+                <p class="muted min-w-0">If Division has not accepted a file, the School Head can remove it. Encoders request removal. After submit, withdraw the packet first if no MOV is accepted yet. Open the official Word template to read it, download it to fill, then upload — or reuse a file this school already submitted. Minimum files score. Additional and other-sub-indicator files are optional.</p>
+                <img
+                    v-if="slots.length"
+                    class="ui-scene"
+                    src="/assets/sgc-smarttrack/illustrations/upload.svg"
+                    alt=""
+                    aria-hidden="true"
+                    width="96"
+                    height="72"
+                    loading="lazy"
+                    decoding="async"
+                />
+            </div>
             <p class="muted mt-2">
                 All official templates are on
                 <Link href="/school/templates">Templates</Link>
@@ -107,13 +122,13 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
             </p>
             <p v-if="can_withdraw" class="muted" style="margin-top: 8px">This packet is in the Division queue and no MOV has been accepted yet.</p>
             <div v-if="can_withdraw" class="actions">
-                <button class="btn inline ghost" type="button" @click="withdraw">Withdraw from Division</button>
+                <button class="btn inline ghost" type="button" @click="withdraw"><SgcIcon name="Withdraw" />Withdraw from Division</button>
             </div>
             <div class="mt-3 space-y-3 sgc:hidden">
-                <article v-for="slot in slots" :key="`m-${slot.code}`" class="rounded-[10px] border border-[var(--line)] bg-[#0e1a24] p-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <b class="break-all">{{ slot.file || slot.title }}</b>
+                <article v-for="slot in slots" :key="`m-${slot.code}`" class="mov-file-card rounded-[10px] border border-sgc-line bg-sgc-card p-4">
+                    <div class="mov-file-head flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <b class="mov-file-name">{{ slot.file || slot.title }}</b>
                             <p class="muted mt-1">{{ slot.code }} · {{ slot.kind }} · {{ slot.size }}</p>
                             <p class="muted mt-1">{{ slot.title }}</p>
                         </div>
@@ -174,7 +189,7 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
                 </tbody>
             </table>
             </div>
-            <p v-if="!slots.length" class="muted" style="margin-top: 12px">Encode Yes on an indicator first, then upload its Minimum MOV here.</p>
+            <SgcEmpty v-if="!slots.length" art="movs" message="Encode Yes on an indicator first, then upload its Minimum MOV here." />
         </div>
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
     </SgcLayout>

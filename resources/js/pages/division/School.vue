@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { BadgeCell, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -134,7 +135,7 @@ const movTone = (status: string) => {
                     <b>School submission</b>
                     <p v-if="packet" class="muted mt-1">{{ packet.cycle }} · {{ packet.status }}</p>
                 </div>
-                <Link v-if="packet?.can_review" class="btn inline ghost" :href="route('division.review', { assessment: packet.id })">Open packet</Link>
+                <Link v-if="packet?.can_review" class="btn inline ghost" :href="route('division.review', { assessment: packet.id })"><SgcIcon name="Review" />Open packet</Link>
             </div>
             <p v-if="!packet" class="muted mt-2">This school has no packet in the open cycle yet.</p>
             <template v-else>

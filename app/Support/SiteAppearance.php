@@ -23,8 +23,8 @@ class SiteAppearance
     public static function defaults(): array
     {
         return [
-            'theme' => 'night',
-            'accent' => '#2aa7a0',
+            'theme' => 'day',
+            'accent' => '#2563EB',
             'font' => 'segoe',
             'text_size' => 'md',
             'density' => 'comfortable',

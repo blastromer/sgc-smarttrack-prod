@@ -25,6 +25,7 @@ export interface SharedData {
     auth: Auth;
     sgc: {
         nav: SgcNavItem[];
+        counts?: Record<string, number>;
         notices: Notice[];
         noticeHref: string;
         flow: Flow | null;

@@ -4,6 +4,7 @@ import SgcAiPanel from '@/components/sgc/SgcAiPanel.vue';
 import SgcTemplateLinks from '@/components/sgc/SgcTemplateLinks.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import VChart from '@/components/sgc/VChart.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { ChartBlock, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -40,24 +41,44 @@ const closeTemplate = () => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
+        <div class="dash-board">
+        <KpiGrid v-if="kpis?.length" :items="kpis" animate />
         <SgcAiPanel />
-        <KpiGrid v-if="kpis?.length" :items="kpis" />
-        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
-            <div v-for="chart in charts" :key="chart.title" class="box">
+        <div class="grid grid-cols-1 gap-3">
+            <div v-for="chart in charts" :key="chart.title" class="box chart-card">
                 <b>{{ chart.title }}</b>
                 <p class="muted">{{ chart.hint }}</p>
                 <VChart :bars="chart.bars" />
             </div>
-            <div class="box">
-                <b>Progress to functional (10/12)</b>
-                <div class="bar" style="margin-top: 12px">
-                    <span :style="{ width: `${progress.width}%` }" />
+            <div class="box school-surface">
+                <div class="flex items-start justify-between gap-3">
+                    <b>Progress to functional (10/12)</b>
+                    <img
+                        class="ui-scene"
+                        src="/assets/sgc-smarttrack/illustrations/progress.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width="96"
+                        height="72"
+                        loading="lazy"
+                        decoding="async"
+                    />
                 </div>
-                <p class="muted" style="margin-top: 10px">{{ progress.text }}</p>
-                <b style="display: block; margin-top: 16px">Next actions</b>
-                <p v-for="action in progress.actions" :key="action" class="muted" style="margin-top: 8px">{{ action }}</p>
+                <div
+                    class="bar mt-3"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    :aria-valuenow="Math.max(0, Math.min(100, progress.width))"
+                    :aria-label="progress.text"
+                >
+                    <span :style="{ width: `${Math.max(0, Math.min(100, progress.width))}%` }" />
+                </div>
+                <p class="muted progress-copy">{{ progress.text }}</p>
+                <b class="progress-next">Next actions</b>
+                <p v-for="action in progress.actions" :key="action" class="muted progress-copy">{{ action }}</p>
                 <div class="actions">
-                    <Link class="btn inline" href="/school/submit">See submission flow</Link>
+                    <Link class="btn inline" href="/school/submit"><SgcIcon name="Next" />See submission flow</Link>
                 </div>
             </div>
         </div>
@@ -71,10 +92,11 @@ const closeTemplate = () => {
                         once, then download filled Word files. Letterhead and officers are stamped; complete the remaining blanks and upload on MOV files.
                     </p>
                 </div>
-                <Link class="btn inline ghost min-h-10 text-xs" href="/school/templates">All templates</Link>
+                <Link class="btn inline ghost min-h-10 text-xs" href="/school/templates"><SgcIcon name="Templates" />All templates</Link>
             </div>
             <SgcTemplateLinks class="mt-3" :files="templates" @open="openTemplate" />
         </div>
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
+        </div>
     </SgcLayout>
 </template>

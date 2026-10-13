@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">Completion</title>
+
+<rect x="66" y="39" width="168" height="155" rx="14" fill="#FFFFFF" stroke="#CBDDF7" stroke-width="3"/>
+<rect x="111" y="28" width="78" height="23" rx="8" fill="#2562EB"/>
+<path d="M90 81l8 8 15-17M128 84h80M90 115l8 8 15-17M128 118h80M90 149l8 8 15-17M128 152h49" stroke="#93C5FD" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="220" cy="165" r="36" fill="#22C55E"/>
+<path d="m202 165 12 12 24-27" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

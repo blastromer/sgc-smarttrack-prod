@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { CheckItem } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps<{
     title: string;
@@ -22,12 +24,20 @@ const props = defineProps<{
 
 const atDivision = () => ['submitted', 'under_review', 'validated'].includes(props.status);
 
-const certify = () => router.post(route('school.submit.qa'));
-const submit = () => router.post(route('school.submit.send'));
+const busy = ref<'qa' | 'send' | 'withdraw' | null>(null);
+
+const post = (action: 'qa' | 'send' | 'withdraw', url: string) => {
+    if (busy.value) return;
+    busy.value = action;
+    router.post(url, {}, { preserveScroll: true, onFinish: () => (busy.value = null) });
+};
+
+const certify = () => post('qa', route('school.submit.qa'));
+const submit = () => post('send', route('school.submit.send'));
 const withdraw = () => {
     if (!props.can_withdraw) return;
     if (!confirm('Withdraw this packet from Division? You can then remove or replace files.')) return;
-    router.post(route('school.submit.withdraw'));
+    post('withdraw', route('school.submit.withdraw'));
 };
 </script>
 
@@ -42,43 +52,83 @@ const withdraw = () => {
                         <span class="mark" :class="check.tone">{{ check.mark }}</span>
                         <div>
                             {{ check.title }}
-                            <small class="muted" style="display: block">{{ check.hint }}</small>
+                            <small class="muted mt-1 block">{{ check.hint }}</small>
                         </div>
                     </li>
                 </ul>
                 <div class="actions" data-tour="submit">
-                    <Link class="btn inline ghost" href="/school/movs">{{ returned ? 'Replace returned MOV' : 'Open MOV files' }}</Link>
-                    <Link class="btn inline ghost" href="/school/assessment">Finish indicators</Link>
-                    <button v-if="can_qa" class="btn inline" type="button" @click="certify">Certify School Head QA</button>
-                    <button class="btn inline" type="button" :disabled="!can_submit" :class="{ disabled: !can_submit }" @click="submit">
+                    <Link class="btn inline ghost" href="/school/movs"><SgcIcon :name="returned ? 'Replace' : 'MOV files'" />{{ returned ? 'Replace returned MOV' : 'Open MOV files' }}</Link>
+                    <Link class="btn inline ghost" href="/school/assessment"><SgcIcon name="My assessment" />Finish indicators</Link>
+                    <button v-if="can_qa" class="btn inline" type="button" :disabled="busy === 'qa'" :aria-busy="busy === 'qa'" @click="certify">
+                        <span v-if="busy === 'qa'" class="sgc-spin" aria-hidden="true" />
+                        <SgcIcon v-else name="Certify" />
+                        Certify School Head QA
+                    </button>
+                    <button
+                        class="btn inline"
+                        type="button"
+                        :disabled="!can_submit || busy === 'send'"
+                        :class="{ disabled: !can_submit }"
+                        :aria-busy="busy === 'send'"
+                        @click="submit"
+                    >
+                        <span v-if="busy === 'send'" class="sgc-spin" aria-hidden="true" />
+                        <SgcIcon v-else name="Send" />
                         {{ status === 'returned' || returned ? 'Resubmit to Division' : 'Submit to Division' }}
                     </button>
                     <button
                         v-if="is_school_head && (can_withdraw || atDivision())"
                         class="btn inline ghost"
                         type="button"
-                        :disabled="!can_withdraw"
+                        :disabled="!can_withdraw || busy === 'withdraw'"
                         :class="{ disabled: !can_withdraw }"
+                        :aria-busy="busy === 'withdraw'"
                         @click="withdraw"
                     >
+                        <span v-if="busy === 'withdraw'" class="sgc-spin" aria-hidden="true" />
+                        <SgcIcon v-else name="Withdraw" />
                         Withdraw from Division
                     </button>
                 </div>
-                <p v-if="!is_school_head" class="muted" style="margin-top: 12px">
+                <p v-if="!is_school_head" class="muted mt-3">
                     Teachers encode and upload MOVs. Only the School Head can certify QA and submit to Division.
                 </p>
-                <p v-if="is_school_head && atDivision() && !can_withdraw" class="muted" style="margin-top: 12px">
+                <p v-if="is_school_head && atDivision() && !can_withdraw" class="muted mt-3">
                     Withdraw is closed after Division accepts a MOV. If a file is returned or invalid, replace that file, certify QA, and resubmit.
                 </p>
-                <p class="muted" style="margin-top: 12px">
+                <p class="muted mt-3">
                     If a MOV is returned or invalid: (1) the encoder replaces that file, (2) the School Head certifies QA again, (3) the School Head resubmits.
                 </p>
             </div>
             <div class="box">
-                <b>What happens after you submit</b>
-                <p v-for="line in after" :key="line" class="muted" style="margin-top: 10px">{{ line }}</p>
-                <b style="display: block; margin-top: 16px">Packet preview</b>
-                <p v-for="line in packet" :key="line" class="muted" style="margin-top: 8px">{{ line }}</p>
+                <div class="flex items-start justify-between gap-3">
+                    <b>What happens after you submit</b>
+                    <img
+                        v-if="status === 'validated'"
+                        class="ui-scene"
+                        src="/assets/sgc-smarttrack/illustrations/completion.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width="96"
+                        height="72"
+                        loading="lazy"
+                        decoding="async"
+                    />
+                    <img
+                        v-else
+                        class="ui-scene"
+                        src="/assets/sgc-smarttrack/illustrations/progress.svg"
+                        alt=""
+                        aria-hidden="true"
+                        width="96"
+                        height="72"
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </div>
+                <p v-for="line in after" :key="line" class="muted progress-copy">{{ line }}</p>
+                <b class="progress-next">Packet preview</b>
+                <p v-for="line in packet" :key="line" class="muted progress-copy">{{ line }}</p>
             </div>
         </div>
     </SgcLayout>

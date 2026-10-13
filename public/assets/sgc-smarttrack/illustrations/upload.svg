@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">Upload</title>
+
+<path d="M43 181h234" stroke="#CBDDF7" stroke-width="4" stroke-linecap="round"/>
+<path d="M68 52h104l29 29v84H68Z" fill="#FFFFFF" stroke="#CBDDF7" stroke-width="3"/>
+<path d="M172 52v31h29" fill="#DBEAFE" stroke="#CBDDF7" stroke-width="3"/>
+<path d="M88 103h73M88 122h63M88 141h47" stroke="#93C5FD" stroke-width="6" stroke-linecap="round"/>
+<circle cx="218" cy="147" r="36" fill="#2562EB"/>
+<path d="M218 164v-35m-13 13 13-13 13 13" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+</svg>

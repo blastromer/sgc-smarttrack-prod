@@ -26,6 +26,6 @@ defineProps<{
         <p v-else class="sub">
             You cannot sign in yet. Division Admin will accept your School Head registration first. Teachers can register as Encoder only after that.
         </p>
-        <Link class="btn" href="/login" style="display: block; text-align: center; text-decoration: none; color: #062226">Return to sign in</Link>
+        <Link class="btn text-center no-underline" href="/login">Return to sign in</Link>
     </SgcAuthLayout>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import { fatRules, guideFor, roleGuides, roleMatrix, type DocRole } from '@/lib/sgc-docs';
 import type { Role } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -161,10 +162,10 @@ const printDocs = () => window.print();
             </ol>
             <p v-for="note in guide.notes" :key="note" class="muted" style="margin-top: 10px">{{ note }}</p>
             <div class="actions no-print">
-                <Link v-if="mode === 'walkthrough'" class="btn inline ghost" href="/docs">Open full manuals</Link>
-                <Link v-else class="btn inline ghost" href="/help">Open walkthroughs</Link>
-                <a class="btn inline" href="/assets/docs/SGC-SmartTrack-User-Roles-Guide.pdf" target="_blank" rel="noreferrer">Download all-roles PDF</a>
-                <button class="btn inline ghost" type="button" @click="printDocs">Print this role</button>
+                <Link v-if="mode === 'walkthrough'" class="btn inline ghost" href="/docs"><SgcIcon name="Docs" />Open full manuals</Link>
+                <Link v-else class="btn inline ghost" href="/help"><SgcIcon name="Help" />Open walkthroughs</Link>
+                <a class="btn inline" href="/assets/docs/SGC-SmartTrack-User-Roles-Guide.pdf" target="_blank" rel="noreferrer"><SgcIcon name="Download" />Download all-roles PDF</a>
+                <button class="btn inline ghost" type="button" @click="printDocs"><SgcIcon name="Print" />Print this role</button>
             </div>
         </div>
     </div>

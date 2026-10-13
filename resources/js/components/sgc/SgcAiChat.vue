@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import { startSgcWalkthrough } from '@/composables/useSgcWalkthrough';
 import type { SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -198,7 +199,7 @@ onUnmounted(() => window.removeEventListener('sgc-ai-ask', onAsk));
                     :disabled="sending"
                     @keydown.enter.exact.prevent="send()"
                 />
-                <button class="btn inline min-h-11 px-3" type="submit" :disabled="sending || !draft.trim()">Send</button>
+                <button class="btn inline min-h-11 px-3" type="submit" :disabled="sending || !draft.trim()"><SgcIcon name="Send" />Send</button>
             </form>
             <p class="muted mt-2 text-[11px]">
                 {{ isSchool ? 'Hint only. It does not encode Yes or No.' : 'Hint only. Answers follow the page you have open.' }}

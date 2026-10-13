@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps<{
     title: string;
@@ -22,8 +25,12 @@ const props = defineProps<{
     }[];
 }>();
 
+const busy = ref<number | null>(null);
+
 const accept = (id: number) => {
-    router.post(route(props.accept_route, { user: id }));
+    if (busy.value !== null) return;
+    busy.value = id;
+    router.post(route(props.accept_route, { user: id }), {}, { preserveScroll: true, onFinish: () => (busy.value = null) });
 };
 </script>
 
@@ -31,7 +38,7 @@ const accept = (id: number) => {
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid :items="kpis" />
         <div class="box">
-            <p v-if="!registrations.length" class="muted">{{ empty_text }}</p>
+            <SgcEmpty v-if="!registrations.length" art="users" :message="empty_text" />
             <div v-else class="table-scroll">
             <table class="data-table">
                 <thead>
@@ -47,7 +54,7 @@ const accept = (id: number) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="item in registrations" :key="item.id">
+                    <tr v-for="item in registrations" :key="item.id" :class="{ 'is-busy': busy === item.id }">
                         <td data-label="Name">{{ item.name }}</td>
                         <td data-label="Email">{{ item.email }}</td>
                         <td data-label="School">{{ item.school_name }}</td>
@@ -56,7 +63,11 @@ const accept = (id: number) => {
                         <td data-label="Position">{{ item.position }}</td>
                         <td data-label="Requested">{{ item.requested }}</td>
                         <td>
-                            <button class="btn inline min-h-11" type="button" @click="accept(item.id)">Accept</button>
+                            <button class="btn inline min-h-11" type="button" :disabled="busy === item.id" :aria-busy="busy === item.id" @click="accept(item.id)">
+                                <span v-if="busy === item.id" class="sgc-spin" aria-hidden="true" />
+                                <SgcIcon v-else name="Accept" />
+                                Accept
+                            </button>
                         </td>
                     </tr>
                 </tbody>

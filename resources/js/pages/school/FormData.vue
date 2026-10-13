@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 
@@ -28,6 +29,9 @@ const save = () => {
             <p class="muted mt-2">{{ saved ? `${filled || 0} fields saved for this school.` : 'Nothing saved yet — account school name is still used on the letterhead.' }}</p>
         </div>
         <form class="space-y-3" @submit.prevent="save">
+            <div v-if="Object.keys(data.errors).length" role="alert">
+                <p v-for="(message, field) in data.errors" :key="field" class="err">{{ message }}</p>
+            </div>
             <div class="box">
                 <b>Letterhead</b>
                 <p class="muted">Goes into [REGION], [DIVISION], [SCHOOL], [ADDRESS], and school year on every template.</p>
@@ -92,8 +96,8 @@ const save = () => {
                 <label for="form-purpose">Purpose</label>
                 <textarea id="form-purpose" v-model="data.meeting_purpose" rows="3" />
                 <div class="actions">
-                    <button class="btn inline" type="submit" :disabled="data.processing">Save form data</button>
-                    <Link class="btn inline ghost" href="/school/templates">Generate MOV forms</Link>
+                    <button class="btn inline" type="submit" :disabled="data.processing"><SgcIcon name="Save" />{{ data.processing ? 'Saving…' : 'Save form data' }}</button>
+                    <Link class="btn inline ghost" href="/school/templates"><SgcIcon name="Generate" />Generate MOV forms</Link>
                 </div>
             </div>
         </form>

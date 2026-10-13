@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="asset-title" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title id="asset-title">No MOVs uploaded</title>
+
+<ellipse cx="160" cy="205" rx="108" ry="15" fill="#DBEAFE"/>
+<path d="M57 88h72l17 18h110v78H57Z" fill="#FBBF24" stroke="#F59E0B" stroke-width="3" stroke-linejoin="round"/>
+<path d="M57 106h199l-19 76H57Z" fill="#FDE68A" stroke="#F59E0B" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="218" cy="164" r="27" fill="#14B8A6"/>
+<path d="M218 151v26M205 164h26" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+<path d="M102 69h62l18 18h-80Z" fill="#FFFFFF" stroke="#CBDDF7" stroke-width="3"/>
+
+</svg>

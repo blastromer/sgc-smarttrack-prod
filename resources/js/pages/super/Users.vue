@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
+import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { useForm } from '@inertiajs/vue3';
@@ -50,8 +52,8 @@ const resetData = () => {
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid :items="kpis" />
-        <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
-            <form class="box" @submit.prevent="submit">
+        <div class="grid grid-cols-1 gap-3">
+            <form class="box max-w-3xl" @submit.prevent="submit">
                 <b>Create Division Admin</b>
                 <p class="muted">Only Super Admin can create this role. School Heads still register and wait for Division accept.</p>
                 <label for="division-name">Full name</label>
@@ -75,12 +77,12 @@ const resetData = () => {
                 <label for="division-password-confirm">Confirm password</label>
                 <input id="division-password-confirm" v-model="form.password_confirmation" type="password" required minlength="8" />
                 <div class="actions">
-                    <button class="btn inline" type="submit" :disabled="form.processing">Create Division Admin</button>
+                    <button class="btn inline" type="submit" :disabled="form.processing"><SgcIcon name="Users" />Create Division Admin</button>
                 </div>
             </form>
             <div class="box">
                 <b>Accounts</b>
-                <p v-if="!users.length" class="muted">No accounts yet.</p>
+                <SgcEmpty v-if="!users.length" art="users" message="No accounts yet." />
                 <div v-else class="table-scroll">
                 <table class="data-table" style="margin-top: 12px">
                     <thead>
@@ -114,7 +116,7 @@ const resetData = () => {
             <input id="reset-confirm" v-model="resetForm.confirm" required placeholder="RESET FAT DATA" autocomplete="off" />
             <p v-if="resetForm.errors.confirm" class="err" style="display: block">{{ resetForm.errors.confirm }}</p>
             <div class="actions">
-                <button class="btn inline ghost" type="submit" :disabled="resetForm.processing">Clear school and FAT data</button>
+                <button class="btn inline ghost" type="submit" :disabled="resetForm.processing"><SgcIcon name="Delete" />Clear school and FAT data</button>
             </div>
         </form>
     </SgcLayout>

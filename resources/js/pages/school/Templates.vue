@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
+import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcTemplateLinks from '@/components/sgc/SgcTemplateLinks.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
@@ -25,6 +26,8 @@ defineProps<{
         files: TemplateFile[];
     }[];
 }>();
+
+const hasTemplates = (groups: { files: unknown[] }[]) => groups.some((group) => group.files.length > 0);
 
 const previewOpen = ref(false);
 const previewKey = ref<string | null>(null);
@@ -53,7 +56,8 @@ const closeTemplate = () => {
                 — or from the matching slot on My assessment.
             </p>
         </div>
-        <div class="space-y-3">
+        <SgcEmpty v-if="!hasTemplates(groups)" art="templates" message="No official templates are available yet." />
+        <div v-else class="space-y-3">
             <section v-for="group in groups" :key="group.kind" class="box">
                 <b>{{ group.label }}</b>
                 <div class="mt-3 space-y-3">

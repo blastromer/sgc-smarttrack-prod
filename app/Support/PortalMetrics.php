@@ -49,6 +49,172 @@ class PortalMetrics
     }
 
     /**
+     * Dashboard payload shared by the Division and Super Admin home pages.
+     * Status buckets are mutually exclusive and always sum to the school total.
+     *
+     * @return array<string, mixed>
+     */
+    public static function dashboard(string $role, ?int $cycleId = null): array
+    {
+        $cycles = Cycle::query()->orderByDesc('opens_at')->get(['id', 'name', 'status']);
+        $cycle = $cycles->firstWhere('id', $cycleId)
+            ?? $cycles->firstWhere('status', 'open')
+            ?? $cycles->first();
+
+        $heads = User::query()
+            ->where('role', 'school_head')
+            ->where('status', 'active')
+            ->orderBy('school_name')
+            ->get(['id', 'name', 'school_name', 'school_code', 'created_at']);
+        $codes = $heads->map(fn (User $head) => $head->packetSchoolCode())->filter()->values();
+
+        $packets = Assessment::query()
+            ->whereIn('school_code', $codes->isEmpty() ? ['__none__'] : $codes)
+            ->when($cycle, fn ($query) => $query->where('cycle_id', $cycle->id))
+            ->withCount(['indicators as yes_count' => fn ($query) => $query->where('answer', 'yes')])
+            ->get()
+            ->keyBy('school_code');
+
+        $total = $heads->count();
+        $bucketOf = function (?Assessment $packet): string {
+            if (! $packet) {
+                return 'not_started';
+            }
+
+            return match ($packet->status) {
+                'validated' => 'validated',
+                'submitted', 'under_review' => 'for_validation',
+                'returned' => 'returned',
+                default => $packet->yes_count > 0 ? 'in_progress' : 'not_started',
+            };
+        };
+
+        $buckets = ['validated' => 0, 'for_validation' => 0, 'returned' => 0, 'in_progress' => 0, 'not_started' => 0];
+        $rows = [];
+        foreach ($heads as $head) {
+            $packet = $packets->get($head->packetSchoolCode());
+            $bucket = $bucketOf($packet);
+            $buckets[$bucket]++;
+            $rows[] = [
+                'id' => $head->id,
+                'name' => $head->school_name ?: 'Unnamed school',
+                'school_code' => $head->school_code ?: '—',
+                'status' => $bucket,
+                'score' => ($packet?->yes_count ?? 0).'/12',
+                'submitted' => $packet?->submitted_at?->format('M j, Y'),
+                'validated' => $packet?->validated_at?->format('M j, Y'),
+                'review_id' => $role === 'division' && $packet && $packet->canReviewMovs() ? $packet->id : null,
+                'can_validate' => $role === 'division' && $packet && in_array($packet->status, ['submitted', 'under_review'], true),
+                'view_href' => $role === 'division' ? '/division/schools/'.$head->packetSchoolCode() : null,
+            ];
+        }
+
+        $submitted = $packets->filter(fn (Assessment $packet) => $packet->submitted_at !== null)->count();
+        $pct = fn (int $count) => $total ? (int) round(100 * $count / $total) : 0;
+        $labels = [
+            'validated' => 'Validated',
+            'for_validation' => 'For Validation',
+            'returned' => 'Returned',
+            'in_progress' => 'In progress',
+            'not_started' => 'Not started',
+        ];
+
+        $yesByCode = $packets->isEmpty() ? collect() : IndicatorAnswer::query()
+            ->whereIn('assessment_id', $packets->pluck('id'))
+            ->where('answer', 'yes')
+            ->selectRaw('code, count(*) as total')
+            ->groupBy('code')
+            ->pluck('total', 'code');
+
+        $indicators = collect(FatCatalog::indicators())
+            ->map(fn (array $indicator) => [
+                'code' => $indicator['code'],
+                'title' => $indicator['title'],
+                'pct' => $pct((int) ($yesByCode[$indicator['code']] ?? 0)),
+            ])
+            ->values();
+
+        $hrefs = $role === 'division'
+            ? ['indicators' => '/division/schools', 'activities' => '/division/alerts', 'schools' => '/division/schools', 'queue' => '/division/queue']
+            : ['indicators' => '/super/divisions', 'activities' => '/super/users', 'schools' => '/super/divisions', 'queue' => null];
+
+        return [
+            'cycles' => $cycles->map(fn (Cycle $item) => ['id' => $item->id, 'name' => $item->name])->values(),
+            'cycle_id' => $cycle?->id,
+            'cycle_name' => $cycle?->name,
+            'total' => $total,
+            'kpis' => [
+                ['key' => 'schools', 'label' => 'Total Schools', 'value' => $total, 'hint' => 'Accepted School Heads'],
+                ['key' => 'submitted', 'label' => 'Submitted', 'value' => $submitted, 'hint' => $pct($submitted).'% submission rate'],
+                ['key' => 'for_validation', 'label' => 'For Validation', 'value' => $buckets['for_validation'], 'hint' => 'Needs review'],
+                ['key' => 'returned', 'label' => 'Returned', 'value' => $buckets['returned'], 'hint' => 'Needs correction'],
+                ['key' => 'validated', 'label' => 'Validated', 'value' => $buckets['validated'], 'hint' => $pct($buckets['validated']).'% completion'],
+            ],
+            'status' => collect($buckets)->map(fn (int $count, string $key) => [
+                'key' => $key,
+                'label' => $labels[$key],
+                'count' => $count,
+                'pct' => $pct($count),
+            ])->values(),
+            'indicators' => $indicators,
+            'activities' => self::recentActivities($packets, $heads),
+            'schools' => $rows,
+            'hrefs' => $hrefs,
+        ];
+    }
+
+    /**
+     * Recent events derived from real timestamps. Nothing here is written to the database.
+     *
+     * @return list<array{type: string, text: string, when: string}>
+     */
+    private static function recentActivities($packets, $heads): array
+    {
+        $names = $heads->mapWithKeys(fn (User $head) => [$head->packetSchoolCode() => $head->school_name ?: 'A school']);
+        $events = collect();
+
+        foreach ($packets as $packet) {
+            $school = $names[$packet->school_code] ?? 'A school';
+            if ($packet->submitted_at) {
+                $events->push(['type' => 'submitted', 'text' => $school.' submitted assessment', 'at' => $packet->submitted_at]);
+            }
+            if ($packet->validated_at) {
+                $events->push(['type' => 'validated', 'text' => $school.' validated · '.($packet->result === 'functional' ? 'Functional' : 'Not yet'), 'at' => $packet->validated_at]);
+            }
+        }
+
+        if ($packets->isNotEmpty()) {
+            Mov::query()
+                ->whereIn('assessment_id', $packets->pluck('id'))
+                ->where('status', 'returned')
+                ->latest('updated_at')
+                ->limit(5)
+                ->get(['assessment_id', 'code', 'updated_at'])
+                ->each(function (Mov $mov) use ($events, $packets, $names) {
+                    $packet = $packets->firstWhere('id', $mov->assessment_id);
+                    $school = $names[$packet?->school_code] ?? 'A school';
+                    $events->push(['type' => 'returned', 'text' => $school.' '.$mov->code.' returned for correction', 'at' => $mov->updated_at]);
+                });
+        }
+
+        $heads->sortByDesc('created_at')->take(5)->each(function (User $head) use ($events) {
+            $events->push(['type' => 'account', 'text' => 'New school account: '.($head->school_name ?: $head->name), 'at' => $head->created_at]);
+        });
+
+        return $events
+            ->filter(fn (array $event) => $event['at'] !== null)
+            ->sortByDesc('at')
+            ->take(5)
+            ->map(fn (array $event) => [
+                'type' => $event['type'],
+                'text' => $event['text'],
+                'when' => $event['at']->diffForHumans(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function superOverview(): array
