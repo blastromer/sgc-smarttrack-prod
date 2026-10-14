@@ -84,6 +84,7 @@ class DivisionValidationController extends Controller
                         default => $mov->kind,
                     },
                     'file' => $mov->original_name,
+                    'on_drive' => filled($mov->drive_file_id),
                     'status' => $mov->status,
                     'reason' => $mov->return_reason,
                 ]),

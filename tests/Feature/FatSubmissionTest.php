@@ -6,15 +6,38 @@ use App\Models\Assessment;
 use App\Models\Cycle;
 use App\Models\User;
 use App\Support\AssessmentEngine;
+use App\Support\DriveMovFolders;
 use App\Support\FatCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FatSubmissionTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Http::fake(function ($request) {
+            $url = $request->url();
+            if (str_contains($url, 'oauth2.googleapis.com/token')) {
+                return Http::response(['access_token' => 'ya29.test']);
+            }
+            if (str_contains($url, 'upload/drive')) {
+                return Http::response(['id' => 'drive-'.bin2hex(random_bytes(4))]);
+            }
+            if ($request->method() === 'GET') {
+                return Http::response(['files' => [['id' => 'folder-found']]]);
+            }
+
+            return Http::response(['id' => 'folder-made']);
+        });
+    }
 
     private function openCycle(): Cycle
     {
@@ -43,6 +66,8 @@ class FatSubmissionTest extends TestCase
             'school_code' => '654321',
             'position' => 'School Head',
         ]);
+        Cache::forever(DriveMovFolders::tokenCacheKey($head->id), 'refresh-token');
+        Cache::forever(DriveMovFolders::scopeCacheKey($head->id), DriveMovFolders::WRITE_SCOPE);
 
         return [$encoder, $head];
     }
@@ -441,7 +466,7 @@ class FatSubmissionTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('indicators.0.minimum.0.code', 'FI1A')
                 ->where('indicators.0.minimum.0.has_file', false)
-                ->where('indicators.0.minimum.0.can_replace', false)
+                ->where('indicators.0.minimum.0.can_replace', true)
                 ->where('indicators.0.minimum.0.templates.0.key', 'notice-sgc')
                 ->where('indicators.0.minimum.0.templates.0.previewable', true));
 
@@ -517,7 +542,7 @@ class FatSubmissionTest extends TestCase
             ->assertOk();
 
         $this->assertIsString($response->json('reply'));
-        $this->assertStringContainsString('Encode remaining primary FIs first', $response->json('reply'));
+        $this->assertStringContainsString('Encode remaining primary FIs, starting with FI1', $response->json('reply'));
     }
 
     public function test_encoder_can_ask_for_a_walkthrough()
@@ -556,6 +581,18 @@ class FatSubmissionTest extends TestCase
 
         $this->actingAs($encoder)
             ->get('/school/templates/notice-sgc')
+            ->assertOk()
+            ->assertHeader('content-disposition');
+    }
+
+    public function test_template_download_allows_a_slash_in_the_label_and_school_name(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        $encoder->update(['school_name' => 'North/Negros College']);
+
+        $this->actingAs($encoder)
+            ->get('/school/templates/concept-note-sgc')
             ->assertOk()
             ->assertHeader('content-disposition');
     }

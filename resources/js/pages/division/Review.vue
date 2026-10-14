@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
+import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -18,12 +19,15 @@ const props = defineProps<{
         title: string;
         kind: string;
         file: string | null;
+        on_drive: boolean;
         status: string;
         reason: string | null;
     }[];
 }>();
 
 const reasons = ref<Record<number, string>>({});
+const fileOpen = ref(false);
+const fileId = ref<number | null>(null);
 const busy = ref<{ id: number | 'complete'; action: 'accept' | 'return' | 'complete' } | null>(null);
 const updated = ref<number | null>(null);
 let updatedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -48,6 +52,15 @@ const send = (url: string, data: Record<string, string>, id: number | 'complete'
 const accept = (id: number) => send(route('division.movs.accept', { mov: id }), {}, id, 'accept');
 const returnMov = (id: number) => send(route('division.movs.return', { mov: id }), { reason: reasons.value[id] || 'Invalid MOV' }, id, 'return');
 const complete = () => send(route('division.review.complete', { assessment: props.assessment_id }), {}, 'complete', 'complete');
+
+const viewFile = (id: number) => {
+    fileId.value = id;
+    fileOpen.value = true;
+};
+
+const closeFile = () => {
+    fileOpen.value = false;
+};
 
 const tone = (status: string) => {
     if (status === 'valid') return 'ok';
@@ -92,7 +105,10 @@ const statusIcon = (status: string) => {
                         <td data-label="Title">{{ mov.title }}</td>
                         <td data-label="Type">{{ mov.kind }}</td>
                         <td data-label="File">
-                            <a v-if="mov.file" :href="route('movs.download', { mov: mov.id })">{{ mov.file }}</a>
+                            <div v-if="mov.file" class="flex flex-col items-start gap-1">
+                                <button class="text-left text-sgc-teal underline" type="button" @click="viewFile(mov.id)">{{ mov.file }}</button>
+                                <span class="badge" :class="mov.on_drive ? 'ok' : 'bad'">{{ mov.on_drive ? 'In Google Drive' : 'Not in Google Drive' }}</span>
+                            </div>
                             <span v-else class="muted">No file</span>
                         </td>
                         <td data-label="Status">
@@ -150,5 +166,6 @@ const statusIcon = (status: string) => {
                 This packet has {{ yes_count }} of 12 primary Yes. Completing records the Division decision. Functional needs 10 of 12 primary Yes, each with every Minimum MOV marked valid. Additional and other-sub-indicator files do not score.
             </p>
         </div>
+        <SgcMovFilePreview :open="fileOpen" :mov-id="fileId" @close="closeFile" />
     </SgcLayout>
 </template>

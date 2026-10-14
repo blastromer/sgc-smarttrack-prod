@@ -35,15 +35,19 @@ export type MovSlotMenuSlot = {
     removal_requested: boolean;
     templates: MovSlotMenuFile[];
     reuse: MovSlotMenuReuse[];
+    drive_url?: string | null;
 };
 
 const props = defineProps<{
     row: MovSlotMenuSlot;
     wide?: boolean;
+    tour?: boolean;
+    align?: 'start' | 'end';
 }>();
 
 const emit = defineEmits<{
     open: [key: string];
+    view: [id: number];
     upload: [code: string, event: Event];
     remove: [id: number];
     requestRemove: [id: number];
@@ -65,7 +69,7 @@ const showFileGroup = computed(
         (props.row.can_remove && Boolean(props.row.id)) ||
         (props.row.can_request_remove && Boolean(props.row.id) && !props.row.removal_requested),
 );
-const uploadLabel = computed(() => (props.row.status === 'returned' ? 'Replace file' : 'Upload'));
+const uploadLabel = computed(() => (props.row.file || props.row.status === 'returned' ? 'Replace file' : 'Upload'));
 
 const menuOpen = ref(false);
 
@@ -84,7 +88,7 @@ const closeThen = (work: () => void) => {
 </script>
 
 <template>
-    <div class="sgc-mov-menu-wrap">
+    <div class="sgc-mov-menu-wrap" :data-tour="tour ? 'open-template' : undefined">
         <input
             v-if="row.can_replace"
             ref="fileInput"
@@ -99,6 +103,7 @@ const closeThen = (work: () => void) => {
                     class="btn inline ghost"
                     :class="wide ? 'min-h-11 w-full justify-center' : 'min-h-10 text-xs'"
                     type="button"
+                    :data-tour="tour ? 'choose-file' : undefined"
                     :aria-label="`Actions for ${row.file || row.code}`"
                 >
                     Actions
@@ -106,13 +111,17 @@ const closeThen = (work: () => void) => {
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-                align="end"
+                :align="align ?? 'end'"
                 :collision-padding="12"
                 class="sgc-mov-menu z-[80] max-h-[min(24rem,70vh)] min-w-56 max-w-[min(20rem,calc(100vw-24px))] overflow-y-auto rounded-xl border border-sgc-line bg-sgc-panel p-1.5 text-sgc-ink shadow-[0_18px_40px_rgba(0,0,0,.4)]"
             >
                 <DropdownMenuGroup v-if="showFileGroup">
-                    <DropdownMenuItem v-if="hasFile && row.id" :as-child="true" :class="itemClass">
-                        <a :href="route('movs.download', { mov: row.id })">View file</a>
+                    <DropdownMenuItem
+                        v-if="hasFile && row.id"
+                        :class="itemClass"
+                        @select="closeThen(() => row.id && emit('view', row.id))"
+                    >
+                        View file
                     </DropdownMenuItem>
                     <DropdownMenuItem v-if="row.can_replace" :class="itemClass" @select="pickFile">
                         {{ uploadLabel }}
@@ -133,12 +142,15 @@ const closeThen = (work: () => void) => {
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
 
-                <template v-if="row.templates.length">
+                <template v-if="row.drive_url || row.templates.length">
                     <DropdownMenuSeparator v-if="showFileGroup" class="bg-sgc-line" />
                     <DropdownMenuLabel class="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-sgc-muted">
                         Templates
                     </DropdownMenuLabel>
                     <DropdownMenuGroup>
+                        <DropdownMenuItem v-if="row.drive_url" :as-child="true" :class="itemClass">
+                            <a :href="row.drive_url" target="_blank" rel="noopener">Open Drive folder</a>
+                        </DropdownMenuItem>
                         <template v-for="file in row.templates" :key="file.key">
                             <DropdownMenuItem v-if="canOpen(file)" :class="itemClass" @select="closeThen(() => emit('open', file.key))">
                                 Open {{ file.label }}

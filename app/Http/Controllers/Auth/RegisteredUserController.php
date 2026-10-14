@@ -20,6 +20,19 @@ class RegisteredUserController extends Controller
     {
         return Inertia::render('auth/Register', [
             'positions' => SchoolDirectory::positionsByRole(),
+            'schools' => User::query()
+                ->where('role', 'school_head')
+                ->where('status', 'active')
+                ->whereNotNull('school_code')
+                ->where('school_code', '!=', '')
+                ->orderBy('school_name')
+                ->get(['school_name', 'school_code'])
+                ->unique('school_code')
+                ->map(fn (User $head) => [
+                    'school_name' => (string) $head->school_name,
+                    'school_code' => (string) $head->school_code,
+                ])
+                ->values(),
         ]);
     }
 
@@ -31,6 +44,26 @@ class RegisteredUserController extends Controller
         ]);
 
         $isHead = $request->input('role') === 'school_head';
+        $head = null;
+
+        if ($request->input('role') === 'school') {
+            $head = User::query()
+                ->where('role', 'school_head')
+                ->where('status', 'active')
+                ->where('school_code', $request->school_code)
+                ->first();
+
+            if (! $head) {
+                throw ValidationException::withMessages([
+                    'school_code' => 'Select a school that Division has already accepted.',
+                ]);
+            }
+
+            $request->merge([
+                'school_name' => $head->school_name,
+                'school_code' => $head->school_code,
+            ]);
+        }
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -55,24 +88,6 @@ class RegisteredUserController extends Controller
             'school_code.unique' => 'This School ID is already registered. Use a unique School ID, or register as Encoder with the School Head\'s School ID.',
             'position.in' => 'Select a position from the list.',
         ]);
-
-        $head = User::query()
-            ->where('role', 'school_head')
-            ->where('status', 'active')
-            ->where('school_code', $request->school_code)
-            ->first();
-
-        if ($request->role === 'school' && ! $head) {
-            throw ValidationException::withMessages([
-                'school_code' => 'No active School Head is registered for this School ID yet. The School Head must register and be accepted by Division first.',
-            ]);
-        }
-
-        if ($request->role === 'school' && strcasecmp($request->school_name, (string) $head->school_name) !== 0) {
-            throw ValidationException::withMessages([
-                'school_name' => 'School name must match the registered school for this School ID: '.$head->school_name.'.',
-            ]);
-        }
 
         $applicant = User::create([
             'name' => $request->name,

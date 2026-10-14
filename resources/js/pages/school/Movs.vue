@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
+import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
 import SgcMovSlotMenu from '@/components/sgc/SgcMovSlotMenu.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
@@ -31,6 +32,7 @@ const props = defineProps<{
         tone?: string;
         templates: { key: string; label: string; ext: string; previewable?: boolean }[];
         reuse: { id: number; code: string; title: string; file: string; source: string }[];
+        drive_url?: string | null;
     }[];
     is_school_head?: boolean;
     can_withdraw?: boolean;
@@ -38,6 +40,8 @@ const props = defineProps<{
 
 const previewOpen = ref(false);
 const previewKey = ref<string | null>(null);
+const fileOpen = ref(false);
+const fileId = ref<number | null>(null);
 
 const openTemplate = (key: string) => {
     previewKey.value = key;
@@ -48,6 +52,17 @@ const openTemplate = (key: string) => {
 
 const closeTemplate = () => {
     previewOpen.value = false;
+};
+
+const viewFile = (id: number) => {
+    fileId.value = id;
+    window.setTimeout(() => {
+        fileOpen.value = true;
+    }, 50);
+};
+
+const closeFile = () => {
+    fileOpen.value = false;
 };
 
 const upload = (code: string, event: Event) => {
@@ -139,6 +154,7 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
                             wide
                             :row="slot"
                             @open="openTemplate"
+                            @view="viewFile"
                             @upload="upload"
                             @remove="removeFile"
                             @request-remove="requestRemove"
@@ -179,6 +195,7 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
                             <SgcMovSlotMenu
                                 :row="slot"
                                 @open="openTemplate"
+                                @view="viewFile"
                                 @upload="upload"
                                 @remove="removeFile"
                                 @request-remove="requestRemove"
@@ -192,5 +209,6 @@ const statusLabel = (slot: { status: string; reason: string | null; removal_requ
             <SgcEmpty v-if="!slots.length" art="movs" message="Encode Yes on an indicator first, then upload its Minimum MOV here." />
         </div>
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
+        <SgcMovFilePreview :open="fileOpen" :mov-id="fileId" @close="closeFile" />
     </SgcLayout>
 </template>

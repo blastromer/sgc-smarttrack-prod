@@ -18,13 +18,13 @@ export const SGC_WALK_STEPS: WalkStep[] = [
         href: '/school/assessment',
         target: '[data-tour="open-template"]',
         title: 'Open the official template',
-        body: 'If the answer is Yes, Open the Word template here to read it, then Download it to fill the blanks on your computer.',
+        body: 'Open Actions, then open the Word template to read it, or download the filled file to complete the blanks.',
     },
     {
         href: '/school/assessment',
         target: '[data-tour="choose-file"]',
         title: 'Attach the Minimum MOV',
-        body: 'Choose file on this slot only — or Reuse copy from a file this school already submitted. Encode Yes first if this button is not here yet.',
+        body: 'Open Actions and choose Upload or Replace file for this slot. Reuse copy is in the same menu.',
     },
     {
         href: '/school/submit',
