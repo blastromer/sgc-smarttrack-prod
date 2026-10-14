@@ -15,6 +15,7 @@ class Mov extends Model
         'kind',
         'original_name',
         'path',
+        'drive_file_id',
         'mime',
         'size',
         'status',
@@ -41,6 +42,6 @@ class Mov extends Model
 
     public function hasFile(): bool
     {
-        return filled($this->path);
+        return filled($this->path) || filled($this->drive_file_id);
     }
 }

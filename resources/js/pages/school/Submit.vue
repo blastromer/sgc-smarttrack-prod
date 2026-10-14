@@ -20,16 +20,32 @@ const props = defineProps<{
     status: string;
     is_school_head?: boolean;
     can_withdraw?: boolean;
+    drive_url?: string | null;
 }>();
 
 const atDivision = () => ['submitted', 'under_review', 'validated'].includes(props.status);
 
 const busy = ref<'qa' | 'send' | 'withdraw' | null>(null);
 
+const openDrive = (url?: string | null) => {
+    if (!url) {
+        return;
+    }
+    window.open(url, '_blank', 'noopener');
+};
+
 const post = (action: 'qa' | 'send' | 'withdraw', url: string) => {
     if (busy.value) return;
     busy.value = action;
-    router.post(url, {}, { preserveScroll: true, onFinish: () => (busy.value = null) });
+    router.post(url, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (action === 'send') {
+                openDrive(props.drive_url);
+            }
+        },
+        onFinish: () => (busy.value = null),
+    });
 };
 
 const certify = () => post('qa', route('school.submit.qa'));
@@ -57,6 +73,7 @@ const withdraw = () => {
                     </li>
                 </ul>
                 <div class="actions" data-tour="submit">
+                    <a v-if="drive_url" class="btn inline ghost" :href="drive_url" target="_blank" rel="noopener">Open Validity Drive folder</a>
                     <Link class="btn inline ghost" href="/school/movs"><SgcIcon :name="returned ? 'Replace' : 'MOV files'" />{{ returned ? 'Replace returned MOV' : 'Open MOV files' }}</Link>
                     <Link class="btn inline ghost" href="/school/assessment"><SgcIcon name="My assessment" />Finish indicators</Link>
                     <button v-if="can_qa" class="btn inline" type="button" :disabled="busy === 'qa'" :aria-busy="busy === 'qa'" @click="certify">

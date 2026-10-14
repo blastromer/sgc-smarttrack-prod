@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DivisionValidationController;
+use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\SchoolAssessmentController;
 use App\Http\Controllers\SchoolRegistrationController;
@@ -60,6 +61,10 @@ Route::middleware(['auth', 'role:school,school_head'])->group(function () {
     Route::get('school/form-data', [SchoolAssessmentController::class, 'formData'])->name('school.form-data');
     Route::post('school/form-data', [SchoolAssessmentController::class, 'saveFormData'])->name('school.form-data.save');
     Route::get('school/templates', [SchoolAssessmentController::class, 'templates'])->name('school.templates');
+    Route::get('auth/google/redirect', [GoogleDriveController::class, 'redirect'])->name('google.drive.redirect');
+    Route::post('auth/google/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google.drive.disconnect');
+    Route::post('school/drive/folders', [GoogleDriveController::class, 'createFolders'])->name('google.drive.folders');
+    Route::get('school/drive/{key}', [GoogleDriveController::class, 'open'])->name('google.drive.open');
     Route::get('school/templates/{key}/preview', [SchoolAssessmentController::class, 'previewTemplate'])->name('school.templates.preview');
     Route::get('school/templates/{key}', [SchoolAssessmentController::class, 'downloadTemplate'])->name('school.templates.download');
     Route::post('school/movs/{mov}/remove', [SchoolAssessmentController::class, 'remove'])->name('school.movs.remove');
@@ -76,11 +81,17 @@ Route::middleware(['auth', 'role:school,school_head'])->group(function () {
 Route::middleware(['auth', 'role:school_head'])->group(function () {
     Route::get('school/encoders', [SchoolRegistrationController::class, 'encoders'])->name('school.encoders');
     Route::post('school/encoders/{user}/accept', [SchoolRegistrationController::class, 'acceptEncoder'])->name('school.encoders.accept');
+    Route::put('school/encoders/{user}', [SchoolRegistrationController::class, 'updateEncoder'])->name('school.encoders.update');
+    Route::put('school/encoders/{user}/password', [SchoolRegistrationController::class, 'updateEncoderPassword'])->name('school.encoders.password');
+    Route::post('school/encoders/{user}/archive', [SchoolRegistrationController::class, 'archiveEncoder'])->name('school.encoders.archive');
+    Route::post('school/encoders/{user}/restore', [SchoolRegistrationController::class, 'restoreEncoder'])->name('school.encoders.restore');
 });
 
 Route::middleware(['auth'])->group(function () {
     Route::post('ai/chat', [SgcAiController::class, 'chat'])->name('ai.chat');
     Route::get('movs/{mov}/download', [SchoolAssessmentController::class, 'download'])->name('movs.download');
+    Route::get('movs/{mov}/preview', [SchoolAssessmentController::class, 'preview'])->name('movs.preview');
+    Route::get('movs/{mov}/inline', [SchoolAssessmentController::class, 'inline'])->name('movs.inline');
     Route::get('account', [AccountController::class, 'edit'])->name('account.edit');
     Route::get('configuration', [AccountController::class, 'configuration'])->name('configuration');
     Route::post('configuration', [AccountController::class, 'updateAppearance'])->name('configuration.update');
@@ -88,6 +99,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('docs', [AccountController::class, 'docs'])->name('docs');
     Route::get('help', [AccountController::class, 'help'])->name('help');
 });
+
+Route::get('auth/google/callback', [GoogleDriveController::class, 'callback'])->name('google.drive.callback');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

@@ -10,6 +10,7 @@ use App\Notifications\MovRemovalRequested;
 use App\Notifications\PacketSubmitted;
 use App\Support\AssessmentEngine;
 use App\Support\DocxHtmlPreview;
+use App\Support\DriveMovFolders;
 use App\Support\EncoderRecommendation;
 use App\Support\FatCatalog;
 use App\Support\FormFill;
@@ -136,15 +137,24 @@ class SchoolAssessmentController extends Controller
         $groups = MovTemplates::library();
         $count = collect($groups)->sum(fn (array $group) => count($group['files']));
 
+        $user = request()->user();
+
         return Inertia::render('school/Templates', [
             'title' => 'MOV templates',
-            'subtitle' => 'Official SGC FAT Word and PowerPoint files. Compose Form data first, then Open or Download filled.',
+            'subtitle' => 'Official SGC FAT Word and PowerPoint files. Compose Form data first, then Open or Download filled. Open Drive folder to copy the matching MOV library.',
             'kpis' => [
                 ['label' => 'Official files', 'value' => (string) $count, 'hint' => 'Download to edit in Word or PowerPoint', 'tone' => null],
                 ['label' => 'Word (.docx)', 'value' => (string) collect($groups)->sum(fn (array $group) => collect($group['files'])->where('ext', 'docx')->count()), 'hint' => 'Open in-app or download', 'tone' => null],
                 ['label' => 'PowerPoint', 'value' => (string) collect($groups)->sum(fn (array $group) => collect($group['files'])->where('ext', 'pptx')->count()), 'hint' => 'Download only', 'tone' => null],
             ],
             'groups' => $groups,
+            'drive' => [
+                'enabled' => DriveMovFolders::enabled(),
+                'connected' => DriveMovFolders::connected($user?->id),
+                'writable' => DriveMovFolders::writable($user?->id),
+                'placement' => $user ? DriveMovFolders::placement($user) : null,
+                'folders' => DriveMovFolders::library(),
+            ],
         ]);
     }
 
@@ -295,6 +305,7 @@ class SchoolAssessmentController extends Controller
                 'removal_requested' => (bool) $mov?->removal_requested_at,
                 'templates' => MovTemplates::forSlot($slot['code']),
                 'reuse' => MovTemplates::reuseOptions($assessment, $slot['code']),
+                'drive_url' => DriveMovFolders::ensureUrlForSlot($slot['code']),
             ];
         })->values();
 
@@ -362,7 +373,7 @@ class SchoolAssessmentController extends Controller
                     : $mov->code.' uploaded. Ask the School Head to certify QA, then submit.')
                 : $mov->code.' uploaded. Encode remaining FIs, or upload their Minimum MOVs to encode Yes.');
 
-        return back()->with('status', $message);
+        return back()->with('status', $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $mov->fresh())));
     }
 
     public function requestRemoval(Mov $mov): RedirectResponse
@@ -391,6 +402,8 @@ class SchoolAssessmentController extends Controller
         abort_unless($user->isSchoolHead() && $assessment->school_code === $user->packetSchoolCode(), 403);
         abort_unless($assessment->canRemoveMov($mov), 403, 'This file cannot be removed. Division already accepted it, or withdraw the packet first.');
 
+        DriveMovFolders::removeDraft($user, $mov);
+
         if ($mov->path) {
             Storage::disk('local')->delete($mov->path);
         }
@@ -398,6 +411,7 @@ class SchoolAssessmentController extends Controller
         $mov->update([
             'original_name' => null,
             'path' => null,
+            'drive_file_id' => null,
             'mime' => null,
             'size' => 0,
             'status' => 'draft',
@@ -433,16 +447,82 @@ class SchoolAssessmentController extends Controller
 
     public function download(Mov $mov): StreamedResponse
     {
-        $user = request()->user();
-        abort_unless(
-            ($user->isSchoolStaff() && $mov->assessment->school_code === $user->packetSchoolCode())
-            || $user->role === 'division'
-            || $user->role === 'super',
-            403
-        );
-        abort_unless($mov->path && Storage::disk('local')->exists($mov->path), 404);
+        $this->abortUnlessCanReadMov($mov);
+        $name = $this->safeDownloadName($mov->original_name ?: $mov->code.'.pdf');
+        if (! $this->divisionReadsDrive($mov) && filled($mov->path) && Storage::disk('local')->exists($mov->path)) {
+            return Storage::disk('local')->download($mov->path, $name);
+        }
 
-        return Storage::disk('local')->download($mov->path, $mov->original_name ?: $mov->code.'.pdf');
+        $bytes = $this->storedBytes($mov);
+        abort_unless(is_string($bytes), 404);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, $name, ['Content-Type' => $mov->mime ?: 'application/octet-stream']);
+    }
+
+    public function preview(Mov $mov): JsonResponse
+    {
+        $this->abortUnlessCanReadMov($mov);
+        $ext = strtolower(pathinfo((string) ($mov->original_name ?: $mov->path), PATHINFO_EXTENSION));
+        $fromDrive = $this->divisionReadsDrive($mov);
+        $payload = [
+            'label' => $mov->original_name ?: $mov->code,
+            'note' => $fromDrive
+                ? 'Opened from the school Google Drive folder.'
+                : ($this->divisionViewer() && blank($mov->drive_file_id)
+                    ? 'This file is still on the server. It is not in Google Drive.'
+                    : 'This is the file attached to this MOV.'),
+            'kind' => 'download',
+            'html' => null,
+            'url' => null,
+        ];
+
+        if ($ext === 'docx') {
+            try {
+                $payload['kind'] = 'docx';
+                $payload['html'] = DocxHtmlPreview::fromPath($this->docxPath($mov));
+            } catch (\Throwable) {
+                $payload['kind'] = 'download';
+                $payload['note'] = 'This Word file could not be opened here. Download it to view the original.';
+            }
+
+            return response()->json($payload);
+        }
+
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+            $payload['kind'] = 'image';
+            $payload['url'] = route('movs.inline', $mov);
+
+            return response()->json($payload);
+        }
+
+        if ($ext === 'pdf') {
+            $payload['kind'] = 'pdf';
+            $payload['url'] = route('movs.inline', $mov);
+
+            return response()->json($payload);
+        }
+
+        $payload['note'] = 'This file type cannot be opened in the browser. Download it to view the original.';
+
+        return response()->json($payload);
+    }
+
+    public function inline(Mov $mov): StreamedResponse
+    {
+        $this->abortUnlessCanReadMov($mov);
+        $name = $this->safeDownloadName($mov->original_name ?: basename((string) ($mov->path ?: $mov->code)));
+        if (! $this->divisionReadsDrive($mov) && filled($mov->path) && Storage::disk('local')->exists($mov->path)) {
+            return Storage::disk('local')->response($mov->path, $name);
+        }
+
+        $bytes = $this->storedBytes($mov);
+        abort_unless(is_string($bytes), 404);
+
+        return response()->streamDownload(function () use ($bytes) {
+            echo $bytes;
+        }, $name, ['Content-Type' => $mov->mime ?: 'application/octet-stream'], 'inline');
     }
 
     public function downloadTemplate(string $key, Request $request): BinaryFileResponse
@@ -454,7 +534,7 @@ class SchoolAssessmentController extends Controller
 
         $ext = strtolower(pathinfo($item['file'], PATHINFO_EXTENSION));
         $blank = $request->boolean('blank');
-        $downloadName = $item['label'].'.'.$ext;
+        $downloadName = $this->safeDownloadName($item['label'].'.'.$ext);
 
         if ($blank || $ext !== 'docx') {
             return response()->download($path, $downloadName);
@@ -463,7 +543,10 @@ class SchoolAssessmentController extends Controller
         $filled = FormFill::docx($request->user(), $path);
         $school = $request->user()->school_name ?: 'School';
 
-        return response()->download($filled, $item['label'].' — '.$school.'.docx')->deleteFileAfterSend(true);
+        return response()->download(
+            $filled,
+            $this->safeDownloadName($item['label'].' — '.$school.'.docx'),
+        )->deleteFileAfterSend(true);
     }
 
     public function previewTemplate(string $key, Request $request): JsonResponse
@@ -499,7 +582,8 @@ class SchoolAssessmentController extends Controller
 
         $source = Mov::query()->with('assessment')->findOrFail($data['source_mov_id']);
         abort_unless($source->assessment?->school_code === $assessment->school_code, 403);
-        abort_unless($source->hasFile() && Storage::disk('local')->exists($source->path), 404);
+        $bytes = DriveMovFolders::contents($source);
+        abort_unless($source->hasFile() && is_string($bytes), 404);
 
         $kinds = MovTemplates::kindsForSlot($target->code);
         abort_unless(array_intersect($kinds, MovTemplates::kindsForSlot($source->code)) !== [], 422, 'That file is not the same MOV type.');
@@ -508,9 +592,9 @@ class SchoolAssessmentController extends Controller
             Storage::disk('local')->delete($target->path);
         }
 
-        $ext = pathinfo((string) $source->path, PATHINFO_EXTENSION) ?: 'bin';
+        $ext = pathinfo((string) ($source->original_name ?: $source->path), PATHINFO_EXTENSION) ?: 'bin';
         $path = 'movs/'.$assessment->id.'/'.$target->code.'-reused-'.uniqid().'.'.$ext;
-        Storage::disk('local')->copy($source->path, $path);
+        Storage::disk('local')->put($path, $bytes);
 
         $target->update([
             'original_name' => $source->original_name,
@@ -525,10 +609,11 @@ class SchoolAssessmentController extends Controller
         $assessment->update(['qa_certified_at' => null]);
 
         $auto = AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $target->fresh());
-
-        return back()->with('status', $auto
+        $message = $auto
             ? $target->code.' reused from '.$source->code.'. '.$auto.' encoded Yes from this Minimum MOV.'
-            : $target->code.' reused from '.$source->code.'. Review it, then continue encoding.');
+            : $target->code.' reused from '.$source->code.'. Review it, then continue encoding.';
+
+        return back()->with('status', $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $target->fresh())));
     }
 
     public function submitPage(): Response
@@ -549,6 +634,7 @@ class SchoolAssessmentController extends Controller
                 'status' => 'none',
                 'is_school_head' => request()->user()->isSchoolHead(),
                 'can_withdraw' => false,
+                'drive_url' => DriveMovFolders::ensureUrlForSlot('Validity'),
             ]);
         }
         $snap = AssessmentEngine::snapshot($assessment);
@@ -561,7 +647,7 @@ class SchoolAssessmentController extends Controller
             ['mark' => $snap['returned_count'] ? '!' : ($snap['missing_count'] ? (string) $snap['missing_count'] : '✓'), 'tone' => ($snap['returned_count'] || $snap['missing_count']) ? ($snap['returned_count'] ? 'bad' : 'warn') : 'ok', 'title' => $snap['returned_count'] ? 'Replace returned or invalid MOVs' : 'Minimum MOVs complete', 'hint' => $snap['returned_count'] ? $snap['returned_count'].' returned — replace the flagged file only' : ($snap['missing_count'] ? $snap['missing_count'].' missing' : 'No returned files')],
             ['mark' => $snap['validity_ready'] ? '✓' : '○', 'tone' => $snap['validity_ready'] ? 'ok' : 'warn', 'title' => 'Finalize Validity Form', 'hint' => $snap['validity_ready'] ? 'Uploaded' : 'Still missing or returned'],
             ['mark' => $snap['qa_done'] ? '✓' : '3', 'tone' => $snap['qa_done'] ? 'ok' : ($snap['can_qa'] ? 'warn' : 'todo'), 'title' => 'School Head QA', 'hint' => $snap['qa_done'] ? 'Certified' : ($requestUser->isSchoolHead() ? 'Certify answers before send' : 'Waiting for School Head')],
-            ['mark' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? '✓' : '4', 'tone' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? 'ok' : 'todo', 'title' => 'Submit to Division', 'hint' => 'Locks the school packet for validation'],
+            ['mark' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? '✓' : '4', 'tone' => in_array($assessment->status, ['submitted', 'under_review', 'validated'], true) ? 'ok' : 'todo', 'title' => 'Submit to Division', 'hint' => 'Locks the packet and stores its files in Google Drive'],
             ['mark' => in_array($assessment->status, ['under_review', 'validated'], true) ? '✓' : '5', 'tone' => $assessment->status === 'validated' ? 'ok' : 'todo', 'title' => 'Division review', 'hint' => 'Composite Team checks MOVs against FAT Volume 2'],
             ['mark' => $assessment->status === 'validated' ? '✓' : '6', 'tone' => $assessment->result === 'functional' ? 'ok' : 'todo', 'title' => 'Result', 'hint' => 'Functional if 10 of 12 FIs are validated'],
         ];
@@ -573,16 +659,18 @@ class SchoolAssessmentController extends Controller
             'checks' => $checks,
             'after' => [
                 '1. The school packet is time-stamped and locked.',
-                '2. It appears in the Division validation queue.',
-                '3. A validator accepts or returns each Minimum MOV.',
-                '4. If returned or invalid: replace only the flagged file, certify School Head QA again, then resubmit.',
-                '5. When 10 of 12 FIs pass, the SGC is marked Functional.',
+                '2. Its files are copied into the school Google Drive folder and removed from this server.',
+                '3. It appears in the Division validation queue.',
+                '4. A validator accepts or returns each Minimum MOV.',
+                '5. If returned or invalid: replace only the flagged file, certify School Head QA again, then resubmit.',
+                '6. When 10 of 12 FIs pass, the SGC is marked Functional.',
             ],
             'packet' => [
                 'School ID '.($user->school_code ?: '—').' · '.($user->school_name ?: 'School'),
                 'Self-score: '.($assessment->result ?: 'not yet').' · '.$snap['yes_count'].' of 12 Yes',
                 'Returned MOVs: '.$snap['returned_count'].' · missing: '.$snap['missing_count'],
                 'Destination: Division SGC Focal',
+                'After submit, files are stored in the school Google Drive folder.',
             ],
             'can_qa' => $snap['can_qa'] && $requestUser->isSchoolHead(),
             'can_submit' => $snap['can_submit'] && $requestUser->isSchoolHead(),
@@ -592,6 +680,7 @@ class SchoolAssessmentController extends Controller
             'status' => $assessment->status,
             'is_school_head' => $requestUser->isSchoolHead(),
             'can_withdraw' => $assessment->canWithdraw() && $requestUser->isSchoolHead(),
+            'drive_url' => DriveMovFolders::ensureUrlForSlot('Validity'),
         ]);
     }
 
@@ -618,6 +707,14 @@ class SchoolAssessmentController extends Controller
         $snap = AssessmentEngine::snapshot($assessment);
         abort_unless($snap['can_submit'], 403, 'Submit stays locked until returned MOVs are replaced and School Head QA is done.');
 
+        $archived = DriveMovFolders::archivePacket($user, $assessment);
+        if ($archived === 'offline') {
+            return back()->with('status', 'Connect Google Drive, then submit again. The packet was not sent. Files stay on this server until Drive can store them.');
+        }
+        if ($archived === 'failed') {
+            return back()->with('status', 'The packet was not sent. Google Drive did not take every file. Reconnect Drive and submit again.');
+        }
+
         $assessment->update([
             'status' => 'submitted',
             'submitted_at' => now(),
@@ -628,7 +725,7 @@ class SchoolAssessmentController extends Controller
             Notification::send($divisionAdmins, new PacketSubmitted($assessment->load('user')));
         }
 
-        return back()->with('status', 'Packet submitted to Division.');
+        return back()->with('status', 'Packet submitted to Division. Files are in the school Google Drive folder.');
     }
 
     public function notifications(): Response
@@ -694,6 +791,7 @@ class SchoolAssessmentController extends Controller
             'can_replace' => $mov ? $assessment->canReplaceMov($mov) : false,
             'templates' => MovTemplates::forSlot($slot['code']),
             'reuse' => MovTemplates::reuseOptions($assessment, $slot['code']),
+            'drive_url' => DriveMovFolders::ensureUrlForSlot($slot['code']),
         ];
     }
 
@@ -733,5 +831,75 @@ class SchoolAssessmentController extends Controller
         }
 
         return round($bytes / 1048576, 1).' MB';
+    }
+
+    private function safeDownloadName(string $name): string
+    {
+        $name = trim(preg_replace('/\s+/', ' ', str_replace(['/', '\\'], ' - ', $name)) ?? $name);
+
+        return $name !== '' ? $name : 'download';
+    }
+
+    private function abortUnlessCanReadMov(Mov $mov): void
+    {
+        $user = request()->user();
+        $onServer = filled($mov->path) && Storage::disk('local')->exists($mov->path);
+        abort_unless($onServer || filled($mov->drive_file_id), 404);
+        abort_unless(
+            ($user->isSchoolStaff() && $mov->assessment->school_code === $user->packetSchoolCode())
+            || $user->role === 'division'
+            || $user->role === 'super',
+            403
+        );
+    }
+
+    private function divisionViewer(): bool
+    {
+        return in_array(request()->user()?->role, ['division', 'super'], true);
+    }
+
+    private function divisionReadsDrive(Mov $mov): bool
+    {
+        return $this->divisionViewer() && filled($mov->drive_file_id);
+    }
+
+    private function storedBytes(Mov $mov): ?string
+    {
+        if ($this->divisionReadsDrive($mov)) {
+            return DriveMovFolders::driveContents($mov);
+        }
+
+        return DriveMovFolders::contents($mov);
+    }
+
+    private function docxPath(Mov $mov): string
+    {
+        if (! $this->divisionReadsDrive($mov) && filled($mov->path) && Storage::disk('local')->exists($mov->path)) {
+            return Storage::disk('local')->path((string) $mov->path);
+        }
+
+        $bytes = $this->storedBytes($mov);
+        if (! is_string($bytes)) {
+            throw new \RuntimeException('Drive file is not available.');
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'sgc');
+        $docx = $tmp.'.docx';
+        rename($tmp, $docx);
+        file_put_contents($docx, $bytes);
+        register_shutdown_function(static function () use ($docx) {
+            @unlink($docx);
+        });
+
+        return $docx;
+    }
+
+    private function driveDraftNote(?string $result): string
+    {
+        return match ($result) {
+            'saved' => ' Saved to the school Google Drive folder for review.',
+            'failed' => ' It was not copied to Google Drive. Reconnect Drive and upload again.',
+            default => '',
+        };
     }
 }

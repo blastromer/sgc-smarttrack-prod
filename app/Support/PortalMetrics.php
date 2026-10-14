@@ -325,7 +325,9 @@ class PortalMetrics
 
         $packets = Assessment::query()
             ->withCount(['indicators as yes_count' => fn ($query) => $query->where('answer', 'yes')])
-            ->withCount(['movs as mov_files' => fn ($query) => $query->whereNotNull('path')])
+            ->withCount(['movs as mov_files' => fn ($query) => $query->where(function ($query) {
+                $query->whereNotNull('path')->orWhereNotNull('drive_file_id');
+            })])
             ->get()
             ->keyBy('school_code');
 
@@ -457,6 +459,7 @@ class PortalMetrics
                     'file' => $mov->original_name,
                     'status' => $mov->status,
                     'has_file' => $mov->hasFile(),
+                    'on_drive' => filled($mov->drive_file_id),
                 ])->values(),
             ] : null,
         ];

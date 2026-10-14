@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
+import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { BadgeCell, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 type Person = {
     name: string;
@@ -43,7 +45,7 @@ defineProps<{
         validated: string;
         can_review: boolean;
         indicators: { code: string; title: string; answer: string | null }[];
-        movs: { id: number; code: string; title: string; file: string | null; status: string; has_file: boolean }[];
+        movs: { id: number; code: string; title: string; file: string | null; status: string; has_file: boolean; on_drive: boolean }[];
     } | null;
 }>();
 
@@ -57,6 +59,14 @@ const movTone = (status: string) => {
     if (status === 'valid') return 'ok';
     if (status === 'returned') return 'bad';
     return 'warn';
+};
+
+const fileOpen = ref(false);
+const fileId = ref<number | null>(null);
+
+const viewFile = (id: number) => {
+    fileId.value = id;
+    fileOpen.value = true;
 };
 </script>
 
@@ -181,7 +191,10 @@ const movTone = (status: string) => {
                                 <td data-label="MOV">{{ mov.code }}</td>
                                 <td data-label="Title">{{ mov.title }}</td>
                                 <td data-label="File">
-                                    <a v-if="mov.has_file" :href="route('movs.download', { mov: mov.id })">{{ mov.file }}</a>
+                                    <div v-if="mov.has_file" class="flex flex-col items-start gap-1">
+                                        <button class="text-left text-sgc-teal underline" type="button" @click="viewFile(mov.id)">{{ mov.file }}</button>
+                                        <span class="badge" :class="mov.on_drive ? 'ok' : 'bad'">{{ mov.on_drive ? 'In Google Drive' : 'Not in Google Drive' }}</span>
+                                    </div>
                                     <span v-else class="muted">No file</span>
                                 </td>
                                 <td data-label="Status"><span class="badge" :class="movTone(mov.status)">{{ mov.status }}</span></td>
@@ -191,5 +204,6 @@ const movTone = (status: string) => {
                 </div>
             </template>
         </div>
+        <SgcMovFilePreview :open="fileOpen" :mov-id="fileId" @close="fileOpen = false" />
     </SgcLayout>
 </template>

@@ -8,16 +8,21 @@ const props = defineProps<{
         school: string[];
         school_head: string[];
     };
+    schools: {
+        school_name: string;
+        school_code: string;
+    }[];
 }>();
 
 const selectedRole = ref<'school' | 'school_head'>('school');
+const selectedSchool = ref(props.schools.length === 1 ? props.schools[0].school_code : '');
 
 const form = useForm({
     name: '',
     email: '',
     role: 'school',
-    school_name: '',
-    school_code: '',
+    school_name: props.schools.length === 1 ? props.schools[0].school_name : '',
+    school_code: props.schools.length === 1 ? props.schools[0].school_code : '',
     position: '',
     password: '',
 });
@@ -33,9 +38,30 @@ const positionPlaceholder = computed(() =>
     isSchoolHead.value ? 'Select School Head position' : 'Select Encoder position',
 );
 
+const fillApprovedSchool = (code: string) => {
+    const school = props.schools.find((item) => item.school_code === code);
+    form.school_name = school?.school_name ?? '';
+    form.school_code = school?.school_code ?? '';
+};
+
+watch(selectedSchool, (code) => {
+    if (selectedRole.value === 'school') {
+        fillApprovedSchool(code);
+    }
+});
+
 watch(selectedRole, (role) => {
     form.role = role;
     form.position = '';
+    if (role === 'school_head') {
+        form.school_name = '';
+        form.school_code = '';
+
+        return;
+    }
+
+    selectedSchool.value = props.schools.length === 1 ? props.schools[0].school_code : '';
+    fillApprovedSchool(selectedSchool.value);
 });
 
 const submit = () => {
@@ -48,7 +74,7 @@ const submit = () => {
     <SgcAuthLayout title="Register">
         <template #hero>
             <h1>Register your school</h1>
-            <p>School Heads register first with a unique school name and School ID, then wait for Division accept. Teachers register as Encoder using that same school name and School ID. The School Head approves those teachers.</p>
+            <p>School Heads register with a unique school name and School ID, then wait for Division to accept. Encoders choose one of those accepted schools. The school name and School ID fill in from that record, and the School Head approves the teacher.</p>
         </template>
 
         <form @submit.prevent="submit">
@@ -77,19 +103,36 @@ const submit = () => {
             <input id="email" v-model="form.email" type="email" required placeholder="juan.delacruz@deped.gov.ph" />
             <p v-if="form.errors.email" class="err" :style="{ display: 'block' }">{{ form.errors.email }}</p>
 
-            <label for="school_name">School name</label>
-            <input id="school_name" v-model="form.school_name" required placeholder="Sample Elementary School" />
-            <p v-if="form.errors.school_name" class="err" :style="{ display: 'block' }">{{ form.errors.school_name }}</p>
+            <template v-if="isSchoolHead">
+                <label for="school_name">School name</label>
+                <input id="school_name" v-model="form.school_name" required placeholder="Sample Elementary School" />
+                <p v-if="form.errors.school_name" class="err" :style="{ display: 'block' }">{{ form.errors.school_name }}</p>
 
-            <label for="school_code">School ID</label>
-            <input id="school_code" v-model="form.school_code" required placeholder="123456" />
-            <p v-if="form.errors.school_code" class="err" :style="{ display: 'block' }">{{ form.errors.school_code }}</p>
+                <label for="school_code">School ID</label>
+                <input id="school_code" v-model="form.school_code" required placeholder="123456" />
+                <p v-if="form.errors.school_code" class="err" :style="{ display: 'block' }">{{ form.errors.school_code }}</p>
+            </template>
+            <template v-else>
+                <label for="approved_school">School</label>
+                <select id="approved_school" v-model="selectedSchool" :required="schools.length > 0">
+                    <option disabled value="">{{ schools.length ? 'Select your school' : 'No accepted schools yet' }}</option>
+                    <option v-for="school in schools" :key="school.school_code" :value="school.school_code">{{ school.school_name }}</option>
+                </select>
+                <p v-if="!schools.length" class="err" :style="{ display: 'block' }">No school has been accepted by Division yet. The School Head must register first.</p>
+                <p v-if="form.errors.school_code" class="err" :style="{ display: 'block' }">{{ form.errors.school_code }}</p>
+
+                <label for="school_name">School name</label>
+                <input id="school_name" :value="form.school_name" readonly placeholder="Shown from the accepted school" />
+
+                <label for="school_code">School ID</label>
+                <input id="school_code" :value="form.school_code" readonly placeholder="Shown from the accepted school" />
+            </template>
 
             <label for="password">Password</label>
             <input id="password" v-model="form.password" type="password" required minlength="8" placeholder="Minimum 8 characters" />
             <p v-if="form.errors.password" class="err" :style="{ display: 'block' }">{{ form.errors.password }}</p>
 
-            <button class="btn" type="submit" :disabled="form.processing" style="margin-top: 16px">Submit registration</button>
+            <button class="btn" type="submit" :disabled="form.processing || (!isSchoolHead && !form.school_code)" style="margin-top: 16px">Submit registration</button>
             <p class="foot">Already registered? <Link href="/login">Sign in</Link></p>
         </form>
     </SgcAuthLayout>

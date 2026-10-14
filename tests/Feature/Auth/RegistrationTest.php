@@ -215,7 +215,31 @@ class RegistrationTest extends TestCase
         ])->assertRedirect('/register')->assertSessionHasErrors('school_name');
     }
 
-    public function test_encoder_must_use_the_registered_school_name()
+    public function test_register_page_lists_only_schools_division_has_accepted(): void
+    {
+        User::factory()->create([
+            'role' => 'school_head',
+            'status' => 'active',
+            'school_name' => 'Rizal Elementary School',
+            'school_code' => '654321',
+        ]);
+        User::factory()->create([
+            'role' => 'school_head',
+            'status' => 'pending',
+            'school_name' => 'Pending School',
+            'school_code' => '999999',
+        ]);
+
+        $this->get('/register')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('auth/Register')
+                ->has('schools', 1)
+                ->where('schools.0.school_name', 'Rizal Elementary School')
+                ->where('schools.0.school_code', '654321'));
+    }
+
+    public function test_encoder_registration_keeps_the_accepted_school_name()
     {
         User::factory()->create([
             'role' => 'school_head',
@@ -224,7 +248,7 @@ class RegistrationTest extends TestCase
             'school_code' => '654321',
         ]);
 
-        $this->from('/register')->post('/register', [
+        $this->post('/register', [
             'name' => 'Ana Reyes',
             'email' => 'teacher@example.com',
             'role' => 'school',
@@ -232,7 +256,14 @@ class RegistrationTest extends TestCase
             'school_code' => '654321',
             'position' => 'Teacher I',
             'password' => 'password',
-        ])->assertRedirect('/register')->assertSessionHasErrors('school_name');
+        ])->assertRedirect(route('register.pending', absolute: false));
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'teacher@example.com',
+            'school_name' => 'Rizal Elementary School',
+            'school_code' => '654321',
+            'status' => 'pending',
+        ]);
     }
 
     public function test_position_must_come_from_the_defined_list()

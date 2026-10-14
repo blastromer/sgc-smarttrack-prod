@@ -217,14 +217,17 @@ class MovTemplates
         }
 
         return Mov::query()
-            ->whereNotNull('path')
+            ->where(function ($query) {
+                $query->whereNotNull('path')->orWhereNotNull('drive_file_id');
+            })
             ->where('id', '!=', $slot?->id)
             ->whereHas('assessment', fn ($query) => $query->where('school_code', $assessment->school_code))
             ->with('assessment.cycle')
             ->latest('id')
             ->get()
             ->filter(function (Mov $mov) use ($kinds) {
-                if (! $mov->hasFile() || ! Storage::disk('local')->exists($mov->path)) {
+                $onServer = filled($mov->path) && Storage::disk('local')->exists($mov->path);
+                if (! $mov->hasFile() || (! $onServer && blank($mov->drive_file_id))) {
                     return false;
                 }
 
