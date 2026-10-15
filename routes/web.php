@@ -12,6 +12,8 @@ use App\Http\Controllers\SuperUserController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
+Route::view('privacy', 'privacy')->name('privacy');
+
 Route::get('/', function () {
     if (! User::query()->where('role', 'super')->exists()) {
         return redirect()->route('setup');
