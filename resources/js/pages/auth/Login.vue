@@ -54,6 +54,7 @@ const submit = () => {
                 <template v-if="needs_setup">No Super Admin yet? <Link href="/setup">Create the first Super Admin</Link></template>
                 <template v-else>No school account yet? <Link href="/register">Register as School Head or Encoder</Link></template>
             </p>
+            <p class="foot"><a href="/privacy">Privacy policy</a></p>
         </form>
     </SgcAuthLayout>
 </template>
