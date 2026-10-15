@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Notifications\MovReturned;
 use App\Notifications\PacketValidated;
 use App\Support\AssessmentEngine;
+use App\Support\DriveMovFolders;
+use App\Support\GoogleDriveClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -90,6 +92,19 @@ class DivisionValidationController extends Controller
                 ]),
             'can_complete' => $assessment->canCompleteReview(),
         ]);
+    }
+
+    public function openDrive(Mov $mov): RedirectResponse
+    {
+        abort_unless(filled($mov->drive_file_id), 404);
+
+        $mov->loadMissing('assessment');
+        $token = DriveMovFolders::refreshTokenForSchool($mov->assessment?->school_code);
+        if ($token !== null) {
+            app(GoogleDriveClient::class)->shareAnyone($token, (string) $mov->drive_file_id);
+        }
+
+        return redirect()->away('https://drive.google.com/file/d/'.rawurlencode((string) $mov->drive_file_id).'/view');
     }
 
     public function acceptMov(Request $request, Mov $mov): RedirectResponse

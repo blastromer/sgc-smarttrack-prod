@@ -148,6 +148,19 @@ class GoogleDriveClient
         return $response->successful() ? $response->body() : null;
     }
 
+    public function shareAnyone(string $refreshToken, string $fileId): void
+    {
+        $token = $this->accessToken($refreshToken);
+        if ($token === null || $fileId === '') {
+            return;
+        }
+
+        Http::withToken($token)->post(
+            'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId).'/permissions?supportsAllDrives=true',
+            ['role' => 'reader', 'type' => 'anyone'],
+        );
+    }
+
     public function deleteFile(string $refreshToken, string $fileId): void
     {
         $token = $this->accessToken($refreshToken);
@@ -170,15 +183,78 @@ class GoogleDriveClient
             return ['id' => null, 'error' => $found['error']];
         }
         if ($found['ids']['one'] ?? null) {
-            return ['id' => $found['ids']['one'], 'error' => null];
+            return ['id' => $found['ids']['one'], 'error' => null, 'created' => false];
         }
 
         $made = $this->createMany($token, ['one' => $parentId], $name);
         if ($made['error']) {
-            return ['id' => null, 'error' => $made['error']];
+            return ['id' => null, 'error' => $made['error'], 'created' => false];
         }
 
-        return ['id' => $made['ids']['one'] ?? null, 'error' => isset($made['ids']['one']) ? null : 'drive'];
+        return [
+            'id' => $made['ids']['one'] ?? null,
+            'error' => isset($made['ids']['one']) ? null : 'drive',
+            'created' => isset($made['ids']['one']),
+        ];
+    }
+
+    /**
+     * Create school folders without holding the browser request open long enough
+     * for Cloudflare to return a 504. Cached folders are counted immediately.
+     *
+     * @return array{created: int, ready: int, pending: int, error: ?string}
+     */
+    public function ensureWithin(string $refreshToken, string $schoolCode, string $year, string $school, int $seconds = 20): array
+    {
+        $token = null;
+        $created = 0;
+        $ready = 0;
+        $pending = 0;
+        $started = microtime(true);
+        $stop = false;
+
+        foreach (DriveMovFolders::catalog() as $folder) {
+            $cacheKey = DriveMovFolders::schoolFolderCacheKey($schoolCode, $year, $school, $folder['id']);
+            $cached = Cache::get($cacheKey);
+            if (is_string($cached) && $cached !== '') {
+                $ready++;
+
+                continue;
+            }
+
+            if ($stop || (($created + $ready) > 0 && (microtime(true) - $started) >= $seconds)) {
+                $stop = true;
+                $pending++;
+
+                continue;
+            }
+
+            if ($token === null) {
+                $token = $this->accessToken($refreshToken);
+                if ($token === null) {
+                    return ['created' => 0, 'ready' => 0, 'pending' => 0, 'error' => 'token'];
+                }
+            }
+
+            $yearId = $this->findOrCreate($token, $folder['id'], $year);
+            if ($yearId['error'] || ! $yearId['id']) {
+                return ['created' => $created, 'ready' => $ready, 'pending' => $pending, 'error' => $yearId['error'] ?? 'drive'];
+            }
+
+            $schoolId = $this->findOrCreate($token, $yearId['id'], $school);
+            if ($schoolId['error'] || ! $schoolId['id']) {
+                return ['created' => $created, 'ready' => $ready, 'pending' => $pending, 'error' => $schoolId['error'] ?? 'drive'];
+            }
+
+            Cache::put($cacheKey, $schoolId['id'], now()->addDays(30));
+            if (! empty($schoolId['created'])) {
+                $created++;
+            } else {
+                $ready++;
+            }
+        }
+
+        return ['created' => $created, 'ready' => $ready, 'pending' => $pending, 'error' => null];
     }
 
     /**

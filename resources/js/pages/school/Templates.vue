@@ -69,8 +69,34 @@ const disconnectDrive = () => {
     router.post(route('google.drive.disconnect'), {}, { preserveScroll: true });
 };
 
+const folderBusy = ref(false);
+
 const createSchoolFolders = () => {
-    router.post(route('google.drive.folders'), {}, { preserveScroll: true });
+    if (folderBusy.value) return;
+    folderBusy.value = true;
+    let steps = 0;
+    const step = () => {
+        steps += 1;
+        if (steps > 80) {
+            folderBusy.value = false;
+            return;
+        }
+        router.post(route('google.drive.folders'), {}, {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props.flash ?? {}) as { drive_more?: boolean };
+                if (flash.drive_more) {
+                    step();
+                    return;
+                }
+                folderBusy.value = false;
+            },
+            onError: () => {
+                folderBusy.value = false;
+            },
+        });
+    };
+    step();
 };
 </script>
 
@@ -88,7 +114,10 @@ const createSchoolFolders = () => {
             <div v-if="drive?.enabled" class="mt-3 flex flex-wrap gap-2">
                 <a v-if="!drive.connected" class="btn inline" :href="route('google.drive.redirect')">Connect Drive</a>
                 <a v-else-if="!drive.writable" class="btn inline" :href="route('google.drive.redirect')">Reconnect Drive</a>
-                <button v-if="drive.writable && drive.placement" class="btn inline" type="button" @click="createSchoolFolders">Create school folders</button>
+                <button v-if="drive.writable && drive.placement" class="btn inline" type="button" :disabled="folderBusy" :aria-busy="folderBusy" @click="createSchoolFolders">
+                    <span v-if="folderBusy" class="sgc-spin" aria-hidden="true" />
+                    {{ folderBusy ? 'Creating school folders…' : 'Create school folders' }}
+                </button>
                 <button v-if="drive.connected" class="btn inline ghost" type="button" @click="disconnectDrive">Disconnect Drive</button>
                 <span class="muted self-center text-xs">{{ driveHint }}</span>
             </div>
@@ -98,7 +127,7 @@ const createSchoolFolders = () => {
             <p class="muted mt-1">
                 Each school gets its own directory inside the MOV folder:
                 <b>{{ drive.placement ? `${drive.placement.year} / ${drive.placement.school}` : 'school year / school name' }}</b>.
-                Opening a folder creates it when it is missing. Create school folders does every MOV folder at once.
+                Opening a folder creates it when it is missing. Create school folders works through the MOV folders in short steps so the page does not time out.
             </p>
             <div class="mt-3 grid gap-2 sgc:grid-cols-2">
                 <a

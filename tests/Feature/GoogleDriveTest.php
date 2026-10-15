@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Assessment;
 use App\Models\Cycle;
 use App\Models\Mov;
 use App\Models\SchoolFormProfile;
@@ -363,10 +364,51 @@ class GoogleDriveTest extends TestCase
             ->assertJsonPath('note', 'Opened from the school Google Drive folder.')
             ->assertJsonPath('kind', 'pdf');
 
+        $this->actingAs($division)
+            ->get('/division/movs/'.$mov->id.'/drive')
+            ->assertRedirect('https://drive.google.com/file/d/drive-copy-1/view');
+
         $inline = $this->actingAs($division)->get('/movs/'.$mov->id.'/inline');
         $inline->assertOk();
         $this->assertStringContainsString('DRIVE-COPY', $inline->streamedContent());
         $this->assertStringNotContainsString('LOCAL-COPY', $inline->streamedContent());
+    }
+
+    public function test_submit_copies_one_batch_at_a_time_when_drive_is_slow(): void
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        $encoder = $this->schoolReadyToCreateFolders();
+        Http::fake(function ($request) {
+            $url = $request->url();
+            if (str_contains($url, 'oauth2.googleapis.com/token')) {
+                return Http::response(['access_token' => 'ya29.test']);
+            }
+            if (str_contains($url, 'upload/drive')) {
+                return Http::response(['id' => 'drive-'.bin2hex(random_bytes(3))]);
+            }
+            if ($request->method() === 'GET') {
+                return Http::response(['files' => [['id' => 'school-folder-id']]]);
+            }
+
+            return Http::response(['id' => 'school-folder-id']);
+        });
+
+        $this->actingAs($encoder)->post('/school/assessment', ['code' => 'FI1', 'answer' => 'yes']);
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'FI1A',
+            'file' => UploadedFile::fake()->create('FI1A.pdf', 20, 'application/pdf'),
+        ]);
+        $this->actingAs($encoder)->post('/school/movs', [
+            'code' => 'Validity',
+            'file' => UploadedFile::fake()->create('Validity.pdf', 20, 'application/pdf'),
+        ]);
+
+        $assessment = Assessment::query()->where('school_code', '654321')->firstOrFail();
+        $this->assertSame('partial', DriveMovFolders::archivePacket($encoder, $assessment, 0));
+        $this->assertSame(1, $assessment->movs()->whereNotNull('path')->count());
+        $this->assertSame('saved', DriveMovFolders::archivePacket($encoder, $assessment->fresh(), 20));
+        $this->assertSame(0, $assessment->movs()->whereNotNull('path')->count());
     }
 
     public function test_submit_stays_on_the_server_until_drive_is_connected(): void

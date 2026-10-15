@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'status' => $request->session()->get('status'),
+                'drive_more' => (bool) $request->session()->get('drive_more'),
             ],
             'sgc' => $user ? [
                 'nav' => SgcSample::nav($user->role),

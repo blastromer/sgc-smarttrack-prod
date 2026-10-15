@@ -41,6 +41,7 @@ Route::middleware(['auth', 'role:division'])->group(function () {
     Route::get('division', [PortalController::class, 'divisionOverview'])->name('division.overview');
     Route::get('division/queue', [DivisionValidationController::class, 'queue'])->name('division.queue');
     Route::get('division/queue/{assessment}', [DivisionValidationController::class, 'show'])->name('division.review');
+    Route::get('division/movs/{mov}/drive', [DivisionValidationController::class, 'openDrive'])->name('division.movs.drive');
     Route::post('division/movs/{mov}/accept', [DivisionValidationController::class, 'acceptMov'])->name('division.movs.accept');
     Route::post('division/movs/{mov}/return', [DivisionValidationController::class, 'returnMov'])->name('division.movs.return');
     Route::post('division/queue/{assessment}/complete', [DivisionValidationController::class, 'complete'])->name('division.review.complete');
