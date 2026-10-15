@@ -37,15 +37,32 @@ const openDrive = (url?: string | null) => {
 const post = (action: 'qa' | 'send' | 'withdraw', url: string) => {
     if (busy.value) return;
     busy.value = action;
-    router.post(url, {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            if (action === 'send') {
-                openDrive(props.drive_url);
-            }
-        },
-        onFinish: () => (busy.value = null),
-    });
+    let steps = 0;
+    const step = () => {
+        steps += 1;
+        if (steps > 80) {
+            busy.value = null;
+            return;
+        }
+        router.post(url, {}, {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                const flash = (page.props.flash ?? {}) as { drive_more?: boolean };
+                if (action === 'send' && flash.drive_more) {
+                    step();
+                    return;
+                }
+                if (action === 'send') {
+                    openDrive(props.drive_url);
+                }
+                busy.value = null;
+            },
+            onError: () => {
+                busy.value = null;
+            },
+        });
+    };
+    step();
 };
 
 const certify = () => post('qa', route('school.submit.qa'));
@@ -91,7 +108,7 @@ const withdraw = () => {
                     >
                         <span v-if="busy === 'send'" class="sgc-spin" aria-hidden="true" />
                         <SgcIcon v-else name="Send" />
-                        {{ status === 'returned' || returned ? 'Resubmit to Division' : 'Submit to Division' }}
+                        {{ busy === 'send' ? 'Sending files to Google Drive…' : (status === 'returned' || returned ? 'Resubmit to Division' : 'Submit to Division') }}
                     </button>
                     <button
                         v-if="is_school_head && (can_withdraw || atDivision())"

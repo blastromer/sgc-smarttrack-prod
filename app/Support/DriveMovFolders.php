@@ -267,6 +267,7 @@ class DriveMovFolders
         }
 
         $mov->update(['drive_file_id' => $uploaded['id']]);
+        $client->shareAnyone($token, $uploaded['id']);
         if (filled($previous) && $previous !== $uploaded['id']) {
             $client->deleteFile($token, (string) $previous);
         }
@@ -343,10 +344,11 @@ class DriveMovFolders
     }
 
     /**
-     * Upload every local MOV in the packet, then delete those server copies.
-     * Returns saved, offline (Drive is not connected), or failed.
+     * Upload local MOVs, then delete those server copies.
+     * Stops after $seconds once one file is done so Cloudflare does not 504.
+     * Returns saved, partial (more files remain), offline, or failed.
      */
-    public static function archivePacket(User $user, Assessment $assessment): string
+    public static function archivePacket(User $user, Assessment $assessment, int $seconds = 20): string
     {
         $local = $assessment->movs()
             ->get()
@@ -360,19 +362,26 @@ class DriveMovFolders
             return 'offline';
         }
 
+        $started = microtime(true);
+        $done = 0;
+
         foreach ($local as $mov) {
+            if ($done > 0 && (microtime(true) - $started) >= $seconds) {
+                return 'partial';
+            }
+
             if (self::publishDraft($user, $mov->fresh()) !== 'saved') {
                 return 'failed';
             }
-        }
 
-        foreach ($local as $mov) {
             $fresh = $mov->fresh();
             if ($fresh === null || blank($fresh->drive_file_id) || blank($fresh->path)) {
                 return 'failed';
             }
+
             Storage::disk('local')->delete($fresh->path);
             $fresh->update(['path' => null]);
+            $done++;
         }
 
         Storage::disk('local')->deleteDirectory('movs/'.$assessment->id);

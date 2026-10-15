@@ -141,7 +141,7 @@ class GoogleDriveController extends Controller
             return back()->with('status', 'Add the school name on Form data first. Folders are created as school year / school name inside each MOV folder.');
         }
 
-        $result = app(GoogleDriveClient::class)->ensureAll(
+        $result = app(GoogleDriveClient::class)->ensureWithin(
             (string) Cache::get(DriveMovFolders::tokenCacheKey($user->id)),
             $user->packetSchoolCode(),
             $placement['year'],
@@ -156,6 +156,15 @@ class GoogleDriveController extends Controller
 
         if ($result['error']) {
             return back()->with('status', 'Google Drive could not create the school folders. Try again.');
+        }
+
+        if ($result['pending'] > 0) {
+            $done = $result['created'] + $result['ready'];
+            $total = $done + $result['pending'];
+
+            return back()
+                ->with('status', "Creating school folders… {$done} of {$total}. Keep this page open.")
+                ->with('drive_more', true);
         }
 
         return back()->with('status', "School folders are ready: {$placement['year']} / {$placement['school']}. Created {$result['created']}, already there {$result['ready']}.");

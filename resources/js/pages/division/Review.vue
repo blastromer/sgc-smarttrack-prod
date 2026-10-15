@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import { router } from '@inertiajs/vue3';
+import { ChevronDown } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 const props = defineProps<{
@@ -53,10 +60,19 @@ const accept = (id: number) => send(route('division.movs.accept', { mov: id }), 
 const returnMov = (id: number) => send(route('division.movs.return', { mov: id }), { reason: reasons.value[id] || 'Invalid MOV' }, id, 'return');
 const complete = () => send(route('division.review.complete', { assessment: props.assessment_id }), {}, 'complete', 'complete');
 
+const menuItemClass =
+    'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] text-sgc-ink focus:bg-sgc-deep focus:text-sgc-ink data-[highlighted]:bg-sgc-deep data-[highlighted]:text-sgc-ink';
+
 const viewFile = (id: number) => {
     fileId.value = id;
     fileOpen.value = true;
 };
+
+const closeThen = (work: () => void) => {
+    window.setTimeout(work, 0);
+};
+
+const acceptLocked = (movStatus: string) => props.status === 'validated' && movStatus === 'valid';
 
 const closeFile = () => {
     fileOpen.value = false;
@@ -96,7 +112,7 @@ const statusIcon = (status: string) => {
                         <th>File</th>
                         <th>Status</th>
                         <th>Return reason</th>
-                        <th></th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -117,32 +133,50 @@ const statusIcon = (status: string) => {
                         <td data-label="Return reason">
                             <input v-model="reasons[mov.id]" placeholder="Why invalid?" />
                         </td>
-                        <td>
-                            <div class="actions mt-0">
-                                <button
-                                    class="btn inline min-h-11"
-                                    type="button"
-                                    :disabled="(status === 'validated' && mov.status === 'valid') || busy?.id === mov.id"
-                                    :class="{ disabled: status === 'validated' && mov.status === 'valid' }"
-                                    :aria-busy="isBusy(mov.id, 'accept')"
-                                    @click="accept(mov.id)"
+                        <td data-label="Action">
+                            <DropdownMenu :modal="false">
+                                <DropdownMenuTrigger as-child>
+                                    <button
+                                        class="btn inline ghost min-h-10 text-xs"
+                                        type="button"
+                                        :disabled="busy?.id === mov.id"
+                                        :aria-busy="busy?.id === mov.id"
+                                        :aria-label="`Actions for ${mov.code}`"
+                                    >
+                                        <span v-if="busy?.id === mov.id" class="sgc-spin" aria-hidden="true" />
+                                        Actions
+                                        <ChevronDown class="size-4 opacity-80" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    :collision-padding="12"
+                                    class="sgc-mov-menu z-[80] min-w-44 rounded-xl border border-sgc-line bg-sgc-panel p-1.5 text-sgc-ink shadow-[0_18px_40px_rgba(0,0,0,.4)]"
                                 >
-                                    <span v-if="isBusy(mov.id, 'accept')" class="sgc-spin" aria-hidden="true" />
-                                    <SgcIcon v-else name="Accept" />
-                                    Accept
-                                </button>
-                                <button
-                                    class="btn inline ghost min-h-11"
-                                    type="button"
-                                    :disabled="busy?.id === mov.id"
-                                    :aria-busy="isBusy(mov.id, 'return')"
-                                    @click="returnMov(mov.id)"
-                                >
-                                    <span v-if="isBusy(mov.id, 'return')" class="sgc-spin" aria-hidden="true" />
-                                    <SgcIcon v-else name="Return" />
-                                    Return
-                                </button>
-                            </div>
+                                    <DropdownMenuItem v-if="mov.on_drive" as-child :class="menuItemClass">
+                                        <a class="!flex w-full items-center gap-2" :href="route('division.movs.drive', { mov: mov.id })" target="_blank" rel="noopener">
+                                            <img class="size-4 shrink-0 object-contain" src="/assets/sgc-smarttrack/icons/google-drive.png" alt="" />
+                                            Open in Drive
+                                        </a>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        :class="menuItemClass"
+                                        :disabled="acceptLocked(mov.status) || busy?.id === mov.id"
+                                        @select="closeThen(() => accept(mov.id))"
+                                    >
+                                        <SgcIcon name="Accept" />
+                                        Accept
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        :class="menuItemClass"
+                                        :disabled="busy?.id === mov.id"
+                                        @select="closeThen(() => returnMov(mov.id))"
+                                    >
+                                        <SgcIcon name="Return" />
+                                        Return
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </td>
                     </tr>
                 </tbody>

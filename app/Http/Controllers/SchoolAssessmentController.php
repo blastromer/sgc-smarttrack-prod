@@ -714,6 +714,13 @@ class SchoolAssessmentController extends Controller
         if ($archived === 'failed') {
             return back()->with('status', 'The packet was not sent. Google Drive did not take every file. Reconnect Drive and submit again.');
         }
+        if ($archived === 'partial') {
+            $left = $assessment->movs()->whereNotNull('path')->count();
+
+            return back()
+                ->with('status', "Sending files to Google Drive… {$left} still to copy. Keep this page open.")
+                ->with('drive_more', true);
+        }
 
         $assessment->update([
             'status' => 'submitted',
