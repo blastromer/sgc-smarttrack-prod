@@ -54,6 +54,13 @@ export interface SharedData {
     } | null;
     flash?: {
         status?: string | null;
+        drive_more?: boolean;
+        drive_work?: {
+            state: 'queued' | 'running' | 'done' | 'failed';
+            message: string;
+            done: number | null;
+            total: number | null;
+        } | null;
     };
     ziggy: {
         location: string;

@@ -6,7 +6,7 @@ import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
 import { Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 type TemplateFile = {
     key: string;
@@ -14,6 +14,13 @@ type TemplateFile = {
     ext: string;
     previewable?: boolean;
     uses: string[];
+};
+
+type DriveWork = {
+    state: 'queued' | 'running' | 'done' | 'failed';
+    message: string;
+    done: number | null;
+    total: number | null;
 };
 
 const props = defineProps<{
@@ -31,6 +38,7 @@ const props = defineProps<{
         writable: boolean;
         placement: { year: string; school: string } | null;
         folders: { key: string; label: string; url: string }[];
+        work?: DriveWork | null;
     };
 }>();
 
@@ -70,6 +78,41 @@ const disconnectDrive = () => {
 };
 
 const folderBusy = ref(false);
+const folderWork = ref<DriveWork | null>(props.drive?.work ?? null);
+
+const folderStep = (step: 'queued' | 'running' | 'done') => {
+    const state = folderWork.value?.state;
+    if (!state) {
+        return '';
+    }
+    if (state === 'failed') {
+        if (step === 'running') {
+            return 'bad';
+        }
+
+        return step === 'queued' ? 'ok' : '';
+    }
+    const order = ['queued', 'running', 'done'];
+    const current = order.indexOf(state);
+    const mine = order.indexOf(step);
+    if (mine < current) {
+        return 'ok';
+    }
+    if (mine === current) {
+        return state === 'done' ? 'ok' : 'warn';
+    }
+
+    return '';
+};
+
+const creatingLabel = computed(() => {
+    const work = folderWork.value;
+    if (work?.done != null && work.total) {
+        return `Creating ${work.done} of ${work.total}`;
+    }
+
+    return 'Creating';
+});
 
 const createSchoolFolders = () => {
     if (folderBusy.value) return;
@@ -77,16 +120,19 @@ const createSchoolFolders = () => {
     let steps = 0;
     const step = () => {
         steps += 1;
-        if (steps > 80) {
+        if (steps > 200) {
             folderBusy.value = false;
             return;
         }
         router.post(route('google.drive.folders'), {}, {
             preserveScroll: true,
             onSuccess: (page) => {
-                const flash = (page.props.flash ?? {}) as { drive_more?: boolean };
+                const flash = (page.props.flash ?? {}) as { drive_more?: boolean; drive_work?: DriveWork | null };
+                if (flash.drive_work) {
+                    folderWork.value = flash.drive_work;
+                }
                 if (flash.drive_more) {
-                    step();
+                    window.setTimeout(step, 3000);
                     return;
                 }
                 folderBusy.value = false;
@@ -98,6 +144,12 @@ const createSchoolFolders = () => {
     };
     step();
 };
+
+onMounted(() => {
+    if (props.drive?.work && ['queued', 'running'].includes(props.drive.work.state)) {
+        createSchoolFolders();
+    }
+});
 </script>
 
 <template>
@@ -119,7 +171,13 @@ const createSchoolFolders = () => {
                     {{ folderBusy ? 'Creating school folders…' : 'Create school folders' }}
                 </button>
                 <button v-if="drive.connected" class="btn inline ghost" type="button" @click="disconnectDrive">Disconnect Drive</button>
-                <span class="muted self-center text-xs">{{ driveHint }}</span>
+                <div v-if="folderWork" class="flex min-w-0 flex-1 flex-wrap items-center gap-2 self-center" role="status" aria-live="polite">
+                    <span class="badge" :class="folderStep('queued')">Queued</span>
+                    <span class="badge" :class="folderStep('running')">{{ creatingLabel }}</span>
+                    <span class="badge" :class="folderStep('done')">Ready</span>
+                    <span class="muted min-w-0 text-xs">{{ folderWork.message }}</span>
+                </div>
+                <span v-else class="muted self-center text-xs">{{ driveHint }}</span>
             </div>
         </div>
         <section v-if="drive?.folders?.length" class="box mb-4">
@@ -127,7 +185,7 @@ const createSchoolFolders = () => {
             <p class="muted mt-1">
                 Each school gets its own directory inside the MOV folder:
                 <b>{{ drive.placement ? `${drive.placement.year} / ${drive.placement.school}` : 'school year / school name' }}</b>.
-                Opening a folder creates it when it is missing. Create school folders works through the MOV folders in short steps so the page does not time out.
+                Opening a folder creates it when it is missing. Create school folders continues in the background, so this page does not have to wait for every folder.
             </p>
             <div class="mt-3 grid gap-2 sgc:grid-cols-2">
                 <a

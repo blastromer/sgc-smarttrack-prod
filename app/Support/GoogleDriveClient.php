@@ -199,8 +199,8 @@ class GoogleDriveClient
     }
 
     /**
-     * Create school folders without holding the browser request open long enough
-     * for Cloudflare to return a 504. Cached folders are counted immediately.
+     * Create school folders for a short slice of time. A queued job calls this
+     * again until every folder exists. Cached folders are counted immediately.
      *
      * @return array{created: int, ready: int, pending: int, error: ?string}
      */

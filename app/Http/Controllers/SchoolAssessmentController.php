@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ArchiveSchoolPacket;
+use App\Jobs\CreateSchoolDriveFolders;
 use App\Models\Assessment;
 use App\Models\Mov;
 use App\Models\SchoolFormProfile;
 use App\Models\User;
 use App\Notifications\MovRemovalRequested;
-use App\Notifications\PacketSubmitted;
 use App\Support\AssessmentEngine;
 use App\Support\DocxHtmlPreview;
 use App\Support\DriveMovFolders;
+use App\Support\DriveWorkStatus;
 use App\Support\EncoderRecommendation;
 use App\Support\FatCatalog;
 use App\Support\FormFill;
@@ -18,7 +20,6 @@ use App\Support\MovTemplates;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -154,6 +155,7 @@ class SchoolAssessmentController extends Controller
                 'writable' => DriveMovFolders::writable($user?->id),
                 'placement' => $user ? DriveMovFolders::placement($user) : null,
                 'folders' => DriveMovFolders::library(),
+                'work' => $user ? DriveWorkStatus::get(CreateSchoolDriveFolders::cacheKey($user->packetSchoolCode())) : null,
             ],
         ]);
     }
@@ -635,6 +637,8 @@ class SchoolAssessmentController extends Controller
                 'is_school_head' => request()->user()->isSchoolHead(),
                 'can_withdraw' => false,
                 'drive_url' => DriveMovFolders::ensureUrlForSlot('Validity'),
+                'drive_work' => null,
+                'review_movs' => [],
             ]);
         }
         $snap = AssessmentEngine::snapshot($assessment);
@@ -681,6 +685,8 @@ class SchoolAssessmentController extends Controller
             'is_school_head' => $requestUser->isSchoolHead(),
             'can_withdraw' => $assessment->canWithdraw() && $requestUser->isSchoolHead(),
             'drive_url' => DriveMovFolders::ensureUrlForSlot('Validity'),
+            'drive_work' => DriveWorkStatus::get(ArchiveSchoolPacket::cacheKey($assessment->id)),
+            'review_movs' => $requestUser->isSchoolHead() ? $this->reviewMovs($assessment) : [],
         ]);
     }
 
@@ -704,35 +710,28 @@ class SchoolAssessmentController extends Controller
         $assessment = AssessmentEngine::forSchool($user);
         abort_unless($assessment, 404);
         abort_unless($user->isSchoolHead(), 403, 'Only the School Head can submit to Division.');
-        $snap = AssessmentEngine::snapshot($assessment);
-        abort_unless($snap['can_submit'], 403, 'Submit stays locked until returned MOVs are replaced and School Head QA is done.');
 
-        $archived = DriveMovFolders::archivePacket($user, $assessment);
-        if ($archived === 'offline') {
-            return back()->with('status', 'Connect Google Drive, then submit again. The packet was not sent. Files stay on this server until Drive can store them.');
-        }
-        if ($archived === 'failed') {
-            return back()->with('status', 'The packet was not sent. Google Drive did not take every file. Reconnect Drive and submit again.');
-        }
-        if ($archived === 'partial') {
-            $left = $assessment->movs()->whereNotNull('path')->count();
-
-            return back()
-                ->with('status', "Sending files to Google Drive… {$left} still to copy. Keep this page open.")
-                ->with('drive_more', true);
+        if (DriveWorkStatus::get(ArchiveSchoolPacket::cacheKey($assessment->id)) === null) {
+            $snap = AssessmentEngine::snapshot($assessment);
+            abort_unless($snap['can_submit'], 403, 'Submit stays locked until returned MOVs are replaced and School Head QA is done.');
         }
 
-        $assessment->update([
-            'status' => 'submitted',
-            'submitted_at' => now(),
-        ]);
+        $work = DriveWorkStatus::claim(
+            ArchiveSchoolPacket::cacheKey($assessment->id),
+            'Waiting for the worker.',
+            fn () => ArchiveSchoolPacket::dispatch($user->id, $assessment->id),
+            'queued',
+        );
 
-        $divisionAdmins = User::query()->where('role', 'division')->where('status', 'active')->get();
-        if ($divisionAdmins->isNotEmpty()) {
-            Notification::send($divisionAdmins, new PacketSubmitted($assessment->load('user')));
-        }
-
-        return back()->with('status', 'Packet submitted to Division. Files are in the school Google Drive folder.');
+        return back()
+            ->with('status', $work['message'])
+            ->with('drive_work', [
+                'state' => $work['state'],
+                'message' => $work['message'],
+                'done' => $work['done'],
+                'total' => $work['total'],
+            ])
+            ->with('drive_more', $work['more']);
     }
 
     public function notifications(): Response
@@ -775,6 +774,26 @@ class SchoolAssessmentController extends Controller
     }
 
     /**
+     * @return list<array{id: int, code: string, title: string, file: ?string}>
+     */
+    private function reviewMovs(Assessment $assessment): array
+    {
+        $assessment->loadMissing('movs');
+
+        return $assessment->movs
+            ->filter(fn (Mov $mov) => $mov->hasFile())
+            ->sortBy(fn (Mov $mov) => $mov->code === 'Validity' ? 'ZZZ-Validity' : $mov->code)
+            ->values()
+            ->map(fn (Mov $mov) => [
+                'id' => $mov->id,
+                'code' => $mov->code,
+                'title' => $mov->title,
+                'file' => $mov->original_name,
+            ])
+            ->all();
+    }
+
+    /**
      * @param  array{code: string, title: string}  $slot
      * @return array<string, mixed>
      */
@@ -790,6 +809,9 @@ class SchoolAssessmentController extends Controller
             'has_file' => (bool) $mov?->hasFile(),
             'file' => $mov?->original_name,
             'size' => $mov && $mov->size ? $this->humanSize((int) $mov->size) : null,
+            'uploaded_at' => $mov && $mov->hasFile() && $mov->updated_at
+                ? $mov->updated_at->timezone(config('app.timezone'))->format('M j, Y h:i A')
+                : null,
             'status' => $mov?->status ?? 'draft',
             'badge' => $review['badge'],
             'tone' => $review['tone'],

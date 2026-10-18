@@ -345,7 +345,8 @@ class DriveMovFolders
 
     /**
      * Upload local MOVs, then delete those server copies.
-     * Stops after $seconds once one file is done so Cloudflare does not 504.
+     * Stops after $seconds once one file is done so one queued attempt stays
+     * inside the worker time limit.
      * Returns saved, partial (more files remain), offline, or failed.
      */
     public static function archivePacket(User $user, Assessment $assessment, int $seconds = 20): string

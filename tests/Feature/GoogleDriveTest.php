@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\CreateSchoolDriveFolders;
 use App\Models\Assessment;
 use App\Models\Cycle;
 use App\Models\Mov;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -195,6 +197,24 @@ class GoogleDriveTest extends TestCase
             ->post('/school/drive/folders')
             ->assertRedirect('/school/templates')
             ->assertSessionHas('status', 'School folders are ready: 2026-2027 / Cadiz Elementary School. Created 0, already there 44.');
+    }
+
+    public function test_create_folders_returns_before_the_worker_runs(): void
+    {
+        $user = $this->schoolReadyToCreateFolders();
+        Queue::fake();
+
+        $this->actingAs($user)
+            ->from('/school/templates')
+            ->post('/school/drive/folders')
+            ->assertRedirect('/school/templates')
+            ->assertSessionHas('drive_more', true)
+            ->assertSessionHas('status', 'Waiting for the worker.')
+            ->assertSessionHas('drive_work.state', 'queued');
+
+        Queue::assertPushed(CreateSchoolDriveFolders::class, function (CreateSchoolDriveFolders $job) use ($user) {
+            return $job->userId === $user->id && $job->schoolCode === '654321';
+        });
     }
 
     public function test_uploading_a_draft_saves_a_copy_in_the_school_drive_folder(): void

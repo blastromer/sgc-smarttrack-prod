@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\CreateSchoolDriveFolders;
 use App\Models\User;
 use App\Support\DriveMovFolders;
+use App\Support\DriveWorkStatus;
 use App\Support\GoogleDriveClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -141,32 +143,21 @@ class GoogleDriveController extends Controller
             return back()->with('status', 'Add the school name on Form data first. Folders are created as school year / school name inside each MOV folder.');
         }
 
-        $result = app(GoogleDriveClient::class)->ensureWithin(
-            (string) Cache::get(DriveMovFolders::tokenCacheKey($user->id)),
-            $user->packetSchoolCode(),
-            $placement['year'],
-            $placement['school'],
+        $work = DriveWorkStatus::claim(
+            CreateSchoolDriveFolders::cacheKey($user->packetSchoolCode()),
+            'Waiting for the worker.',
+            fn () => CreateSchoolDriveFolders::dispatch($user->id, $user->packetSchoolCode()),
+            'queued',
         );
 
-        if ($result['error'] === 'scope') {
-            Cache::forget(DriveMovFolders::scopeCacheKey($user->id));
-
-            return back()->with('status', 'Reconnect Drive so SmartTrack can create school folders.');
-        }
-
-        if ($result['error']) {
-            return back()->with('status', 'Google Drive could not create the school folders. Try again.');
-        }
-
-        if ($result['pending'] > 0) {
-            $done = $result['created'] + $result['ready'];
-            $total = $done + $result['pending'];
-
-            return back()
-                ->with('status', "Creating school folders… {$done} of {$total}. Keep this page open.")
-                ->with('drive_more', true);
-        }
-
-        return back()->with('status', "School folders are ready: {$placement['year']} / {$placement['school']}. Created {$result['created']}, already there {$result['ready']}.");
+        return back()
+            ->with('status', $work['message'])
+            ->with('drive_work', [
+                'state' => $work['state'],
+                'message' => $work['message'],
+                'done' => $work['done'],
+                'total' => $work['total'],
+            ])
+            ->with('drive_more', $work['more']);
     }
 }

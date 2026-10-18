@@ -7,7 +7,8 @@ import SgcMovSlotMenu from '@/components/sgc/SgcMovSlotMenu.vue';
 import SgcTemplatePreview from '@/components/sgc/SgcTemplatePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { Kpi } from '@/types/sgc';
-import { Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
+import { ChevronDown, Download, Eye, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 export type AssessmentSlot = {
@@ -17,6 +18,7 @@ export type AssessmentSlot = {
     has_file: boolean;
     file: string | null;
     size: string | null;
+    uploaded_at?: string | null;
     status: string;
     badge: string;
     tone: string;
@@ -121,131 +123,196 @@ const upload = (code: string, event: Event) => {
     );
 };
 
-const showGroup = (rows: { group: string }[], index: number) => index === 0 || rows[index].group !== rows[index - 1].group;
-
 const minimumAttached = (row: AssessmentRow) => row.minimum.some((slot) => slot.has_file);
 
-const slotNeed = (row: AssessmentRow, slot: AssessmentSlot) => {
-    if (row.answer === 'no') {
-        return 'None if No';
-    }
-    if (slot.has_file) {
-        return 'Uploaded';
-    }
+const query = ref('');
+const filter = ref<'all' | 'complete' | 'returned' | 'not_started'>('all');
+const openCodes = ref<string[]>(props.indicators[0] ? [props.indicators[0].code] : []);
 
-    return 'Need if Yes';
+const isReturned = (row: AssessmentRow) =>
+    row.status.badge.toLowerCase().includes('return') || row.minimum.some((slot) => slot.status === 'returned');
+
+const isNotStarted = (row: AssessmentRow) => row.status.badge === 'Not started' || (row.answer === null && !minimumAttached(row));
+
+const isComplete = (row: AssessmentRow) => row.status.badge === 'Complete';
+
+const matchesQuery = (row: AssessmentRow) => {
+    const needle = query.value.trim().toLowerCase();
+    if (!needle) {
+        return true;
+    }
+    const haystack = [row.code, row.title, row.primary, row.primary_code, ...row.minimum.flatMap((slot) => [slot.code, slot.title, slot.file ?? ''])]
+        .join(' ')
+        .toLowerCase();
+
+    return haystack.includes(needle);
 };
 
-const slotTone = (row: AssessmentRow, slot: AssessmentSlot) => {
-    if (slot.status === 'returned') {
-        return 'text-sgc-coral';
+const counts = computed(() => ({
+    all: props.indicators.length,
+    complete: props.indicators.filter(isComplete).length,
+    returned: props.indicators.filter(isReturned).length,
+    not_started: props.indicators.filter(isNotStarted).length,
+}));
+
+const visible = computed(() =>
+    props.indicators.filter((row) => {
+        if (filter.value === 'complete' && !isComplete(row)) {
+            return false;
+        }
+        if (filter.value === 'returned' && !isReturned(row)) {
+            return false;
+        }
+        if (filter.value === 'not_started' && !isNotStarted(row)) {
+            return false;
+        }
+
+        return matchesQuery(row);
+    }),
+);
+
+const allOpen = computed(() => visible.value.length > 0 && visible.value.every((row) => openCodes.value.includes(row.code)));
+
+const toggleRow = (code: string) => {
+    openCodes.value = openCodes.value.includes(code) ? openCodes.value.filter((item) => item !== code) : [...openCodes.value, code];
+};
+
+const expandAll = () => {
+    openCodes.value = allOpen.value ? [] : visible.value.map((row) => row.code);
+};
+
+const fileCount = (row: AssessmentRow) => row.minimum.filter((slot) => slot.has_file).length;
+
+const fileKind = (name: string | null) => {
+    const ext = name?.split('.').pop()?.toLowerCase() ?? '';
+    if (ext === 'pdf') {
+        return 'pdf';
     }
-    if (slot.has_file) {
-        return 'text-sgc-mint';
-    }
-    if (row.answer === 'no') {
-        return 'text-sgc-muted';
+    if (ext === 'doc' || ext === 'docx') {
+        return 'word';
     }
 
-    return 'text-sgc-gold';
+    return 'file';
 };
 </script>
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
         <KpiGrid v-if="kpis?.length" :items="kpis" />
-        <div class="box">
-            <p class="muted">
-                Upload a filled Minimum MOV to record Yes. Tap No only when the SGC did not do this and no Minimum file is attached yet. Save
-                <Link href="/school/form-data">Form data</Link>
-                once, then download filled templates. Tap No yourself if the SGC did not do this. AI does not decide Yes or No.
-            </p>
-            <p class="mt-2 text-xs">
-                <Link href="/school/movs">All MOV files</Link>
-            </p>
+        <div v-if="indicators.length" class="fi-board">
+            <div class="fi-toolbar">
+                <label class="fi-search">
+                    <Search class="size-4 shrink-0 text-sgc-muted" aria-hidden="true" />
+                    <input v-model="query" type="search" placeholder="Search indicators, titles, or MOV files..." />
+                </label>
+                <div class="fi-filters" role="tablist" aria-label="Indicator status">
+                    <button type="button" :class="{ 'is-on': filter === 'all' }" @click="filter = 'all'">All ({{ counts.all }})</button>
+                    <button type="button" :class="{ 'is-on': filter === 'complete' }" @click="filter = 'complete'">Complete ({{ counts.complete }})</button>
+                    <button type="button" :class="{ 'is-on': filter === 'returned' }" @click="filter = 'returned'">Returned ({{ counts.returned }})</button>
+                    <button type="button" :class="{ 'is-on': filter === 'not_started' }" @click="filter = 'not_started'">Not started ({{ counts.not_started }})</button>
+                </div>
+                <button class="fi-expand" type="button" @click="expandAll">
+                    <ChevronDown class="size-4" :class="{ 'rotate-180': allOpen }" />
+                    {{ allOpen ? 'Collapse all' : 'Expand all' }}
+                </button>
+            </div>
 
-            <nav v-if="indicators.length" class="fi-jumps" aria-label="Indicators">
-                <a
-                    v-for="row in indicators"
+            <div class="assessment-list">
+                <article
+                    v-for="row in visible"
+                    :id="`indicator-${row.code}`"
                     :key="row.code"
-                    class="fi-jump"
-                    :class="row.status.badge === 'Complete' ? 'is-done' : 'is-needed'"
-                    :href="`#indicator-${row.code}`"
-                    :aria-label="row.status.badge === 'Complete' ? `${row.code} is complete` : `${row.code} is needed to complete this indicator`"
+                    class="fi-card"
+                    :class="{ 'is-open': openCodes.includes(row.code) }"
                 >
-                    {{ row.code }}
-                    <SgcIcon v-if="row.status.badge === 'Complete'" name="Complete" />
-                    <span v-else class="fi-jump-need">Needed</span>
-                </a>
-            </nav>
-        </div>
-
-        <div v-if="indicators.length" class="assessment-list">
-            <template v-for="(row, index) in indicators" :key="row.code">
-                <h2 v-if="showGroup(indicators, index)" class="fi-group">{{ row.group }}</h2>
-                <article :id="`indicator-${row.code}`" class="indicator-card">
-                    <header class="indicator-head">
-                        <div class="min-w-0">
-                            <p class="text-xs font-semibold tracking-wide text-sgc-teal">{{ row.code }}</p>
-                            <h3 class="mt-1 text-base font-bold text-sgc-ink">{{ row.title }}</h3>
-                        </div>
-                        <span class="badge shrink-0" :class="row.status.tone">{{ row.status.badge }}</span>
-                    </header>
-
-                    <p class="muted mt-2 text-sm leading-relaxed">
-                        <span class="font-semibold text-sgc-ink">{{ row.primary_code }} (scores).</span>
-                        {{ row.primary }}
-                    </p>
-                    <p class="mt-2 text-sm leading-relaxed text-sgc-ink">{{ row.ai.hint }}</p>
-
-                    <div v-if="!minimumAttached(row)" class="indicator-answer">
-                        <span class="indicator-answer-label">Primary answer</span>
-                        <span class="btn-pair" :data-tour="isTourRow(row) ? 'encode' : undefined">
-                            <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'yes' }" type="button" :disabled="row.locked" @click="encode(row.code, 'yes')">Yes</button>
-                            <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'no' }" type="button" :disabled="row.locked" @click="encode(row.code, 'no')">No</button>
+                    <button class="fi-card-head" type="button" :aria-expanded="openCodes.includes(row.code)" @click="toggleRow(row.code)">
+                        <span class="fi-code">{{ row.code }}</span>
+                        <span class="min-w-0 flex-1 text-left">
+                            <span class="block text-[15px] font-bold text-sgc-ink">{{ row.title }}</span>
+                            <span class="mt-0.5 block text-xs text-sgc-muted">{{ row.minimum.length }} required {{ row.minimum.length === 1 ? 'MOV' : 'MOVs' }} · {{ fileCount(row) }} {{ fileCount(row) === 1 ? 'file uploaded' : 'files uploaded' }}</span>
                         </span>
-                    </div>
+                        <span class="badge shrink-0" :class="row.status.tone">
+                            <SgcIcon v-if="isComplete(row)" name="Complete" />
+                            {{ row.status.badge }}
+                        </span>
+                        <ChevronDown class="size-4 shrink-0 text-sgc-muted transition-transform" :class="{ 'rotate-180': openCodes.includes(row.code) }" />
+                    </button>
 
-                    <div v-if="row.minimum.length" class="indicator-slots">
-                        <p class="slot-section">Minimum MOV</p>
-                        <section v-for="slot in row.minimum" :key="slot.code" class="slot-card">
-                            <div class="slot-top">
-                                <div class="min-w-0">
-                                    <p class="text-xs font-semibold" :class="slotTone(row, slot)">{{ slotNeed(row, slot) }} · {{ slot.code }}</p>
-                                    <p class="mt-1 text-sm font-medium leading-snug text-sgc-ink">{{ slot.title }}</p>
+                    <div v-if="openCodes.includes(row.code)" class="fi-card-body">
+                        <p class="text-sm leading-relaxed text-sgc-ink">
+                            <span class="font-semibold">{{ row.primary_code }} (scores).</span>
+                            {{ row.primary }}
+                        </p>
+                        <p class="mt-2 text-sm leading-relaxed text-sgc-muted">{{ row.ai.hint }}</p>
+
+                        <div v-if="!minimumAttached(row)" class="indicator-answer">
+                            <span class="indicator-answer-label">Primary answer</span>
+                            <span class="btn-pair" :data-tour="isTourRow(row) ? 'encode' : undefined">
+                                <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'yes' }" type="button" :disabled="row.locked" @click="encode(row.code, 'yes')">Yes</button>
+                                <button class="btn inline min-h-11" :class="{ ghost: row.answer !== 'no' }" type="button" :disabled="row.locked" @click="encode(row.code, 'no')">No</button>
+                            </span>
+                        </div>
+
+                        <div v-if="row.minimum.length" class="mt-4">
+                            <p class="fi-slot-label">Minimum MOV</p>
+                            <section
+                                v-for="slot in row.minimum"
+                                :key="slot.code"
+                                class="fi-file"
+                                :class="{ 'is-accepted': slot.tone === 'ok', 'is-returned': slot.status === 'returned' }"
+                            >
+                                <div class="flex items-start gap-3">
+                                    <span class="fi-doc" :class="fileKind(slot.file)" aria-hidden="true">{{ fileKind(slot.file) === 'word' ? 'W' : fileKind(slot.file) === 'pdf' ? 'PDF' : 'FILE' }}</span>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex flex-wrap items-start justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-semibold text-sgc-ink">{{ slot.title }}</p>
+                                                <p v-if="slot.file" class="mt-0.5 truncate text-xs text-sgc-muted">{{ slot.file }}</p>
+                                                <p v-else-if="row.answer === 'no'" class="mt-0.5 text-xs text-sgc-muted">A No answer does not need a Minimum MOV.</p>
+                                                <p v-else class="mt-0.5 text-xs text-sgc-muted">No file yet. Download the filled template, then upload it here.</p>
+                                            </div>
+                                            <span v-if="slot.has_file || slot.status === 'returned'" class="badge shrink-0" :class="slot.tone">{{ slot.badge }}</span>
+                                        </div>
+                                        <p v-if="slot.has_file && (slot.uploaded_at || slot.size)" class="mt-1 text-xs text-sgc-muted">
+                                            <template v-if="slot.uploaded_at">Uploaded: {{ slot.uploaded_at }}</template>
+                                            <template v-if="slot.uploaded_at && slot.size"> · </template>
+                                            <template v-if="slot.size">Size: {{ slot.size }}</template>
+                                        </p>
+                                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                                            <button v-if="slot.id && slot.has_file" class="btn inline ghost min-h-10 text-xs" type="button" @click="viewFile(slot.id)">
+                                                <Eye class="size-4" />
+                                                Preview
+                                            </button>
+                                            <a v-if="slot.id && slot.has_file" class="btn inline ghost min-h-10 text-xs" :href="route('movs.download', { mov: slot.id })">
+                                                <Download class="size-4" />
+                                                Download
+                                            </a>
+                                            <SgcMovSlotMenu
+                                                :row="{ ...slot, can_remove: false, can_request_remove: false }"
+                                                :tour="isTourRow(row) && slot.code === row.minimum[0]?.code"
+                                                label="More actions"
+                                                align="end"
+                                                @open="openTemplate"
+                                                @view="viewFile"
+                                                @upload="upload"
+                                                @reuse="reuse"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <span v-if="slot.has_file || slot.status === 'returned'" class="badge shrink-0" :class="slot.tone">{{ slot.badge }}</span>
-                            </div>
+                            </section>
+                        </div>
 
-                            <p v-if="slot.has_file" class="mt-2 break-all text-sm text-sgc-ink">
-                                {{ slot.file }}<span v-if="slot.size" class="text-sgc-muted"> ({{ slot.size }})</span>
-                            </p>
-                            <p v-else-if="row.answer === 'yes'" class="muted mt-2 text-xs">No file yet. Download the filled template, complete the blanks, then choose the file for this slot only.</p>
-                            <p v-else-if="row.answer === 'no'" class="muted mt-2 text-xs">A No answer does not need a Minimum MOV.</p>
-                            <p v-else class="muted mt-2 text-xs">Download a filled template, complete it, then choose the file — that encodes Yes. Or tap No if the SGC did not do this.</p>
-
-                            <div class="mt-3">
-                                <SgcMovSlotMenu
-                                    :row="{ ...slot, can_remove: false, can_request_remove: false }"
-                                    :tour="isTourRow(row) && slot.code === row.minimum[0]?.code"
-                                    align="start"
-                                    @open="openTemplate"
-                                    @view="viewFile"
-                                    @upload="upload"
-                                    @reuse="reuse"
-                                />
-                            </div>
-                        </section>
+                        <details v-if="row.others.length" class="indicator-more">
+                            <summary>Other sub-indicators (no score)</summary>
+                            <ul>
+                                <li v-for="item in row.others" :key="item">{{ item }}</li>
+                            </ul>
+                        </details>
                     </div>
-
-                    <details v-if="row.others.length" class="indicator-more">
-                        <summary>Other sub-indicators (no score)</summary>
-                        <ul>
-                            <li v-for="item in row.others" :key="item">{{ item }}</li>
-                        </ul>
-                    </details>
                 </article>
-            </template>
+                <p v-if="!visible.length" class="muted px-2 py-6 text-sm">No indicators match this search.</p>
+            </div>
         </div>
         <SgcEmpty v-if="!indicators.length" art="assessment" message="No open cycle." />
         <SgcTemplatePreview :open="previewOpen" :template-key="previewKey" @close="closeTemplate" />
