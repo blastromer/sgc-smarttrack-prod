@@ -43,6 +43,7 @@ const props = defineProps<{
     wide?: boolean;
     tour?: boolean;
     align?: 'start' | 'end';
+    label?: string;
 }>();
 
 const emit = defineEmits<{
@@ -55,6 +56,7 @@ const emit = defineEmits<{
 }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
+const label = computed(() => props.label ?? 'Actions');
 
 const itemClass =
     'cursor-pointer rounded-lg px-2.5 py-2 text-[13px] text-sgc-ink focus:bg-sgc-deep focus:text-sgc-ink data-[highlighted]:bg-sgc-deep data-[highlighted]:text-sgc-ink';
@@ -106,7 +108,7 @@ const closeThen = (work: () => void) => {
                     :data-tour="tour ? 'choose-file' : undefined"
                     :aria-label="`Actions for ${row.file || row.code}`"
                 >
-                    Actions
+                    {{ label }}
                     <ChevronDown class="size-4 opacity-80" />
                 </button>
             </DropdownMenuTrigger>
