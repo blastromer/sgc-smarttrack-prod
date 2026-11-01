@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
+import SgcMaturityMatrix from '@/components/sgc/dashboard/SgcMaturityMatrix.vue';
 import SgcSchoolTable from '@/components/sgc/dashboard/SgcSchoolTable.vue';
 import SgcStatusDonut from '@/components/sgc/dashboard/SgcStatusDonut.vue';
 import { sgcSearchExtras } from '@/lib/sgc-shell';
@@ -99,6 +100,8 @@ onUnmounted(() => {
         <KpiGrid :items="kpis" :columns="5" animate />
 
         <p v-if="loadError" class="flash mb-3" role="alert">{{ loadError }}</p>
+
+        <SgcMaturityMatrix v-if="dashboard.maturity" :levels="dashboard.maturity" />
 
         <div class="dash-row">
             <section class="box dash-card" :class="{ 'is-loading': loading }" aria-labelledby="status-title">

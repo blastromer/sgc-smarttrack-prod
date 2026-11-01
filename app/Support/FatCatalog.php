@@ -315,6 +315,25 @@ class FatCatalog
     /**
      * @return array<int, array{code: string, title: string, indicator_code: string, kind: string, sub_code: string, scored: bool}>
      */
+    /**
+     * @return array{code: string, title: string, indicator_code: string, kind: string, sub_code: string, scored: bool}|null
+     */
+    public static function findSlot(string $code): ?array
+    {
+        foreach (self::indicators() as $indicator) {
+            foreach ([...self::minimumSlots($indicator['code']), ...self::optionalSlots($indicator['code'])] as $slot) {
+                if ($slot['code'] === $code) {
+                    return $slot;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array{code: string, title: string, indicator_code: string, kind: string, sub_code: string, scored: bool}>
+     */
     public static function optionalSlots(string $indicatorCode): array
     {
         $indicator = self::indicator($indicatorCode);

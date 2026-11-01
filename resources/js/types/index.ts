@@ -54,6 +54,7 @@ export interface SharedData {
     } | null;
     flash?: {
         status?: string | null;
+        maturity_greet?: string | null;
         drive_more?: boolean;
         drive_work?: {
             state: 'queued' | 'running' | 'done' | 'failed';

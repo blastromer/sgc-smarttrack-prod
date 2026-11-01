@@ -53,6 +53,7 @@ const emit = defineEmits<{
     remove: [id: number];
     requestRemove: [id: number];
     reuse: [code: string, sourceMovId: number];
+    generate: [code: string, templateKey: string, attach: boolean];
 }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -156,6 +157,13 @@ const closeThen = (work: () => void) => {
                         <template v-for="file in row.templates" :key="file.key">
                             <DropdownMenuItem v-if="canOpen(file)" :class="itemClass" @select="closeThen(() => emit('open', file.key))">
                                 Open {{ file.label }}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                v-if="file.previewable"
+                                :class="itemClass"
+                                @select="closeThen(() => emit('generate', row.code, file.key, row.can_replace))"
+                            >
+                                Generate completed {{ file.label }}
                             </DropdownMenuItem>
                             <DropdownMenuItem :as-child="true" :class="itemClass">
                                 <a :href="route('school.templates.download', { key: file.key })">Download filled {{ file.label }}</a>

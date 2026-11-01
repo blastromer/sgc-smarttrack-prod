@@ -7,6 +7,7 @@ import SgcWalkthrough from '@/components/sgc/SgcWalkthrough.vue';
 import SgcBanner from '@/components/sgc/shell/SgcBanner.vue';
 import SgcInterfacePreviews from '@/components/sgc/shell/SgcInterfacePreviews.vue';
 import SgcUxPanel from '@/components/sgc/shell/SgcUxPanel.vue';
+import { materialIconMarkup } from '@/lib/material-icons';
 import { applySgcAppearance, type SgcAppearance } from '@/lib/sgc-appearance';
 import { setSgcShowcase, sgcSearchExtras, sgcShowcase } from '@/lib/sgc-shell';
 import { useSgcWalkthrough } from '@/composables/useSgcWalkthrough';
@@ -107,6 +108,7 @@ const searchPlaceholder = computed(() =>
 );
 
 const isDark = computed(() => (sgc.value?.appearance?.current?.theme ?? 'day') !== 'day');
+const themeIcon = computed(() => materialIconMarkup(isDark.value ? 'dark_mode' : 'light_mode'));
 const toggleTheme = () => {
     const current = sgc.value?.appearance?.current;
     if (!current) {
@@ -516,8 +518,7 @@ onUnmounted(() => {
                         :title="isDark ? 'Light mode' : 'Dark mode'"
                         @click="toggleTheme"
                     >
-                        <svg v-if="isDark" class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
-                        <svg v-else class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+                        <svg v-if="themeIcon" class="ico material-symbol" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true" v-html="themeIcon" />
                     </button>
                     <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
                     <button
@@ -626,8 +627,8 @@ onUnmounted(() => {
             </div>
             <p v-if="props.chip" class="chip mb-2 mt-1 block sgc:hidden">{{ props.chip }}</p>
             <div v-if="flash" class="flash">{{ flash }}</div>
-            <div v-if="isSchool && sgc?.flow" class="mb-4">
-                <div class="flow hidden sgc:flex">
+            <div v-if="isSchool && sgc?.flow" :class="currentPath === '/school' ? 'mb-2.5' : 'mb-4'">
+                <div class="flow hidden sgc:flex" :class="{ 'is-dash-flow': currentPath === '/school' }">
                     <Link
                         v-for="step in sgc.flow.steps"
                         :key="step.label"
@@ -683,10 +684,13 @@ onUnmounted(() => {
                         </Link>
                     </div>
                 </div>
-                <div class="flow-banner mt-2.5 flex flex-col items-stretch gap-3 sgc:flex-row sgc:items-center sgc:justify-between">
-                    <div class="min-w-0 break-words">
-                        <b>You are here: {{ sgc.flow.banner }}</b>
-                        <p class="muted break-words">{{ sgc.flow.path }}</p>
+                <div class="flow-banner mt-2.5 flex flex-col items-stretch gap-3 sgc:flex-row sgc:items-center sgc:justify-between" :class="{ 'is-next': currentPath === '/school' }">
+                    <div class="flex min-w-0 flex-1 items-start gap-3">
+                        <span v-if="currentPath === '/school'" class="flow-warn" aria-hidden="true">!</span>
+                        <div class="min-w-0 break-words">
+                            <b>{{ currentPath === '/school' ? 'Next action required' : `You are here: ${sgc.flow.banner}` }}</b>
+                            <p class="muted break-words">{{ currentPath === '/school' ? sgc.flow.banner : sgc.flow.path }}</p>
+                        </div>
                     </div>
                     <Link
                         v-if="!hideSubmitButton"

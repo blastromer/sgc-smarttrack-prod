@@ -15,7 +15,7 @@ const features = [
             <img class="sgc-banner-logo" src="/assets/sgc-smarttrack-icon.png" alt="SGC SmartTrack logo" width="56" height="56" decoding="async" />
             <div class="min-w-0">
                 <p class="sgc-banner-title"><span>SGC</span> SmartTrack</p>
-                <p class="sgc-banner-sub">School Governance Council Assessment Tracking System</p>
+                <p class="sgc-banner-sub">AI-Powered School Governance Analytics, Decision Support, and Technical Assistance Management System</p>
             </div>
         </div>
         <div class="sgc-banner-scene" aria-hidden="true">

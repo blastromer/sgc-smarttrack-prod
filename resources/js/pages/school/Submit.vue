@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcPageGuide from '@/components/sgc/SgcPageGuide.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
@@ -174,6 +175,7 @@ const withdraw = () => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
+        <SgcPageGuide />
         <div class="grid grid-cols-1 gap-3 sgc:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)]">
             <div class="box">
                 <b>Ready-to-send checklist</b>

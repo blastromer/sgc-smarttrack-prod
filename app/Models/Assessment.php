@@ -82,7 +82,7 @@ class Assessment extends Model
     public function canReplaceMov(Mov $mov): bool
     {
         if ($this->status === 'validated') {
-            return false;
+            return in_array($mov->status, ['draft', 'uploaded'], true);
         }
 
         if ($this->isLocked()) {

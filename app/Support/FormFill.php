@@ -10,8 +10,10 @@ class FormFill
 {
     /**
      * Copy an official DOCX, stamp packet identity, and fill DepEd letterhead placeholders from Form data.
+     *
+     * @param  array<string, string>  $extras  Placeholder text => replacement, applied after Form data.
      */
-    public static function docx(User $user, string $sourcePath): string
+    public static function docx(User $user, string $sourcePath, array $extras = []): string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'sgcf');
         if ($tmp === false || ! copy($sourcePath, $tmp)) {
@@ -47,6 +49,9 @@ class FormFill
             }
 
             $xml = self::applySubstitutions($xml, $subs, $chairs);
+            if ($extras !== []) {
+                $xml = self::applySubstitutions($xml, self::sortedExtras($extras), []);
+            }
             $zip->addFromString($name, $xml);
         }
 
@@ -188,6 +193,24 @@ class FormFill
         $xml .= self::p('');
 
         return $xml;
+    }
+
+    /**
+     * @param  array<string, string>  $extras
+     * @return array<string, string>
+     */
+    private static function sortedExtras(array $extras): array
+    {
+        $pairs = [];
+        foreach ($extras as $search => $value) {
+            if (is_string($search) && is_string($value) && $search !== '' && trim($value) !== '') {
+                $pairs[$search] = $value;
+            }
+        }
+
+        uksort($pairs, fn (string $a, string $b) => strlen($b) <=> strlen($a));
+
+        return $pairs;
     }
 
     private static function replaceInXml(string $xml, string $search, string $replace, int $limit): string

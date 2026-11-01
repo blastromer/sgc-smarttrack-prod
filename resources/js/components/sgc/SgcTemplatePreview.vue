@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
+import { LoaderCircle } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -12,15 +13,27 @@ const emit = defineEmits<{
 }>();
 
 const loading = ref(false);
+const filling = ref(false);
+const filled = ref(false);
 const label = ref('Official template');
 const html = ref('');
 const note = ref('');
+const fillNote = ref('');
 const previewable = ref(true);
 const error = ref('');
 const ext = ref('docx');
 
+const csrfToken = () => {
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+
+    return match ? decodeURIComponent(match[1]) : '';
+};
+
 const load = async (key: string) => {
     loading.value = true;
+    filling.value = false;
+    filled.value = false;
+    fillNote.value = '';
     error.value = '';
     html.value = '';
     try {
@@ -47,6 +60,39 @@ const load = async (key: string) => {
         error.value = 'Could not open this template. Download it to view the official file.';
     } finally {
         loading.value = false;
+    }
+};
+
+const autofill = async () => {
+    if (!props.templateKey || filling.value || !previewable.value) {
+        return;
+    }
+
+    filling.value = true;
+    fillNote.value = '';
+    try {
+        const response = await fetch(route('school.templates.autofill', { key: props.templateKey }), {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const data = (await response.json()) as { html?: string; note?: string; message?: string };
+        if (!response.ok || !data.html) {
+            fillNote.value = data.message || 'The AI could not fill this form. Try Auto Fill again.';
+            return;
+        }
+        html.value = data.html;
+        note.value = data.note || note.value;
+        filled.value = true;
+    } catch {
+        fillNote.value = 'The AI could not fill this form. Try Auto Fill again.';
+    } finally {
+        filling.value = false;
     }
 };
 
@@ -94,17 +140,32 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
                         <span></span>
                     </div>
                     <p v-else-if="error" class="muted p-4">{{ error }}</p>
-                    <div v-else-if="previewable" class="sgc-docx-paper" v-html="html" />
-                    <div v-else class="rounded-[10px] border border-sgc-line bg-sgc-card p-4">
-                        <p class="text-sm text-sgc-ink">PowerPoint templates cannot be opened in the browser.</p>
-                        <p class="muted mt-2 text-xs">Download the file, fill it on your computer, then upload the completed MOV.</p>
-                    </div>
+                    <template v-else>
+                        <p v-if="filling" class="muted mb-3 flex items-center gap-2 text-sm">
+                            <LoaderCircle class="size-4 shrink-0 animate-spin" />
+                            AI is editing this form…
+                        </p>
+                        <p v-else-if="fillNote" class="muted mb-3 text-sm">{{ fillNote }}</p>
+                        <div v-if="previewable" class="relative">
+                            <div v-if="filling" class="pointer-events-none absolute inset-0 z-[1] flex items-start justify-center pt-6">
+                                <span class="inline-flex items-center gap-2 rounded-full border border-sgc-line bg-sgc-panel px-3 py-1.5 text-xs text-sgc-ink shadow-sm">
+                                    <LoaderCircle class="size-4 shrink-0 animate-spin" />
+                                    Editing
+                                </span>
+                            </div>
+                            <div class="sgc-docx-paper" :class="{ 'opacity-70': filling }" v-html="html" />
+                        </div>
+                        <div v-else class="rounded-[10px] border border-sgc-line bg-sgc-card p-4">
+                            <p class="text-sm text-sgc-ink">PowerPoint templates cannot be opened in the browser.</p>
+                            <p class="muted mt-2 text-xs">Download the file, fill it on your computer, then upload the completed MOV.</p>
+                        </div>
+                    </template>
                 </div>
                 <div class="flex flex-wrap gap-2 border-t border-sgc-line px-[18px] py-3.5">
                     <a
                         v-if="templateKey"
                         class="btn inline min-h-11"
-                        :href="route('school.templates.download', { key: templateKey })"
+                        :href="route('school.templates.download', filled ? { key: templateKey, autofill: 1 } : { key: templateKey })"
                     >
                         Download {{ ext === 'pptx' ? 'PowerPoint' : 'filled Word' }} file
                     </a>
@@ -116,6 +177,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
                         Blank official file
                     </a>
                     <button class="btn inline ghost min-h-11" type="button" @click="emit('close')">Close</button>
+                    <button
+                        v-if="templateKey && previewable"
+                        class="btn inline min-h-11 ml-auto"
+                        :class="{ 'is-filling': filling }"
+                        type="button"
+                        :disabled="filling || loading"
+                        :aria-busy="filling"
+                        @click="autofill"
+                    >
+                        <LoaderCircle v-if="filling" class="size-4 shrink-0 animate-spin" />
+                        <SgcIcon v-else name="AI assistance" />
+                        Ai Auto fill
+                    </button>
                 </div>
             </aside>
         </div>
