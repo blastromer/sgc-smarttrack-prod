@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { materialSymbolMarkup } from '@/lib/material-icons';
 import { assetIconFile, iconMarkup } from '@/lib/sgc-icons';
 import { computed } from 'vue';
 
@@ -6,14 +7,23 @@ const props = defineProps<{
     name: string;
 }>();
 
-const file = computed(() => assetIconFile(props.name));
+const material = computed(() => materialSymbolMarkup(props.name));
+const file = computed(() => (material.value ? null : assetIconFile(props.name)));
 const markup = computed(() => iconMarkup(props.name));
 const mask = computed(() => (file.value ? `url("/assets/sgc-smarttrack/icons/${file.value}.svg")` : undefined));
 </script>
 
 <template>
+    <svg
+        v-if="material"
+        class="ico material-symbol"
+        viewBox="0 -960 960 960"
+        fill="currentColor"
+        aria-hidden="true"
+        v-html="material"
+    />
     <span
-        v-if="file"
+        v-else-if="file"
         class="ico sgc-asset-icon"
         :style="{ '--sgc-icon': mask }"
         aria-hidden="true"

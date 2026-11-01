@@ -122,8 +122,17 @@ export interface DashboardPayload {
         review_id: number | null;
         can_validate: boolean;
         view_href: string | null;
+        maturity_level: number;
     }[];
     hrefs: { indicators: string; activities: string; schools: string; queue: string | null };
+    maturity: {
+        level: number;
+        name: string;
+        title: string;
+        meaning: string;
+        count: number;
+        schools: { name: string; school_code: string; view_href: string | null }[];
+    }[] | null;
 }
 
 export function isBadge(cell: TableCell): cell is BadgeCell {

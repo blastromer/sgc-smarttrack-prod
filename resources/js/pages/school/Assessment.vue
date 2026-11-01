@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcPageGuide from '@/components/sgc/SgcPageGuide.vue';
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
@@ -103,6 +104,14 @@ const reuse = (code: string, sourceMovId: number) => {
     router.post(route('school.movs.reuse'), { code, source_mov_id: sourceMovId }, { preserveScroll: true });
 };
 
+const generate = (code: string, template: string, attach: boolean) => {
+    if (!attach) {
+        window.location.href = route('school.movs.generate.download', { code, template });
+        return;
+    }
+    router.post(route('school.movs.generate'), { code, template }, { preserveScroll: true });
+};
+
 const upload = (code: string, event: Event) => {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -198,6 +207,7 @@ const fileKind = (name: string | null) => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
+        <SgcPageGuide />
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div v-if="indicators.length" class="fi-board">
             <div class="fi-toolbar">
@@ -269,7 +279,7 @@ const fileKind = (name: string | null) => {
                                                 <p class="text-sm font-semibold text-sgc-ink">{{ slot.title }}</p>
                                                 <p v-if="slot.file" class="mt-0.5 truncate text-xs text-sgc-muted">{{ slot.file }}</p>
                                                 <p v-else-if="row.answer === 'no'" class="mt-0.5 text-xs text-sgc-muted">A No answer does not need a Minimum MOV.</p>
-                                                <p v-else class="mt-0.5 text-xs text-sgc-muted">No file yet. Download the filled template, then upload it here.</p>
+                                                <p v-else class="mt-0.5 text-xs text-sgc-muted">No file yet. Use More actions to generate a completed form, or upload your own.</p>
                                             </div>
                                             <span v-if="slot.has_file || slot.status === 'returned'" class="badge shrink-0" :class="slot.tone">{{ slot.badge }}</span>
                                         </div>
@@ -296,6 +306,7 @@ const fileKind = (name: string | null) => {
                                                 @view="viewFile"
                                                 @upload="upload"
                                                 @reuse="reuse"
+                                                @generate="generate"
                                             />
                                         </div>
                                     </div>

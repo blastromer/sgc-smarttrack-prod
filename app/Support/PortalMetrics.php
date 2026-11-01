@@ -106,6 +106,7 @@ class PortalMetrics
                 'review_id' => $role === 'division' && $packet && $packet->canReviewMovs() ? $packet->id : null,
                 'can_validate' => $role === 'division' && $packet && in_array($packet->status, ['submitted', 'under_review'], true),
                 'view_href' => $role === 'division' ? '/division/schools/'.$head->packetSchoolCode() : null,
+                'maturity_level' => SgcMaturity::levelFor($packet),
             ];
         }
 
@@ -160,6 +161,7 @@ class PortalMetrics
             'activities' => self::recentActivities($packets, $heads),
             'schools' => $rows,
             'hrefs' => $hrefs,
+            'maturity' => $role === 'division' ? SgcMaturity::matrix($rows) : null,
         ];
     }
 
@@ -317,50 +319,59 @@ class PortalMetrics
      */
     public static function divisionSchools(): array
     {
-        $stats = self::stats();
+        $cycle = self::openCycle();
         $heads = User::query()
             ->where('role', 'school_head')
             ->orderBy('school_name')
             ->get();
 
         $packets = Assessment::query()
-            ->withCount(['indicators as yes_count' => fn ($query) => $query->where('answer', 'yes')])
+            ->when($cycle, fn ($query) => $query->where('cycle_id', $cycle->id))
+            ->withCount([
+                'indicators as yes_count' => fn ($query) => $query->where('answer', 'yes'),
+                'indicators as encoded_count' => fn ($query) => $query->whereNotNull('answer'),
+            ])
             ->withCount(['movs as mov_files' => fn ($query) => $query->where(function ($query) {
                 $query->whereNotNull('path')->orWhereNotNull('drive_file_id');
             })])
+            ->orderBy('id')
             ->get()
             ->keyBy('school_code');
 
         $schools = $heads->map(function (User $head) use ($packets) {
             $code = $head->packetSchoolCode();
-            $packet = $packets->get($head->school_code) ?? $packets->get($code);
-            $yes = $packet?->yes_count ?? 0;
-            $result = match (true) {
-                $head->status === 'pending' => self::badge('Pending', 'warn'),
-                $packet?->result === 'functional' => self::badge('Functional', 'ok'),
-                $packet?->submitted_at => self::badge('Submitted', 'warn'),
-                $packet => self::badge('In progress', 'warn'),
-                default => self::badge('No data', 'bad'),
-            };
+            $packet = $packets->get($code) ?? $packets->get($head->school_code);
+            $yes = (int) ($packet?->yes_count ?? 0);
+            $encoded = (int) ($packet?->encoded_count ?? 0);
+            $level = SgcMaturity::levelFor($packet);
+            $status = self::submissionBucket($packet, $yes);
 
             return [
                 'code' => $code,
                 'name' => $head->school_name ?: 'Unnamed school',
                 'school_code' => $head->school_code ?: '—',
-                'yes' => $yes.'/12',
+                'maturity_level' => $level,
+                'progress' => (int) round(100 * $encoded / 12),
+                'yes' => $yes.' / 12',
                 'movs' => (string) ($packet?->mov_files ?? 0),
-                'result' => $result,
+                'status' => $head->status === 'pending' && ! $packet ? 'pending' : $status,
+                'review_id' => $packet && $packet->canReviewMovs() ? $packet->id : null,
             ];
         })->values();
 
+        $counts = [0 => 0, 1 => 0, 2 => 0, 3 => 0];
+        foreach ($schools as $school) {
+            $counts[$school['maturity_level']]++;
+        }
+
         return [
             'title' => 'Schools',
-            'subtitle' => 'Open a school to see its team and the current FAT packet.',
-            'kpis' => [
-                self::kpi('Listed', (string) $heads->count()),
-                self::kpi('Functional', (string) $stats['functional']),
-                self::kpi('Not yet', (string) max($heads->count() - $stats['functional'], 0), null, $heads->count() ? 'warn' : null),
-            ],
+            'subtitle' => 'Manage and monitor all schools under the Division of Cadiz City.',
+            'levels' => array_map(
+                fn (array $level) => $level + ['count' => $counts[$level['level']]],
+                SgcMaturity::levels()
+            ),
+            'total' => $schools->count(),
             'schools' => $schools,
             'empty_text' => 'No School Heads have registered yet.',
         ];
@@ -416,6 +427,8 @@ class PortalMetrics
         return [
             'title' => $head->school_name ?: 'School',
             'subtitle' => 'School ID '.($head->school_code ?: '—').' · current cycle packet',
+            'maturity_level' => SgcMaturity::levelFor($assessment),
+            'step_checks' => SgcMaturity::checks($profile, $assessment, $snap),
             'kpis' => [
                 self::kpi('FIs met', $yes.'/12', $encoded.' encoded'),
                 self::kpi('Encoders', (string) $encoders->where('status', 'active')->count(), $encoders->where('status', 'pending')->count().' pending'),
@@ -667,6 +680,20 @@ class PortalMetrics
 
             return $bar;
         }, $bars);
+    }
+
+    private static function submissionBucket(?Assessment $packet, int $yes): string
+    {
+        if (! $packet) {
+            return 'not_started';
+        }
+
+        return match ($packet->status) {
+            'validated' => 'validated',
+            'submitted', 'under_review' => 'for_validation',
+            'returned' => 'returned',
+            default => $yes > 0 ? 'in_progress' : 'not_started',
+        };
     }
 
     private static function openCycle(): ?Cycle

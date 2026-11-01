@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'status' => $request->session()->get('status'),
+                'maturity_greet' => $request->session()->get('maturity_greet'),
                 'drive_more' => (bool) $request->session()->get('drive_more'),
                 'drive_work' => $request->session()->get('drive_work'),
             ],

@@ -2,6 +2,7 @@
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
+import SgcMaturityTrack from '@/components/sgc/SgcMaturityTrack.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { BadgeCell, Kpi } from '@/types/sgc';
 import { Link } from '@inertiajs/vue3';
@@ -18,6 +19,8 @@ defineProps<{
     title: string;
     subtitle: string;
     kpis?: Kpi[];
+    maturity_level?: number;
+    step_checks?: Record<string, { state: 'done' | 'progress' | 'open'; detail: string }>;
     school: {
         name: string;
         school_code: string;
@@ -76,6 +79,11 @@ const viewFile = (id: number) => {
             <Link href="/division/schools">← Schools</Link>
         </p>
         <KpiGrid v-if="kpis?.length" :items="kpis" />
+        <SgcMaturityTrack
+            :level="maturity_level"
+            :step-checks="step_checks"
+            :review-href="packet?.can_review ? route('division.review', { assessment: packet.id }) : null"
+        />
         <div class="box mb-3">
             <b>School data</b>
             <div class="mt-3 grid grid-cols-1 gap-3 sgc:grid-cols-2">

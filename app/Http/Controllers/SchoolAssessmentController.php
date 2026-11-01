@@ -16,11 +16,15 @@ use App\Support\DriveWorkStatus;
 use App\Support\EncoderRecommendation;
 use App\Support\FatCatalog;
 use App\Support\FormFill;
+use App\Support\MovDraft;
+use App\Support\MovDraftUnavailable;
 use App\Support\MovTemplates;
+use App\Support\SgcMaturity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -36,32 +40,6 @@ class SchoolAssessmentController extends Controller
         }
 
         $snap = AssessmentEngine::snapshot($assessment);
-        $indicators = FatCatalog::sortIndicators($assessment->indicators);
-        $bars = $indicators->map(function ($indicator) use ($assessment) {
-            $mins = FatCatalog::minimumSlots($indicator->code);
-            $movs = $assessment->movs->where('indicator_code', $indicator->code);
-            $returned = $movs->contains(fn ($mov) => $mov->status === 'returned');
-            $minReady = collect($mins)->every(function (array $slot) use ($assessment) {
-                $mov = $assessment->movs->firstWhere('code', $slot['code']);
-
-                return $mov && $mov->hasFile();
-            });
-            $state = match (true) {
-                $returned => ['value' => 'R', 'height' => 40, 'tone' => 'bad'],
-                $indicator->answer === 'yes' && $minReady => ['value' => 'Y', 'height' => 100, 'tone' => null],
-                $indicator->answer === 'yes' => ['value' => 'Y', 'height' => 70, 'tone' => 'warn'],
-                $indicator->answer === 'no' => ['value' => 'N', 'height' => 20, 'tone' => 'warn'],
-                default => ['value' => '—', 'height' => 8, 'tone' => 'bad'],
-            };
-
-            return [
-                'label' => $indicator->code,
-                'value' => $state['value'],
-                'height' => $state['height'],
-                'tone' => $state['tone'],
-            ];
-        });
-
         $need = max(0, 10 - $snap['yes_count']);
         $width = (int) round(($snap['encoded'] / 12) * 100);
         $actions = [];
@@ -86,22 +64,19 @@ class SchoolAssessmentController extends Controller
             'kpis' => [
                 ['label' => 'Indicators met', 'value' => $snap['yes_count'].' / 12', 'hint' => 'Need 10 to be functional', 'tone' => $snap['yes_count'] >= 10 ? null : 'warn'],
                 ['label' => 'MOVs uploaded', 'value' => (string) $assessment->movs->filter->hasFile()->count(), 'hint' => 'Minimum + validity', 'tone' => null],
-                ['label' => 'Returned', 'value' => (string) $snap['returned_count'], 'hint' => $snap['returned_count'] ? 'Replace flagged files' : 'None', 'tone' => $snap['returned_count'] ? 'bad' : null],
+                ['label' => 'Returned', 'value' => (string) $snap['returned_count'], 'hint' => $snap['returned_count'] ? 'Needs correction' : 'None', 'tone' => $snap['returned_count'] ? 'bad' : null],
                 ['label' => 'Self-score', 'value' => $assessment->result ? ucfirst(str_replace('_', ' ', $assessment->result)) : 'Not yet', 'hint' => $width.'% encoded', 'tone' => $assessment->result === 'functional' ? null : 'warn'],
             ],
-            'charts' => [
-                [
-                    'title' => 'Indicator status',
-                    'hint' => $snap['yes_count'].' yes · '.$snap['returned_count'].' returned · '.(12 - $snap['encoded']).' not started',
-                    'bars' => $bars,
-                ],
-            ],
+            'next_actions' => $actions ?: ['Open My assessment and encode the 12 functionality indicators.'],
+            'indicators' => $this->dashboardIndicators($assessment),
+            'activities' => $this->dashboardActivities(request()->user(), $assessment),
+            'maturity_level' => SgcMaturity::levelFor($assessment),
+            'step_checks' => $this->maturityChecks($assessment, $snap),
             'progress' => [
                 'width' => $width,
                 'text' => $width.'% encoded · need '.$need.' more Yes FIs for functional (10/12)',
                 'actions' => $actions ?: ['Open Submit to see the rest of the path.'],
             ],
-            'templates' => MovTemplates::featured(),
         ]);
     }
 
@@ -130,7 +105,52 @@ class SchoolAssessmentController extends Controller
         $profile->school_code = $user->packetSchoolCode();
         $profile->save();
 
+        if ($request->boolean('from_maturity')) {
+            $guide = (string) $request->input('guide');
+            $finished = match ($guide) {
+                'operations' => filled($data['meeting_subject'] ?? null)
+                    && filled($data['meeting_datetime'] ?? null)
+                    && filled($data['venue'] ?? null)
+                    && filled($data['meeting_purpose'] ?? null),
+                'structure' => filled($data['co_chair_elected'] ?? null)
+                    && filled($data['co_chair_designated'] ?? null)
+                    && filled($data['secretary_name'] ?? null)
+                    && filled($data['school_head_name'] ?? null),
+                default => true,
+            };
+            if ($finished) {
+                return back()->with('maturity_greet', 'ready');
+            }
+
+            return back()->with('status', 'Fill the remaining fields in this section, then save.');
+        }
+
         return back()->with('status', 'Form data saved. Open or Download filled on Templates to stamp these values into the MOV.');
+    }
+
+    public function suggestMeeting(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->isSchoolStaff(), 403);
+
+        $current = $request->validate([
+            'school_name' => ['nullable', 'string', 'max:255'],
+            'school_year' => ['nullable', 'string', 'max:40'],
+            'meeting_subject' => ['nullable', 'string', 'max:255'],
+            'meeting_datetime' => ['nullable', 'string', 'max:255'],
+            'venue' => ['nullable', 'string', 'max:255'],
+            'meeting_purpose' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        if (! EncoderRecommendation::enabled()) {
+            return response()->json(['message' => 'AI suggestion is not configured on this server.'], 422);
+        }
+
+        $suggestion = EncoderRecommendation::meetingSuggestion($current);
+        if ($suggestion === null || ($suggestion['meeting_subject'] === '' && $suggestion['meeting_purpose'] === '')) {
+            return response()->json(['message' => 'AI suggestion could not be prepared. Try again.'], 422);
+        }
+
+        return response()->json($suggestion);
     }
 
     public function templates(): Response
@@ -279,7 +299,18 @@ class SchoolAssessmentController extends Controller
         AssessmentEngine::ensureRequiredMovs($assessment);
         $assessment->load('movs');
 
-        $slots = AssessmentEngine::visibleSlots($assessment)->map(function (array $slot) use ($assessment) {
+        $definitions = AssessmentEngine::visibleSlots($assessment);
+        $focus = trim((string) request()->query('slot', ''));
+        if ($focus !== '' && ! $definitions->contains(fn (array $slot) => $slot['code'] === $focus)) {
+            $extra = FatCatalog::findSlot($focus);
+            if ($extra) {
+                $definitions->push($extra);
+                $this->ensureSlotRecord($assessment, $extra);
+                $assessment->load('movs');
+            }
+        }
+
+        $slots = $definitions->map(function (array $slot) use ($assessment) {
             $mov = $assessment->movs->firstWhere('code', $slot['code']);
             $review = $this->movReviewBadge($assessment, $mov);
 
@@ -328,6 +359,24 @@ class SchoolAssessmentController extends Controller
         ]);
     }
 
+    /**
+     * @param  array{code: string, title: string, indicator_code: ?string, kind: string}  $slot
+     */
+    private function ensureSlotRecord(Assessment $assessment, array $slot): void
+    {
+        $mov = Mov::query()->firstOrNew([
+            'assessment_id' => $assessment->id,
+            'code' => $slot['code'],
+        ]);
+        $mov->indicator_code = $slot['indicator_code'];
+        $mov->title = $slot['title'];
+        $mov->kind = $slot['kind'];
+        if (! $mov->exists) {
+            $mov->status = 'draft';
+        }
+        $mov->save();
+    }
+
     public function upload(Request $request): RedirectResponse
     {
         $assessment = AssessmentEngine::forSchool($request->user());
@@ -336,6 +385,7 @@ class SchoolAssessmentController extends Controller
         $data = $request->validate([
             'code' => 'required|string',
             'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx',
+            'from_maturity' => ['sometimes', 'boolean'],
         ]);
 
         AssessmentEngine::ensureRequiredMovs($assessment);
@@ -360,22 +410,163 @@ class SchoolAssessmentController extends Controller
             'removal_requested_at' => null,
         ]);
 
-        $assessment->update(['qa_certified_at' => null]);
-        if ($assessment->status === 'returned') {
-            $assessment->update(['status' => 'in_progress']);
+        $validated = $assessment->status === 'validated';
+        if (! $validated) {
+            $assessment->update(['qa_certified_at' => null]);
+            if ($assessment->status === 'returned') {
+                $assessment->update(['status' => 'in_progress']);
+            }
         }
 
-        $auto = AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $mov->fresh());
+        $auto = $validated
+            ? null
+            : AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $mov->fresh());
         $encoded = $assessment->fresh()->indicators()->whereNotNull('answer')->count();
-        $message = $auto
-            ? $mov->code.' uploaded. '.$auto.' encoded Yes from this Minimum MOV. School Head QA still required. Tap No instead if the SGC did not do this.'
-            : ($encoded === 12
-                ? ($request->user()->isSchoolHead()
-                    ? $mov->code.' uploaded. Certify School Head QA before submit.'
-                    : $mov->code.' uploaded. Ask the School Head to certify QA, then submit.')
-                : $mov->code.' uploaded. Encode remaining FIs, or upload their Minimum MOVs to encode Yes.');
+        $message = $validated
+            ? $mov->code.' uploaded. Division validation stays in place.'
+            : ($auto
+                ? $mov->code.' uploaded. '.$auto.' encoded Yes from this Minimum MOV. School Head QA still required. Tap No instead if the SGC did not do this.'
+                : ($encoded === 12
+                    ? ($request->user()->isSchoolHead()
+                        ? $mov->code.' uploaded. Certify School Head QA before submit.'
+                        : $mov->code.' uploaded. Ask the School Head to certify QA, then submit.')
+                    : $mov->code.' uploaded. Encode remaining FIs, or upload their Minimum MOVs to encode Yes.'));
 
-        return back()->with('status', $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $mov->fresh())));
+        return $this->movSavedRedirect($request, $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $mov->fresh())));
+    }
+
+    public function downloadGenerated(Request $request): BinaryFileResponse|RedirectResponse
+    {
+        try {
+            ['item' => $item, 'tmp' => $tmp] = $this->preparedDraft($request);
+        } catch (MovDraftUnavailable $e) {
+            return back()->with('status', $e->getMessage());
+        }
+
+        $name = $item['label'].' — '.($request->user()->school_name ?: 'School').'.docx';
+
+        return response()->download($tmp, $name, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
+    }
+
+    public function generate(Request $request): RedirectResponse
+    {
+        $assessment = AssessmentEngine::forSchool($request->user());
+        abort_unless($assessment, 404);
+
+        $data = $request->validate([
+            'code' => 'required|string',
+            'template' => 'required|string',
+            'from_maturity' => ['sometimes', 'boolean'],
+        ]);
+
+        AssessmentEngine::ensureRequiredMovs($assessment);
+        $mov = $assessment->movs()->where('code', $data['code'])->firstOrFail();
+        abort_unless($assessment->canReplaceMov($mov), 403, 'Only returned or unsubmitted files can be replaced.');
+
+        try {
+            ['item' => $item, 'tmp' => $tmp, 'draft' => $draft] = $this->preparedDraft($request);
+        } catch (MovDraftUnavailable $e) {
+            return back()->with('status', $e->getMessage());
+        }
+        $bytes = file_get_contents($tmp);
+        @unlink($tmp);
+        abort_unless(is_string($bytes) && $bytes !== '', 500, 'Could not build the completed form.');
+
+        if ($mov->path) {
+            Storage::disk('local')->delete($mov->path);
+        }
+
+        $stored = 'movs/'.$assessment->id.'/'.Str::uuid().'.docx';
+        Storage::disk('local')->put($stored, $bytes);
+
+        $mov->update([
+            'original_name' => $item['label'].' — '.($request->user()->school_name ?: 'School').'.docx',
+            'path' => $stored,
+            'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'size' => strlen($bytes),
+            'status' => 'uploaded',
+            'return_reason' => null,
+            'removal_requested_at' => null,
+        ]);
+
+        $validated = $assessment->status === 'validated';
+        if (! $validated) {
+            $assessment->update(['qa_certified_at' => null]);
+            if ($assessment->status === 'returned') {
+                $assessment->update(['status' => 'in_progress']);
+            }
+        }
+
+        $auto = $validated
+            ? null
+            : AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $mov->fresh());
+        $via = $draft['source'] === 'ai' ? 'AI filled the open blanks' : 'Form data';
+        $message = $validated
+            ? $mov->code.' now has a completed '.$item['label'].'. '.$via.'. Division validation stays in place.'
+            : $mov->code.' now has a completed '.$item['label'].'. '.$via.'. Review the draft before School Head QA.';
+        if ($auto) {
+            $message .= ' '.$auto.' encoded Yes from this Minimum MOV. Tap No if the SGC did not do this.';
+        }
+
+        return $this->movSavedRedirect($request, $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $mov->fresh())));
+    }
+
+    /**
+     * @return array{item: array{key: string, file: string, label: string, kind: string}, tmp: string, draft: array{replacements: array<string, string>, source: string}}
+     */
+    private function preparedDraft(Request $request): array
+    {
+        $assessment = AssessmentEngine::forSchool($request->user());
+        abort_unless($assessment, 404);
+
+        $data = $request->validate([
+            'code' => 'required|string',
+            'template' => 'required|string',
+        ]);
+
+        AssessmentEngine::ensureRequiredMovs($assessment);
+        $mov = $assessment->movs()->where('code', $data['code'])->firstOrFail();
+
+        $item = MovTemplates::find($data['template']);
+        $source = $item ? MovTemplates::path($data['template']) : null;
+        $allowed = collect(MovTemplates::forSlot($mov->code))
+            ->contains(fn (array $card) => $card['key'] === $data['template'] && $card['previewable']);
+        abort_unless($item && $source && $allowed, 404);
+
+        $built = $this->aiFilledDocx($request->user(), $item, $source, (string) ($mov->title ?: $mov->code));
+
+        return [
+            'item' => $item,
+            'tmp' => $built['tmp'],
+            'draft' => $built['draft'],
+        ];
+    }
+
+    /**
+     * @param  array{key: string, file: string, label: string, kind: string}  $item
+     * @return array{tmp: string, draft: array{replacements: array<string, string>, source: string}}
+     */
+    private function aiFilledDocx(User $user, array $item, string $source, string $slotTitle, bool $requireAi = false): array
+    {
+        $probe = FormFill::docx($user, $source);
+        $blanks = MovDraft::narrativeBlanks($probe);
+        @unlink($probe);
+
+        if ($requireAi && $blanks !== [] && ! EncoderRecommendation::enabled()) {
+            throw new MovDraftUnavailable('Auto Fill needs the AI connection.');
+        }
+
+        $draft = MovDraft::fill($user, $item['kind'], $item['label'], $slotTitle, $blanks);
+        if ($blanks !== [] && EncoderRecommendation::enabled() && $draft['replacements'] === []) {
+            throw new MovDraftUnavailable('The AI could not fill the blanks in this form. Try again.');
+        }
+
+        return [
+            'tmp' => FormFill::docx($user, $source, $draft['replacements']),
+            'draft' => $draft,
+        ];
     }
 
     public function requestRemoval(Mov $mov): RedirectResponse
@@ -527,7 +718,7 @@ class SchoolAssessmentController extends Controller
         }, $name, ['Content-Type' => $mov->mime ?: 'application/octet-stream'], 'inline');
     }
 
-    public function downloadTemplate(string $key, Request $request): BinaryFileResponse
+    public function downloadTemplate(string $key, Request $request): BinaryFileResponse|RedirectResponse
     {
         abort_unless($request->user()?->isSchoolStaff(), 403);
         $item = MovTemplates::find($key);
@@ -540,6 +731,21 @@ class SchoolAssessmentController extends Controller
 
         if ($blank || $ext !== 'docx') {
             return response()->download($path, $downloadName);
+        }
+
+        if ($request->boolean('autofill')) {
+            try {
+                $built = $this->aiFilledDocx($request->user(), $item, $path, $item['label'], true);
+            } catch (MovDraftUnavailable $e) {
+                return back()->with('status', $e->getMessage());
+            }
+
+            $school = $request->user()->school_name ?: 'School';
+
+            return response()->download(
+                $built['tmp'],
+                $this->safeDownloadName($item['label'].' — '.$school.'.docx'),
+            )->deleteFileAfterSend(true);
         }
 
         $filled = FormFill::docx($request->user(), $path);
@@ -568,6 +774,28 @@ class SchoolAssessmentController extends Controller
         return response()->json($payload);
     }
 
+    public function autofillTemplate(string $key, Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->isSchoolStaff(), 403);
+        $item = MovTemplates::find($key);
+        $path = MovTemplates::path($key);
+        abort_unless($item && $path && str_ends_with(strtolower($item['file']), '.docx'), 404);
+
+        try {
+            $built = $this->aiFilledDocx($request->user(), $item, $path, $item['label'], true);
+        } catch (MovDraftUnavailable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $html = DocxHtmlPreview::fromPath($built['tmp']);
+        @unlink($built['tmp']);
+
+        return response()->json([
+            'html' => $html,
+            'note' => 'AI filled the open blanks in this preview. Review them, then download the filled Word file.',
+        ]);
+    }
+
     public function reuse(Request $request): RedirectResponse
     {
         $assessment = AssessmentEngine::forSchool($request->user());
@@ -576,6 +804,7 @@ class SchoolAssessmentController extends Controller
         $data = $request->validate([
             'code' => ['required', 'string'],
             'source_mov_id' => ['required', 'integer'],
+            'from_maturity' => ['sometimes', 'boolean'],
         ]);
 
         AssessmentEngine::ensureRequiredMovs($assessment);
@@ -608,14 +837,30 @@ class SchoolAssessmentController extends Controller
             'removal_requested_at' => null,
         ]);
 
-        $assessment->update(['qa_certified_at' => null]);
+        $validated = $assessment->status === 'validated';
+        if (! $validated) {
+            $assessment->update(['qa_certified_at' => null]);
+        }
 
-        $auto = AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $target->fresh());
-        $message = $auto
-            ? $target->code.' reused from '.$source->code.'. '.$auto.' encoded Yes from this Minimum MOV.'
-            : $target->code.' reused from '.$source->code.'. Review it, then continue encoding.';
+        $auto = $validated
+            ? null
+            : AssessmentEngine::encodeYesFromMinimumUpload($assessment->fresh(['indicators', 'movs']), $target->fresh());
+        $message = $validated
+            ? $target->code.' reused from '.$source->code.'. Division validation stays in place.'
+            : ($auto
+                ? $target->code.' reused from '.$source->code.'. '.$auto.' encoded Yes from this Minimum MOV.'
+                : $target->code.' reused from '.$source->code.'. Review it, then continue encoding.');
 
-        return back()->with('status', $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $target->fresh())));
+        return $this->movSavedRedirect($request, $message.$this->driveDraftNote(DriveMovFolders::publishDraft($request->user(), $target->fresh())));
+    }
+
+    private function movSavedRedirect(Request $request, string $message): RedirectResponse
+    {
+        if ($request->boolean('from_maturity')) {
+            return back()->with('maturity_greet', 'ready');
+        }
+
+        return back()->with('status', $message);
     }
 
     public function submitPage(): Response
@@ -759,6 +1004,87 @@ class SchoolAssessmentController extends Controller
     }
 
     /**
+     * @return list<array{code: string, title: string, status: string, badge: string, movs: int, score: string}>
+     */
+    private function dashboardIndicators(Assessment $assessment): array
+    {
+        return FatCatalog::sortIndicators($assessment->indicators)->map(function ($indicator) use ($assessment) {
+            $movs = $assessment->movs->where('indicator_code', $indicator->code);
+            $returned = $movs->contains(fn (Mov $mov) => $mov->status === 'returned');
+            $validated = $indicator->answer === 'yes' && $movs->contains(fn (Mov $mov) => $mov->status === 'valid');
+            $started = $indicator->answer !== null || $movs->contains(fn (Mov $mov) => $mov->hasFile());
+            $status = match (true) {
+                $returned => 'returned',
+                $validated => 'validated',
+                $started => 'progress',
+                default => 'not_started',
+            };
+
+            return [
+                'code' => $indicator->code,
+                'title' => $indicator->title,
+                'status' => $status,
+                'badge' => match ($status) {
+                    'returned' => 'Returned',
+                    'validated' => 'Validated',
+                    'progress' => 'In progress',
+                    default => 'Not started',
+                },
+                'movs' => $movs->filter(fn (Mov $mov) => $mov->hasFile())->count(),
+                'score' => match ($indicator->answer) {
+                    'yes' => 'Yes',
+                    'no' => 'No',
+                    default => 'No score yet',
+                },
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * @return list<array{title: string, detail: string, at: string}>
+     */
+    private function dashboardActivities(User $user, Assessment $assessment): array
+    {
+        $notices = $user->notifications()->latest()->limit(4)->get();
+        if ($notices->isNotEmpty()) {
+            return $notices->map(fn ($notification) => [
+                'title' => (string) ($notification->data['title'] ?? 'Notice'),
+                'detail' => (string) ($notification->data['detail'] ?? ''),
+                'at' => $notification->created_at?->diffForHumans() ?? '',
+            ])->all();
+        }
+
+        $items = [[
+            'title' => 'Assessment created',
+            'detail' => $assessment->cycle?->name ?: 'SGC FAT cycle',
+            'at' => $assessment->created_at?->diffForHumans() ?? '',
+        ]];
+
+        $profile = SchoolFormProfile::forSchool($user);
+        if ($profile->exists) {
+            $items[] = [
+                'title' => 'School information updated',
+                'detail' => $user->school_name ?: 'Form data',
+                'at' => $profile->updated_at?->diffForHumans() ?? '',
+            ];
+        }
+
+        $items[] = $assessment->indicators->whereNotNull('answer')->isEmpty()
+            ? [
+                'title' => 'Assessment started',
+                'detail' => 'Encoding stage',
+                'at' => 'Start encoding your indicators.',
+            ]
+            : [
+                'title' => 'Encoding started',
+                'detail' => 'Functionality indicators',
+                'at' => $assessment->updated_at?->diffForHumans() ?? '',
+            ];
+
+        return $items;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function emptyDashboard(): array
@@ -767,9 +1093,12 @@ class SchoolAssessmentController extends Controller
             'title' => 'School dashboard',
             'subtitle' => 'No open SGC FAT cycle yet',
             'kpis' => [],
-            'charts' => [],
+            'next_actions' => ['Wait for Super Admin to open a cycle.'],
+            'indicators' => [],
+            'activities' => [],
+            'maturity_level' => SgcMaturity::levelFor(null),
+            'step_checks' => $this->maturityChecks(null, null),
             'progress' => ['width' => 0, 'text' => 'Wait for Super Admin to open a cycle.', 'actions' => []],
-            'templates' => MovTemplates::featured(),
         ];
     }
 
@@ -867,6 +1196,15 @@ class SchoolAssessmentController extends Controller
         $name = trim(preg_replace('/\s+/', ' ', str_replace(['/', '\\'], ' - ', $name)) ?? $name);
 
         return $name !== '' ? $name : 'download';
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $snap
+     * @return array<string, array{state: string, detail: string}>
+     */
+    private function maturityChecks(?Assessment $assessment, ?array $snap): array
+    {
+        return SgcMaturity::checks(SchoolFormProfile::forSchool(request()->user()), $assessment, $snap);
     }
 
     private function abortUnlessCanReadMov(Mov $mov): void

@@ -31,6 +31,26 @@ class FatSubmissionTest extends TestCase
             if (str_contains($url, 'upload/drive')) {
                 return Http::response(['id' => 'drive-'.bin2hex(random_bytes(4))]);
             }
+            if (str_contains($url, 'api.openai.com')) {
+                return Http::response([
+                    'choices' => [[
+                        'message' => [
+                            'content' => json_encode([
+                                'replacements' => [
+                                    '[Insert brief description of the purpose of the meeting]' => 'Discuss the first regular meeting of the School Governance Council.',
+                                    '[INSERT VENUE/MODE]' => 'School conference room',
+                                    '[INSERT SUBJECT]' => 'First regular SGC meeting',
+                                    '[INSERT DATE]' => 'October 26, 2026, 9:00 AM',
+                                    'Agenda #1' => 'Call to order and quorum',
+                                    'Agenda #2' => 'Reading of the previous minutes',
+                                    'Agenda #3' => 'School improvement matters',
+                                    'Agendan #4' => 'Other matters and adjournment',
+                                ],
+                            ]),
+                        ],
+                    ]],
+                ]);
+            }
             if ($request->method() === 'GET') {
                 return Http::response(['files' => [['id' => 'folder-found']]]);
             }
@@ -732,6 +752,28 @@ class FatSubmissionTest extends TestCase
         $this->assertStringNotContainsString('<script', strtolower($html));
     }
 
+    public function test_auto_fill_updates_the_open_notice_preview(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => 'test-key']);
+
+        $html = $this->actingAs($encoder)
+            ->postJson('/school/templates/notice-sgc/autofill')
+            ->assertOk()
+            ->json('html');
+
+        $this->assertIsString($html);
+        $this->assertStringContainsString('Discuss the first regular meeting of the School Governance Council.', $html);
+        $this->assertStringNotContainsString('[Insert brief description of the purpose of the meeting]', $html);
+        $sent = collect(Http::recorded())->contains(function (array $pair) {
+            return str_contains($pair[0]->url(), 'api.openai.com')
+                && str_contains($pair[0]->body(), 'San Guillermo Elementary School');
+        });
+        $this->assertTrue($sent);
+        $this->assertStringNotContainsString('<script', strtolower($html));
+    }
+
     public function test_pptx_template_preview_stays_download_only()
     {
         $this->openCycle();
@@ -775,5 +817,74 @@ class FatSubmissionTest extends TestCase
         $this->assertTrue($copied->hasFile());
         $this->assertSame('minutes-spt.pdf', $copied->original_name);
         $this->assertNotSame($source->path, $copied->path);
+    }
+
+    public function test_encoder_generates_a_completed_mov_form(): void
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => null]);
+
+        $this->actingAs($encoder)->post('/school/assessment', [
+            'code' => 'FI1',
+            'answer' => 'yes',
+        ])->assertRedirect();
+
+        $this->actingAs($encoder)->post('/school/movs/generate', [
+            'code' => 'FI1A',
+            'template' => 'membership-cert-sgc',
+        ])->assertNotFound();
+
+        $this->actingAs($encoder)->post('/school/movs/generate', [
+            'code' => 'FI1A',
+            'template' => 'notice-sgc',
+        ])->assertRedirect();
+
+        $mov = Assessment::query()->where('school_code', '654321')->firstOrFail()
+            ->movs()->where('code', 'FI1A')->firstOrFail();
+
+        $this->assertSame('uploaded', $mov->status);
+        $this->assertStringContainsString('SGC Notice of Meeting', (string) $mov->original_name);
+        $this->assertTrue(Storage::disk('local')->exists((string) $mov->path));
+
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('local')->path((string) $mov->path)) === true);
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        $this->assertIsString($xml);
+        $this->assertStringNotContainsString('Recommended contents', $xml);
+    }
+
+    public function test_generate_puts_ai_wording_into_the_notice_blanks(): void
+    {
+        Storage::fake('local');
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => 'test-key']);
+
+        $this->actingAs($encoder)->post('/school/assessment', [
+            'code' => 'FI1',
+            'answer' => 'yes',
+        ])->assertRedirect();
+
+        $response = $this->actingAs($encoder)->post('/school/movs/generate', [
+            'code' => 'FI1A',
+            'template' => 'notice-sgc',
+        ]);
+        $response->assertRedirect();
+
+        $mov = Assessment::query()->where('school_code', '654321')->firstOrFail()
+            ->movs()->where('code', 'FI1A')->firstOrFail();
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('local')->path((string) $mov->path)) === true);
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        $this->assertIsString($xml);
+        $this->assertStringContainsString('Discuss the first regular meeting of the School Governance Council.', $xml);
+        $this->assertStringContainsString('Call to order and quorum', $xml);
+        $this->assertStringNotContainsString('[Insert brief description of the purpose of the meeting]', $xml);
+        $this->assertStringNotContainsString('Agenda #1', $xml);
     }
 }

@@ -311,6 +311,77 @@ class EncoderRecommendation
         return filled(config('services.openai.key'));
     }
 
+    /**
+     * Suggested Notice of Meeting wording. Does not save the form and does not encode Yes or No.
+     *
+     * @param  array<string, string|null>  $current
+     * @return array{meeting_subject: string, meeting_datetime: string, venue: string, meeting_purpose: string}|null
+     */
+    public static function meetingSuggestion(array $current): ?array
+    {
+        if (! self::enabled()) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(25)
+                ->connectTimeout(8)
+                ->withToken((string) config('services.openai.key'))
+                ->acceptJson()
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                    'max_completion_tokens' => 400,
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'You suggest the next DepEd School Governance Council Notice of Meeting for one school. Use the school name, school year, date, and venue when they are present. Subject is one short line. Purpose is two or three sentences about a regular council meeting, such as roles, the SIP or AIP, or school programs. If date or venue is already written, repeat it exactly. If a field is blank, write a realistic recommendation. Do not invent personal names, signatures, phone numbers, or email addresses. Do not encode Yes or No. Do not say the SGC is Functional. Return JSON {"meeting_subject":"","meeting_datetime":"","venue":"","meeting_purpose":""}.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => json_encode([
+                                'school_name' => $current['school_name'] ?? '',
+                                'school_year' => $current['school_year'] ?? '',
+                                'meeting_subject' => $current['meeting_subject'] ?? '',
+                                'meeting_datetime' => $current['meeting_datetime'] ?? '',
+                                'venue' => $current['venue'] ?? '',
+                                'meeting_purpose' => $current['meeting_purpose'] ?? '',
+                            ], JSON_UNESCAPED_UNICODE),
+                        ],
+                    ],
+                    'response_format' => ['type' => 'json_object'],
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('Meeting suggestion failed.', ['status' => $response->status()]);
+
+                return null;
+            }
+
+            $decoded = json_decode((string) data_get($response->json(), 'choices.0.message.content'), true);
+            if (! is_array($decoded)) {
+                return null;
+            }
+
+            return [
+                'meeting_subject' => self::clip($decoded['meeting_subject'] ?? '', 255),
+                'meeting_datetime' => self::clip($decoded['meeting_datetime'] ?? '', 255),
+                'venue' => self::clip($decoded['venue'] ?? '', 255),
+                'meeting_purpose' => self::clip($decoded['meeting_purpose'] ?? '', 2000),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Meeting suggestion failed.', ['message' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    private static function clip(mixed $value, int $limit): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $value)) ?? '');
+
+        return mb_strlen($text) > $limit ? rtrim(mb_substr($text, 0, $limit - 1)).'…' : $text;
+    }
+
     private static function wantsWalkthrough(string $message): bool
     {
         return (bool) preg_match('/walk\s*(you\s*)?through|walkthrough|walktrough/i', $message);

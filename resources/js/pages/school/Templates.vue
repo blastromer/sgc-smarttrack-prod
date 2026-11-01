@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SgcPageGuide from '@/components/sgc/SgcPageGuide.vue';
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcEmpty from '@/components/sgc/SgcEmpty.vue';
 import SgcTemplateLinks from '@/components/sgc/SgcTemplateLinks.vue';
@@ -154,6 +155,7 @@ onMounted(() => {
 
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
+        <SgcPageGuide />
         <KpiGrid v-if="kpis?.length" :items="kpis" />
         <div class="box mb-4">
             <p class="muted">
@@ -212,6 +214,7 @@ onMounted(() => {
                 <div class="mt-3 space-y-3">
                     <article
                         v-for="file in group.files"
+                        :id="`template-${file.key}`"
                         :key="file.key"
                         class="flex flex-col gap-2 rounded-[10px] border border-sgc-line bg-sgc-bg/40 p-3 sgc:flex-row sgc:items-center sgc:justify-between"
                     >
