@@ -142,13 +142,15 @@ export const roleGuides: RoleGuide[] = [
     {
         id: 'division',
         label: 'Division Admin',
-        summary: 'Accepts School Heads, validates MOV files, and records Functional or Not Yet Functional for SDO Cadiz City.',
+        summary: 'Accepts School Heads, validates MOV files, records Functional or Not Yet Functional, and uses AI-supported TA recommendations for continuous school governance improvement.',
         who: 'SDO Cadiz City SGC focal or validator. Created by Super Admin. Does not register on the public Register page.',
         canDo: [
             'Accept pending School Head registrations.',
             'See schools that belong to this division.',
             'Review submitted packets, download MOVs, Accept or Return a file with a reason.',
             'Complete review so the school result is posted.',
+            'Use Technical assistance for AI-supported TA priority schools, then open each school dossier for full recommendations.',
+            'Generate a School Governance Improvement Plan for a school and schedule coaching that notifies the School Head.',
         ],
         cannotDo: [
             'Create Super Admin or another Division Admin.',
@@ -156,9 +158,10 @@ export const roleGuides: RoleGuide[] = [
             'Encode a school packet or certify School Head QA.',
         ],
         screens: [
-            { name: 'Overview', href: '/division', purpose: 'Live submission and validation counts.', snapshot: shot('division-overview') },
+            { name: 'Overview', href: '/division', purpose: 'Live submission counts plus a TA preview.', snapshot: shot('division-overview') },
             { name: 'Validation queue', href: '/division/queue', purpose: 'Packets waiting for MOV review.', snapshot: shot('division-queue') },
-            { name: 'Schools', href: '/division/schools', purpose: 'Accepted schools and packet status.', snapshot: shot('division-schools') },
+            { name: 'Technical assistance', href: '/division/ta', purpose: 'AI-supported TA priority list, SGIP generation, and coaching schedule.', snapshot: shot('division-overview') },
+            { name: 'Schools', href: '/division/schools', purpose: 'Accepted schools, packet status, and TA priority.', snapshot: shot('division-schools') },
             { name: 'Registrations', href: '/division/registrations', purpose: 'Accept School Heads only.', snapshot: shot('division-registrations') },
             { name: 'Alerts', href: '/division/alerts', purpose: 'Overdue or returned packets.', snapshot: shot('division-alerts') },
         ],
@@ -222,10 +225,18 @@ export const roleGuides: RoleGuide[] = [
                 href: '/division/alerts',
                 snapshot: shot('division-alerts'),
             },
+            {
+                n: 9,
+                title: 'Use Technical assistance',
+                detail: 'Open Technical assistance in the side nav. Filter by priority, generate a School Governance Improvement Plan, then schedule coaching so the school is notified. Open a school dossier for the full recommendations on unmet FIs, maturity gaps, and returned MOVs.',
+                href: '/division/ta',
+                snapshot: shot('division-overview'),
+            },
         ],
         notes: [
             'Division accepts School Heads only. Encoder accept lives under the School Head Encoders page.',
             'Do not ask a school to rebuild the whole packet for one invalid MOV.',
+            'TA recommendations and the School Governance Improvement Plan are grounded in the school’s FAT answers and maturity checks. They do not encode Yes/No for the school.',
         ],
     },
     {
@@ -238,6 +249,7 @@ export const roleGuides: RoleGuide[] = [
             'Accept Encoder (teacher) registrations for the same School ID.',
             'Encode indicators and upload MOVs, or let the Encoder do that work.',
             'Remove an unapproved MOV, certify School Head QA, submit, and withdraw if Division has not accepted any file yet.',
+            'Read the Division-issued School Governance Improvement Plan and attend scheduled coaching.',
         ],
         cannotDo: [
             'Create Division Admin.',
@@ -251,7 +263,8 @@ export const roleGuides: RoleGuide[] = [
             { name: 'MOV files', href: '/school/movs', purpose: 'Upload, remove, or withdraw files.', snapshot: shot('head-movs') },
             { name: 'Submit', href: '/school/submit', purpose: 'Certify QA, submit, or withdraw.', snapshot: shot('head-submit') },
             { name: 'Encoders', href: '/school/encoders', purpose: 'Accept teachers for this School ID.', snapshot: shot('head-encoders') },
-            { name: 'Notifications', href: '/school/notifications', purpose: 'Encoder requests and Division returns.', snapshot: shot('head-notifications') },
+            { name: 'Improvement plan', href: '/school/improvement-plan', purpose: 'Read the Division-issued SGIP and scheduled coaching.' },
+            { name: 'Notifications', href: '/school/notifications', purpose: 'Encoder requests, Division returns, and coaching notices.', snapshot: shot('head-notifications') },
         ],
         walkthrough: [
             {
@@ -353,7 +366,8 @@ export const roleGuides: RoleGuide[] = [
             { name: 'My assessment', href: '/school/assessment', purpose: 'Answer Yes or No for 12 FIs.', snapshot: shot('encoder-assessment') },
             { name: 'MOV files', href: '/school/movs', purpose: 'Upload files and request removal.', snapshot: shot('encoder-movs') },
             { name: 'Submit', href: '/school/submit', purpose: 'Read the checklist. QA and Submit buttons are for the Head only.', snapshot: shot('encoder-submit') },
-            { name: 'Notifications', href: '/school/notifications', purpose: 'Accept notice, returned MOV, and Head actions.', snapshot: shot('encoder-notifications') },
+            { name: 'Improvement plan', href: '/school/improvement-plan', purpose: 'Read the Division-issued SGIP and scheduled coaching.' },
+            { name: 'Notifications', href: '/school/notifications', purpose: 'Accept notice, returned MOV, Head actions, and coaching.', snapshot: shot('encoder-notifications') },
         ],
         walkthrough: [
             {

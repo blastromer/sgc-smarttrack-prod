@@ -55,6 +55,7 @@ export interface Notice {
     detail: string;
     when: string;
     href?: string | null;
+    kind?: 'coaching' | 'info' | string;
 }
 
 export interface FlowStep {
@@ -91,6 +92,41 @@ export interface AiAssist {
         title: string;
         explain: string;
     };
+}
+
+export interface ImprovementPlanAction {
+    focus: string;
+    area: string;
+    activity: string;
+    output: string;
+    timeframe: string;
+    persons: string;
+    materials: string;
+}
+
+export interface CoachingPayload {
+    id: number;
+    scheduled_at: string;
+    when: string;
+    mode: string;
+    venue: string | null;
+    focus: string | null;
+    notes: string | null;
+    status: string;
+}
+
+export interface ImprovementPlanPayload {
+    id: number;
+    version: number;
+    status: string;
+    priority: string;
+    summary: string;
+    objectives: string[];
+    actions: ImprovementPlanAction[];
+    live: boolean;
+    model: string | null;
+    created_at: string | null;
+    coaching: CoachingPayload | null;
 }
 
 export interface CheckItem {
@@ -133,6 +169,19 @@ export interface DashboardPayload {
         count: number;
         schools: { name: string; school_code: string; view_href: string | null }[];
     }[] | null;
+    ta_priority?: {
+        code: string;
+        name: string;
+        school_code: string;
+        yes: number;
+        need_for_functional: number;
+        priority: string;
+        top_action: string;
+        focus: string | null;
+        maturity_level: number;
+        status: string;
+        href: string;
+    }[];
 }
 
 export function isBadge(cell: TableCell): cell is BadgeCell {

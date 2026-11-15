@@ -3,7 +3,9 @@
 namespace App\Support;
 
 use App\Models\Assessment;
+use App\Models\CoachingSession;
 use App\Models\Cycle;
+use App\Models\ImprovementPlan;
 use App\Models\IndicatorAnswer;
 use App\Models\Mov;
 use App\Models\SchoolFormProfile;
@@ -45,7 +47,95 @@ class PortalMetrics
                     'bars' => $stats['funnel'],
                 ],
             ],
+            'ta_preview' => GovernanceRecommendation::priorityQueue($cycle?->id, 3),
         ];
+    }
+
+    /**
+     * Division Technical Assistance priority page.
+     *
+     * @return array<string, mixed>
+     */
+    public static function divisionTa(?int $cycleId = null): array
+    {
+        $cycle = $cycleId
+            ? Cycle::query()->find($cycleId)
+            : self::openCycle();
+        $rows = GovernanceRecommendation::priorityQueue($cycle?->id, 200);
+        $total = count($rows);
+        $high = collect($rows)->where('priority', 'high')->count();
+        $medium = collect($rows)->where('priority', 'medium')->count();
+        $low = collect($rows)->where('priority', 'low')->count();
+        $pct = fn (int $count) => $total ? (int) round(100 * $count / $total) : 0;
+
+        return [
+            'title' => 'Technical Assistance',
+            'subtitle' => 'AI-supported governance recommendations for schools that need Division coaching.',
+            'chip' => $cycle?->name,
+            'cycles' => Cycle::query()->orderByDesc('opens_at')->get(['id', 'name'])->map(fn (Cycle $item) => [
+                'id' => $item->id,
+                'name' => $item->name,
+            ])->values(),
+            'cycle_id' => $cycle?->id,
+            'kpis' => [
+                self::kpi('TA Schools', (string) $total, 'Needing follow-up', $total ? 'warn' : null, 'blue'),
+                self::kpi('High Priority', (string) $high, 'Coach first', $high ? 'bad' : null, 'red'),
+                self::kpi('Medium Priority', (string) $medium, 'Schedule TA', $medium ? 'warn' : null, 'orange'),
+                self::kpi('Low Priority', (string) $low, 'Monitor only', null, 'green'),
+            ],
+            'breakdown' => [
+                ['key' => 'high', 'label' => 'High', 'count' => $high, 'pct' => $pct($high), 'color' => '#ef4444'],
+                ['key' => 'medium', 'label' => 'Medium', 'count' => $medium, 'pct' => $pct($medium), 'color' => '#f59e0b'],
+                ['key' => 'low', 'label' => 'Low', 'count' => $low, 'pct' => $pct($low), 'color' => '#10b981'],
+            ],
+            'trend' => self::taTrend($cycle?->id, $total),
+            'schools' => self::withSgipRows($rows, $cycle?->id),
+            'empty_text' => 'No schools currently need governance TA in this cycle.',
+        ];
+    }
+
+    /**
+     * Monthly TA-school trend for the current year (cumulative packets not yet Functional).
+     *
+     * @return list<array{label: string, value: int}>
+     */
+    private static function taTrend(?int $cycleId, int $currentTotal): array
+    {
+        $year = (int) now()->year;
+        $through = (int) now()->month;
+        $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        $packets = Assessment::query()
+            ->when($cycleId, fn ($query) => $query->where('cycle_id', $cycleId))
+            ->where(function ($query) {
+                $query->whereNull('result')->orWhere('result', '!=', 'functional');
+            })
+            ->get(['created_at']);
+
+        $byMonth = [];
+        foreach ($packets as $packet) {
+            if (! $packet->created_at || (int) $packet->created_at->format('Y') !== $year) {
+                continue;
+            }
+            $month = (int) $packet->created_at->format('n');
+            $byMonth[$month] = ($byMonth[$month] ?? 0) + 1;
+        }
+
+        $running = 0;
+        $points = [];
+        for ($month = 1; $month <= $through; $month++) {
+            $running += (int) ($byMonth[$month] ?? 0);
+            $points[] = [
+                'label' => $labels[$month - 1],
+                'value' => $month === $through ? max($running, $currentTotal) : $running,
+            ];
+        }
+
+        if ($points === []) {
+            $points[] = ['label' => $labels[max($through - 1, 0)], 'value' => $currentTotal];
+        }
+
+        return $points;
     }
 
     /**
@@ -162,6 +252,7 @@ class PortalMetrics
             'schools' => $rows,
             'hrefs' => $hrefs,
             'maturity' => $role === 'division' ? SgcMaturity::matrix($rows) : null,
+            'ta_priority' => $role === 'division' ? GovernanceRecommendation::priorityQueue($cycle?->id) : [],
         ];
     }
 
@@ -327,6 +418,7 @@ class PortalMetrics
 
         $packets = Assessment::query()
             ->when($cycle, fn ($query) => $query->where('cycle_id', $cycle->id))
+            ->with(['indicators', 'movs'])
             ->withCount([
                 'indicators as yes_count' => fn ($query) => $query->where('answer', 'yes'),
                 'indicators as encoded_count' => fn ($query) => $query->whereNotNull('answer'),
@@ -345,6 +437,7 @@ class PortalMetrics
             $encoded = (int) ($packet?->encoded_count ?? 0);
             $level = SgcMaturity::levelFor($packet);
             $status = self::submissionBucket($packet, $yes);
+            $ta = GovernanceRecommendation::summaryFor($packet);
 
             return [
                 'code' => $code,
@@ -356,6 +449,9 @@ class PortalMetrics
                 'movs' => (string) ($packet?->mov_files ?? 0),
                 'status' => $head->status === 'pending' && ! $packet ? 'pending' : $status,
                 'review_id' => $packet && $packet->canReviewMovs() ? $packet->id : null,
+                'ta_priority' => $ta['priority'] ?? 'none',
+                'ta_action' => $ta['top_action'] ?? null,
+                'ta_flagged' => (bool) ($ta['ta_flagged'] ?? false),
             ];
         })->values();
 
@@ -475,7 +571,74 @@ class PortalMetrics
                     'on_drive' => filled($mov->drive_file_id),
                 ])->values(),
             ] : null,
+            'recommendations' => GovernanceRecommendation::forSchool(
+                $assessment,
+                $head->school_name ?: 'This school',
+            ),
+            'improvement_plan' => GovernanceImprovementPlan::latestPayload($schoolCode, $assessment?->cycle_id),
+            'school_key' => $schoolCode,
         ];
+    }
+
+    public static function schoolHeadFor(string $code): User
+    {
+        $heads = User::query()
+            ->where('role', 'school_head')
+            ->where(function ($query) use ($code) {
+                $query->where('school_code', $code);
+                if (preg_match('/^user-(\d+)$/', $code, $match)) {
+                    $query->orWhere('id', (int) $match[1]);
+                }
+            })
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get();
+
+        abort_if($heads->isEmpty(), 404);
+
+        return $heads->first();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function withSgipRows(array $rows, ?int $cycleId): array
+    {
+        $codes = collect($rows)->pluck('code')->filter()->values();
+        if ($codes->isEmpty()) {
+            return $rows;
+        }
+
+        $plans = ImprovementPlan::query()
+            ->whereIn('school_code', $codes)
+            ->when($cycleId, fn ($query) => $query->where('cycle_id', $cycleId))
+            ->where('status', 'issued')
+            ->orderByDesc('version')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('school_code')
+            ->keyBy('school_code');
+
+        $sessions = CoachingSession::query()
+            ->whereIn('school_code', $codes)
+            ->when($cycleId, fn ($query) => $query->where('cycle_id', $cycleId))
+            ->where('status', 'scheduled')
+            ->orderBy('scheduled_at')
+            ->get()
+            ->unique('school_code')
+            ->keyBy('school_code');
+
+        return collect($rows)->map(function (array $row) use ($plans, $sessions) {
+            $plan = $plans->get($row['code']);
+            $session = $sessions->get($row['code']);
+            $row['has_plan'] = $plan !== null;
+            $row['plan_version'] = $plan?->version;
+            $row['plan'] = $plan ? GovernanceImprovementPlan::toPayload($plan, $session) : null;
+            $row['coaching'] = $session ? GovernanceImprovementPlan::sessionPayload($session) : null;
+
+            return $row;
+        })->values()->all();
     }
 
     /**
@@ -727,11 +890,11 @@ class PortalMetrics
     }
 
     /**
-     * @return array{label: string, value: string, hint: ?string, tone: ?string}
+     * @return array{label: string, value: string, hint: ?string, tone: ?string, accent: ?string}
      */
-    private static function kpi(string $label, string $value, ?string $hint = null, ?string $tone = null): array
+    private static function kpi(string $label, string $value, ?string $hint = null, ?string $tone = null, ?string $accent = null): array
     {
-        return compact('label', 'value', 'hint', 'tone');
+        return compact('label', 'value', 'hint', 'tone', 'accent');
     }
 
     /**

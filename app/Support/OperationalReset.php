@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\Assessment;
+use App\Models\CoachingSession;
+use App\Models\ImprovementPlan;
 use App\Models\Mov;
 use App\Models\SchoolFormProfile;
 use App\Models\User;
@@ -16,6 +18,8 @@ class OperationalReset
         $paths = Mov::query()->whereNotNull('path')->pluck('path');
 
         DB::transaction(function () {
+            CoachingSession::query()->delete();
+            ImprovementPlan::query()->delete();
             Assessment::query()->delete();
             SchoolFormProfile::query()->delete();
             User::query()->whereIn('role', ['school', 'school_head'])->delete();

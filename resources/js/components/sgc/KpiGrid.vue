@@ -75,7 +75,7 @@ onUnmounted(stop);
 </script>
 
 <template>
-    <div class="kpis mb-4" :class="columns === 5 ? 'kpis-5' : undefined">
+    <div class="kpis mb-4" :class="columns === 5 ? 'kpis-5' : columns === 4 ? 'kpis-4' : undefined">
         <div v-for="(kpi, index) in items" :key="kpi.label" class="kpi" :class="[kpi.tone || undefined, kpi.accent ? `kpi-accent kpi-${kpi.accent}` : undefined]">
             <span class="kpi-ico" aria-hidden="true">
                 <SgcIcon :name="kpi.label" />

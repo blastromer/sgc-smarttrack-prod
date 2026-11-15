@@ -46,6 +46,7 @@ class SgcSample
             'division' => [
                 ['label' => 'Overview', 'href' => '/division'],
                 ['label' => 'Validation queue', 'href' => '/division/queue'],
+                ['label' => 'Technical assistance', 'href' => '/division/ta'],
                 ['label' => 'Schools', 'href' => '/division/schools'],
                 ['label' => 'Registrations', 'href' => '/division/registrations'],
                 ['label' => 'Alerts', 'href' => '/division/alerts'],
@@ -56,6 +57,7 @@ class SgcSample
                 ['label' => 'My assessment', 'href' => '/school/assessment'],
                 ['label' => 'MOV files', 'href' => '/school/movs'],
                 ['label' => 'Submit', 'href' => '/school/submit'],
+                ['label' => 'Improvement plan', 'href' => '/school/improvement-plan'],
                 ['label' => 'Templates', 'href' => '/school/templates'],
                 ['label' => 'Form data', 'href' => '/school/form-data'],
                 ['label' => 'Encoders', 'href' => '/school/encoders'],
@@ -67,6 +69,7 @@ class SgcSample
                 ['label' => 'My assessment', 'href' => '/school/assessment'],
                 ['label' => 'MOV files', 'href' => '/school/movs'],
                 ['label' => 'Submit', 'href' => '/school/submit'],
+                ['label' => 'Improvement plan', 'href' => '/school/improvement-plan'],
                 ['label' => 'Templates', 'href' => '/school/templates'],
                 ['label' => 'Form data', 'href' => '/school/form-data'],
                 ['label' => 'Notifications', 'href' => '/school/notifications'],

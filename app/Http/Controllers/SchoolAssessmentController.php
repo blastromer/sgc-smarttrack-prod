@@ -9,15 +9,16 @@ use App\Models\Mov;
 use App\Models\SchoolFormProfile;
 use App\Models\User;
 use App\Notifications\MovRemovalRequested;
+use App\Support\ActionPlanFeed;
 use App\Support\AssessmentEngine;
+use App\Support\ConceptFeed;
 use App\Support\DocxHtmlPreview;
 use App\Support\DriveMovFolders;
 use App\Support\DriveWorkStatus;
 use App\Support\EncoderRecommendation;
 use App\Support\FatCatalog;
 use App\Support\FormFill;
-use App\Support\ActionPlanFeed;
-use App\Support\ConceptFeed;
+use App\Support\GovernanceImprovementPlan;
 use App\Support\MinutesFeed;
 use App\Support\MovDraft;
 use App\Support\MovDraftUnavailable;
@@ -63,6 +64,8 @@ class SchoolAssessmentController extends Controller
             $actions[] = '3. Submit the packet to Division.';
         }
 
+        $session = GovernanceImprovementPlan::upcomingSession(request()->user()->packetSchoolCode(), $assessment->cycle_id);
+
         return Inertia::render('school/Dashboard', [
             'title' => 'School dashboard',
             'subtitle' => ($assessment->user->school_name ?: 'School').' · School ID '.($assessment->user->school_code ?: '—'),
@@ -79,6 +82,7 @@ class SchoolAssessmentController extends Controller
             'maturity_level' => SgcMaturity::levelFor($assessment),
             'step_checks' => $this->maturityChecks($assessment, $snap),
             'benchmark' => SchoolBenchmark::summaryFor(request()->user()),
+            'coaching' => $session ? GovernanceImprovementPlan::sessionPayload($session) : null,
             'progress' => [
                 'width' => $width,
                 'text' => $width.'% encoded · need '.$need.' more Yes FIs for functional (10/12)',
@@ -1054,6 +1058,22 @@ class SchoolAssessmentController extends Controller
             ->with('drive_more', $work['more']);
     }
 
+    public function improvementPlan(): Response
+    {
+        $user = request()->user();
+        $cycle = AssessmentEngine::currentCycle();
+        $assessment = AssessmentEngine::forSchool($user);
+        $plan = GovernanceImprovementPlan::latestPayload($user->packetSchoolCode(), $cycle?->id);
+
+        return Inertia::render('school/ImprovementPlan', [
+            'title' => 'School Governance Improvement Plan',
+            'subtitle' => ($user->school_name ?: 'School').' · School ID '.($user->school_code ?: '—'),
+            'chip' => $cycle?->name,
+            'plan' => $plan,
+            'yes' => $assessment ? AssessmentEngine::snapshot($assessment)['yes_count'] : 0,
+        ]);
+    }
+
     public function notifications(): Response
     {
         $user = request()->user();
@@ -1071,8 +1091,12 @@ class SchoolAssessmentController extends Controller
                 $notification->created_at?->format('M j'),
                 $notification->data['detail'] ?? $notification->data['title'] ?? 'Notice',
                 [
-                    'badge' => str_contains(strtolower($notification->data['title'] ?? ''), 'returned') ? 'Action needed' : 'Info',
-                    'tone' => str_contains(strtolower($notification->data['title'] ?? ''), 'returned') ? 'bad' : 'ok',
+                    'badge' => str_contains(strtolower($notification->data['title'] ?? ''), 'returned') || str_contains(strtolower($notification->data['title'] ?? ''), 'coaching')
+                        ? 'Action needed'
+                        : 'Info',
+                    'tone' => str_contains(strtolower($notification->data['title'] ?? ''), 'returned') || str_contains(strtolower($notification->data['title'] ?? ''), 'coaching')
+                        ? 'bad'
+                        : 'ok',
                 ],
             ])->values(),
         ]);
@@ -1174,6 +1198,7 @@ class SchoolAssessmentController extends Controller
             'maturity_level' => SgcMaturity::levelFor(null),
             'step_checks' => $this->maturityChecks(null, null),
             'benchmark' => null,
+            'coaching' => null,
             'progress' => ['width' => 0, 'text' => 'Wait for Super Admin to open a cycle.', 'actions' => []],
         ];
     }

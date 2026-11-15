@@ -6,6 +6,7 @@ use App\Models\Assessment;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SgcAi
 {
@@ -198,15 +199,27 @@ class SgcAi
     {
         $s = PortalMetrics::analyticsSnapshot();
         $weak = collect($s['weakest'] ?? [])->map(fn (array $bar) => $bar['label'].' '.$bar['value'])->values()->all();
+        $taQueue = GovernanceRecommendation::priorityQueue(null, 5);
+        $taLines = collect($taQueue)
+            ->map(fn (array $row) => $row['name'].' ('.$row['yes'].'/12, '.$row['priority'].'): '.$row['top_action'])
+            ->values()
+            ->all();
         $graphs = $weak === []
             ? 'Weakest-indicator and funnel charts are empty until School Heads are accepted.'
             : 'Weakest FIs (share of schools with Yes): '.implode(', ', $weak).'. Funnel: not started '.$s['overdue'].', submitted '.$s['submitted'].', in queue '.$s['queue'].', validated '.$s['validated'].'.';
 
         $hint = $s['schools'] === 0
             ? 'No accepted School Heads yet. Analytics stay empty until registrations are accepted.'
-            : $s['submitted'].' of '.$s['schools'].' schools submitted ('.$s['compliance'].'%). '.$s['overdue'].' overdue, '.$s['queue'].' in the validation queue, '.$s['functional'].' Functional (≥10/12), '.$s['returned_movs'].' returned MOVs.';
+            : $s['submitted'].' of '.$s['schools'].' schools submitted ('.$s['compliance'].'%). '.$s['overdue'].' overdue, '.$s['queue'].' in the validation queue, '.$s['functional'].' Functional (≥10/12), '.$s['returned_movs'].' returned MOVs, '.$s['ta_flagged'].' TA flagged.';
+
+        if ($taLines !== []) {
+            $hint .= ' Top TA school: '.$taQueue[0]['name'].'.';
+        }
 
         $ideas = [];
+        if ($taLines !== []) {
+            $ideas[] = 'Open the top TA school dossier and coach: '.$taQueue[0]['top_action'];
+        }
         if ($s['queue'] > 0) {
             $ideas[] = 'Clear the validation queue ('.$s['queue'].' packet'.($s['queue'] === 1 ? '' : 's').') so schools are not waiting on Composite Team review.';
         }
@@ -217,22 +230,24 @@ class SgcAi
             $ideas[] = 'Returned MOVs ('.$s['returned_movs'].') need school resubmit — check Alerts, then re-queue.';
         }
         if ($weak !== []) {
-            $ideas[] = 'Plan TA around the weakest FIs: '.implode(', ', array_slice($weak, 0, 3)).'.';
+            $ideas[] = 'Plan division-wide TA around the weakest FIs: '.implode(', ', array_slice($weak, 0, 3)).'.';
         }
         if ($ideas === []) {
             $ideas[] = 'Submission looks current. Spot-check Functional packets and keep the cycle deadline in view ('.($s['deadline'] ?? 'no open cycle').').';
         }
 
-        $open = (int) $s['overdue'] + (int) $s['queue'] + (int) $s['returned_movs'];
+        $open = (int) $s['overdue'] + (int) $s['queue'] + (int) $s['returned_movs'] + (int) $s['ta_flagged'];
 
         return self::bundle('division', [
             'template' => 'Division analytics',
             'hint' => $hint,
-            'next' => $s['queue'] ? 'Open the validation queue' : ($s['overdue'] ? 'Open Alerts for overdue schools' : 'Review weakest indicators'),
+            'next' => $taQueue !== []
+                ? 'Open Technical assistance and coach '.$taQueue[0]['name']
+                : ($s['queue'] ? 'Open the validation queue' : ($s['overdue'] ? 'Open Alerts for overdue schools' : 'Review weakest indicators')),
             'unencoded' => [],
             'missing' => $weak,
             'returned' => [],
-            'href' => $s['queue'] ? '/division/queue' : '/division/alerts',
+            'href' => $taQueue !== [] ? '/division/ta' : ($s['queue'] ? '/division/queue' : '/division/alerts'),
             'open' => $open,
             'live' => EncoderRecommendation::enabled(),
             'uses' => ['ideas', 'interpret', 'graphs', 'analytics'],
@@ -245,6 +260,7 @@ class SgcAi
                 'Which schools need follow-up?',
             ],
             'kpis' => $s,
+            'ta_priority' => $taLines,
         ]);
     }
 
@@ -338,6 +354,7 @@ class SgcAi
             'missing' => $bundle['missing'] ?? [],
             'returned' => $bundle['returned'] ?? [],
             'kpis' => $bundle['kpis'] ?? [],
+            'ta_priority' => $bundle['ta_priority'] ?? [],
         ];
     }
 
@@ -355,15 +372,8 @@ class SgcAi
             return self::divisionReviewPage((int) $match[1]);
         }
 
-        if (preg_match('#^/division/schools/([^/]+)$#', $path) && in_array($user->role, ['division', 'super'], true)) {
-            return self::describePage(
-                'division.school',
-                'School dossier',
-                'This page is one school’s file: identity and Form data, School Head, Encoders, and the current FAT packet (Yes/No per FI and MOV files). Use Open packet only when the school has submitted for validation.',
-                $path,
-                'Review the team and the packet, then open validation if it is in queue',
-                ['Explain this page', 'Who is on this school team?', 'What is the submission status?'],
-            );
+        if (preg_match('#^/division/schools/([^/]+)$#', $path, $match) && in_array($user->role, ['division', 'super'], true)) {
+            return self::divisionSchoolPage($match[1], $path);
         }
 
         return match (true) {
@@ -374,6 +384,14 @@ class SgcAi
                 '/division/queue',
                 'Open a packet and decide each uploaded MOV',
                 ['Explain this page', 'Which packets still need review?', 'What does Returned mean?'],
+            ),
+            $path === '/division/ta' && $user->role === 'division' => self::describePage(
+                'division.ta',
+                'Technical assistance',
+                'This page lists schools that need Division governance coaching. Generate a School Governance Improvement Plan from the row menu, then schedule coaching so the School Head is notified. Open a dossier for the full recommendation list.',
+                '/division/ta',
+                'Generate a plan for a high-priority school, then schedule coaching',
+                ['Explain this page', 'Generate TA ideas', 'Which schools need follow-up?'],
             ),
             $path === '/division/schools' && in_array($user->role, ['division', 'super'], true) => self::describePage(
                 'division.schools',
@@ -431,6 +449,14 @@ class SgcAi
                 'Accept pending teachers or review the active list',
                 ['Explain this page', 'Where is the encoder list?'],
             ),
+            $path === '/school/improvement-plan' && $user->isSchoolStaff() => self::describePage(
+                'school.improvement-plan',
+                'School Governance Improvement Plan',
+                'This page shows the Division-issued School Governance Improvement Plan and any scheduled coaching session. You can read it here. Division writes the plan and books the session; the school does not encode Yes or No from this page.',
+                '/school/improvement-plan',
+                'Review the actions before the scheduled coaching session',
+                ['Explain this page', 'What should we prepare for coaching?', 'Generate next actions'],
+            ),
             $path === '/school/benchmarking' && $user->isSchoolStaff() => self::describePage(
                 'school.benchmarking',
                 'Benchmarking',
@@ -441,6 +467,60 @@ class SgcAi
             ),
             default => [],
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function divisionSchoolPage(string $code, string $path): array
+    {
+        try {
+            $payload = PortalMetrics::divisionSchool($code);
+        } catch (HttpException $e) {
+            return self::describePage(
+                'division.school',
+                'School dossier',
+                'This page is one school’s file, but that school was not found. Go back to Schools.',
+                '/division/schools',
+                'Open the schools list',
+                ['Explain this page'],
+            );
+        }
+
+        $recs = $payload['recommendations'] ?? null;
+        $school = $payload['school']['name'] ?? 'this school';
+        $explain = 'This is the school dossier for '.$school.': Form data, School Head, Encoders, FAT packet answers, and Division TA recommendations. It is not the validation queue.';
+        if (is_array($recs) && ($recs['summary'] ?? '') !== '') {
+            $explain .= ' '.$recs['summary'];
+        }
+
+        $next = is_array($recs) && ($recs['items'][0]['action'] ?? null)
+            ? (string) $recs['items'][0]['action']
+            : 'Review the team and the packet, then open validation if it is in queue';
+
+        return [
+            'key' => 'division.school',
+            'title' => 'School dossier · '.$school,
+            'explain' => $explain,
+            'next' => $next,
+            'href' => $path,
+            'prompts' => [
+                'Explain this page',
+                'Generate TA ideas for this school',
+                'Which FIs need coaching?',
+                'What is the submission status?',
+            ],
+            'recommendations' => is_array($recs) ? [
+                'priority' => $recs['priority'] ?? 'none',
+                'summary' => $recs['summary'] ?? '',
+                'needs' => $recs['needs'] ?? [],
+                'items' => collect($recs['items'] ?? [])->take(4)->map(fn (array $item) => [
+                    'title' => $item['title'] ?? '',
+                    'action' => $item['action'] ?? '',
+                    'priority' => $item['priority'] ?? '',
+                ])->values()->all(),
+            ] : null,
+        ];
     }
 
     /**

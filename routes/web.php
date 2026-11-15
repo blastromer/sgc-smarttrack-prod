@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\DivisionGovernanceController;
 use App\Http\Controllers\DivisionValidationController;
 use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\PortalController;
@@ -52,6 +53,9 @@ Route::middleware(['auth', 'role:division'])->group(function () {
     Route::get('division/registrations', [SchoolRegistrationController::class, 'index'])->name('division.registrations');
     Route::post('division/registrations/{user}/accept', [SchoolRegistrationController::class, 'accept'])->name('division.registrations.accept');
     Route::get('division/alerts', [PortalController::class, 'divisionAlerts'])->name('division.alerts');
+    Route::get('division/ta', [PortalController::class, 'divisionTa'])->name('division.ta');
+    Route::post('division/schools/{code}/improvement-plan', [DivisionGovernanceController::class, 'storePlan'])->name('division.schools.plan');
+    Route::post('division/schools/{code}/coaching', [DivisionGovernanceController::class, 'storeCoaching'])->name('division.schools.coaching');
 });
 
 Route::middleware(['auth', 'role:school,school_head'])->group(function () {
@@ -82,6 +86,7 @@ Route::middleware(['auth', 'role:school,school_head'])->group(function () {
     Route::post('school/submit/qa', [SchoolAssessmentController::class, 'certifyQa'])->name('school.submit.qa');
     Route::post('school/submit', [SchoolAssessmentController::class, 'submit'])->name('school.submit.send');
     Route::post('school/submit/withdraw', [SchoolAssessmentController::class, 'withdraw'])->name('school.submit.withdraw');
+    Route::get('school/improvement-plan', [SchoolAssessmentController::class, 'improvementPlan'])->name('school.improvement-plan');
     Route::get('school/notifications', [SchoolAssessmentController::class, 'notifications'])->name('school.notifications');
     Route::post('school/ai/chat', [SgcAiController::class, 'chat'])->name('school.ai.chat');
 });

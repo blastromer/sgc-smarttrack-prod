@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import CoachingScheduleForm from '@/components/sgc/CoachingScheduleForm.vue';
 import KpiGrid from '@/components/sgc/KpiGrid.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcMovFilePreview from '@/components/sgc/SgcMovFilePreview.vue';
 import SgcMaturityTrack from '@/components/sgc/SgcMaturityTrack.vue';
+import SgipPlanCard from '@/components/sgc/SgipPlanCard.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
-import type { BadgeCell, Kpi } from '@/types/sgc';
-import { Link } from '@inertiajs/vue3';
+import type { BadgeCell, ImprovementPlanPayload, Kpi } from '@/types/sgc';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 type Person = {
@@ -15,7 +17,16 @@ type Person = {
     status: BadgeCell;
 };
 
-defineProps<{
+type RecommendationItem = {
+    priority: string;
+    focus: string;
+    domain: string;
+    title: string;
+    action: string;
+    why: string;
+};
+
+const props = defineProps<{
     title: string;
     subtitle: string;
     kpis?: Kpi[];
@@ -50,7 +61,41 @@ defineProps<{
         indicators: { code: string; title: string; answer: string | null }[];
         movs: { id: number; code: string; title: string; file: string | null; status: string; has_file: boolean; on_drive: boolean }[];
     } | null;
+    recommendations?: {
+        live: boolean;
+        priority: string;
+        summary: string;
+        needs: string[];
+        items: RecommendationItem[];
+        yes: number;
+        need_for_functional: number;
+        maturity_level: number;
+        ta_flagged: boolean;
+    };
+    improvement_plan?: ImprovementPlanPayload | null;
+    school_key?: string;
 }>();
+
+const coachOpen = ref(false);
+const generating = ref(false);
+
+const generatePlan = () => {
+    const code = props.school_key || props.school.school_code;
+    generating.value = true;
+    router.post(route('division.schools.plan', { code }), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            generating.value = false;
+        },
+    });
+};
+
+const priorityTone = (priority: string) => {
+    if (priority === 'high') return 'bad';
+    if (priority === 'medium') return 'warn';
+    if (priority === 'low') return 'ok';
+    return 'warn';
+};
 
 const answerTone = (answer: string | null) => {
     if (answer === 'yes') return 'ok';
@@ -83,6 +128,53 @@ const viewFile = (id: number) => {
             :level="maturity_level"
             :step-checks="step_checks"
             :review-href="packet?.can_review ? route('division.review', { assessment: packet.id }) : null"
+        />
+        <section v-if="recommendations" class="box mb-3 ta-rec">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-2">
+                    <SgcIcon name="AI assistance" />
+                    <div class="min-w-0">
+                        <b class="block">Governance TA recommendations</b>
+                        <p class="muted mt-0.5 text-sm">AI-supported coaching points for this school’s governance gaps.</p>
+                    </div>
+                </div>
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    <span class="badge" :class="priorityTone(recommendations.priority)">
+                        {{ recommendations.priority === 'none' ? 'No TA gap' : recommendations.priority + ' priority' }}
+                    </span>
+                    <span v-if="recommendations.live" class="badge ok">Live OpenAI</span>
+                    <span v-if="recommendations.ta_flagged" class="badge warn">TA flagged</span>
+                </div>
+            </div>
+            <p class="mt-3 text-sm leading-relaxed">{{ recommendations.summary }}</p>
+            <p v-if="recommendations.need_for_functional > 0" class="muted mt-2 text-sm">
+                Needs {{ recommendations.need_for_functional }} more Yes FI{{ recommendations.need_for_functional === 1 ? '' : 's' }} toward Functional (10/12).
+            </p>
+            <ol v-if="recommendations.items.length" class="ta-rec-list">
+                <li v-for="item in recommendations.items" :key="item.focus + item.title">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="badge" :class="priorityTone(item.priority)">{{ item.priority }}</span>
+                        <span class="muted text-xs">{{ item.domain }}</span>
+                    </div>
+                    <b class="mt-1 block">{{ item.title }}</b>
+                    <p class="mt-1 text-sm leading-relaxed">{{ item.action }}</p>
+                    <p class="muted mt-1 text-xs leading-relaxed">{{ item.why }}</p>
+                </li>
+            </ol>
+            <p v-else class="muted mt-3 text-sm">No open governance TA items for this packet snapshot.</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <button class="btn inline" type="button" :disabled="generating" @click="generatePlan">
+                    {{ improvement_plan ? 'Refresh improvement plan' : 'Generate improvement plan' }}
+                </button>
+                <button class="btn inline ghost" type="button" @click="coachOpen = true">Schedule coaching</button>
+            </div>
+        </section>
+        <SgipPlanCard
+            v-if="improvement_plan"
+            :plan="improvement_plan"
+            can-coach
+            @generate="generatePlan"
+            @coach="coachOpen = true"
         />
         <div class="box mb-3">
             <b>School data</b>
@@ -213,5 +305,13 @@ const viewFile = (id: number) => {
             </template>
         </div>
         <SgcMovFilePreview :open="fileOpen" :mov-id="fileId" @close="fileOpen = false" />
+        <CoachingScheduleForm
+            :open="coachOpen"
+            :school-code="school_key || school.school_code"
+            :school-name="school.name"
+            :default-focus="improvement_plan?.actions[0]?.activity || recommendations?.items[0]?.action"
+            :existing="improvement_plan?.coaching"
+            @close="coachOpen = false"
+        />
     </SgcLayout>
 </template>

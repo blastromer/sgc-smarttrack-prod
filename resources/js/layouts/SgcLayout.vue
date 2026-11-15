@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SgcAiAssist from '@/components/sgc/SgcAiAssist.vue';
 import SgcAiChat from '@/components/sgc/SgcAiChat.vue';
+import NoticeBell from '@/components/sgc/NoticeBell.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLogo from '@/components/sgc/SgcLogo.vue';
 import SgcWalkthrough from '@/components/sgc/SgcWalkthrough.vue';
@@ -31,6 +32,8 @@ const navQuery = ref('');
 const user = computed(() => page.props.auth.user);
 const sgc = computed(() => page.props.sgc);
 const unread = computed(() => sgc.value?.notices.filter((notice) => notice.unread).length ?? 0);
+const coachUnread = computed(() => sgc.value?.notices.some((notice) => notice.unread && notice.kind === 'coaching') ?? false);
+const coaching = computed(() => sgc.value?.coaching ?? null);
 const ai = computed(() => sgc.value?.ai ?? null);
 const currentPath = computed(() => page.url.split('?')[0]);
 const flash = computed(() => page.props.flash?.status);
@@ -65,11 +68,11 @@ const navGroups = computed(() => {
         take('Master Data', ['/super/divisions', '/super/users']);
     } else if (role === 'division') {
         take('', ['/division']);
-        take('Assessment Management', ['/division/queue', '/division/alerts']);
+        take('Assessment Management', ['/division/queue', '/division/ta', '/division/alerts']);
         take('Master Data', ['/division/schools', '/division/registrations']);
     } else {
         take('', ['/school', '/school/benchmarking']);
-        take('Assessment Management', ['/school/assessment', '/school/movs', '/school/submit']);
+        take('Assessment Management', ['/school/assessment', '/school/movs', '/school/submit', '/school/improvement-plan']);
         take('Master Data', ['/school/templates', '/school/form-data', '/school/encoders']);
     }
 
@@ -89,6 +92,8 @@ const SIDE_LABELS: Record<string, string> = {
     '/super/cycles': 'Assessment Cycles',
     '/super/users': 'Users',
     '/division/queue': 'Validation Queue',
+    '/division/ta': 'Technical Assistance',
+    '/school/improvement-plan': 'Improvement Plan',
     '/division/alerts': 'Returned Items',
     '/division/registrations': 'School Registrations',
 };
@@ -347,22 +352,7 @@ onUnmounted(() => {
             </div>
             <div class="flex shrink-0 items-center gap-1 overflow-visible">
                 <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
-                <button
-                    class="sgc-icon-btn relative grid h-9 w-9 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
-                    type="button"
-                    aria-label="Open notifications"
-                    title="Notifications"
-                    :aria-expanded="noticesOpen"
-                    @click="openNotices"
-                >
-                    <SgcIcon name="Notifications" />
-                    <span
-                        v-if="unread"
-                        class="pointer-events-none absolute -right-1.5 -top-1.5 z-[1] grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-sgc-panel bg-sgc-coral px-1 text-[9px] font-extrabold leading-none text-[#1a0d0a]"
-                    >
-                        {{ unread }}
-                    </span>
-                </button>
+                <NoticeBell size="sm" :unread="unread" :coach-unread="coachUnread" :coaching="coaching" :open="noticesOpen" @open="openNotices" />
                 <div class="relative">
                     <button
                         class="grid h-9 w-9 place-items-center rounded-full border-2 border-sgc-line bg-sgc-deep text-[12px] font-bold text-sgc-mint transition-[border-color,box-shadow] duration-150 hover:border-sgc-teal"
@@ -509,7 +499,7 @@ onUnmounted(() => {
                         </div>
                     </label>
                     <span v-if="props.chip" class="chip">{{ props.chip }}</span>
-                    <div class="ml-auto flex items-center gap-2.5">
+                    <div class="ml-auto flex items-center gap-2.5 overflow-visible">
                     <button
                         v-if="sgc?.appearance?.current"
                         class="tool-btn"
@@ -521,22 +511,7 @@ onUnmounted(() => {
                         <svg v-if="themeIcon" class="ico material-symbol" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true" v-html="themeIcon" />
                     </button>
                     <SgcAiAssist v-if="ai" :open="aiOpen" @toggle="toggleAi" />
-                    <button
-                        class="sgc-icon-btn relative grid h-10 w-10 place-items-center overflow-visible rounded-[10px] border border-sgc-line bg-sgc-panel text-sgc-ink hover:border-sgc-teal"
-                        type="button"
-                        aria-label="Open notifications"
-                        title="Notifications"
-                        :aria-expanded="noticesOpen"
-                        @click="openNotices"
-                    >
-                        <SgcIcon name="Notifications" />
-                        <span
-                            v-if="unread"
-                            class="pointer-events-none absolute -right-1.5 -top-1.5 z-[1] grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-sgc-panel bg-sgc-coral px-1 text-[9px] font-extrabold leading-none text-[#1a0d0a]"
-                        >
-                            {{ unread }}
-                        </span>
-                    </button>
+                    <NoticeBell :unread="unread" :coach-unread="coachUnread" :coaching="coaching" :open="noticesOpen" @open="openNotices" />
                     <div class="relative flex items-center gap-2">
                         <span class="hidden max-w-[11rem] min-w-0 text-right sgc:block">
                             <b class="block truncate text-sm leading-tight">{{ user?.name }}</b>
@@ -746,14 +721,19 @@ onUnmounted(() => {
                 <Link
                     v-for="notice in sgc?.notices"
                     :key="notice.id || notice.title"
-                    class="block border-b border-sgc-line px-[18px] py-3.5 text-inherit no-underline hover:bg-[rgba(42,167,160,.08)] hover:no-underline"
-                    :class="notice.unread ? 'bg-[rgba(42,167,160,.06)]' : ''"
+                    class="notice-item"
+                    :class="{ unread: notice.unread, 'is-coaching': notice.kind === 'coaching' }"
                     :href="notice.href || sgc?.noticeHref || '#'"
                     @click="closeNotices"
                 >
-                    <strong class="mb-1 block text-[13px]">{{ notice.title }}</strong>
+                    <span v-if="notice.kind === 'coaching'" class="notice-kicker">
+                        <SgcIcon name="Improvement plan" />
+                        Division coaching
+                    </span>
+                    <strong>{{ notice.title }}</strong>
                     <p class="muted">{{ notice.detail }}</p>
                     <p class="muted">{{ notice.when }}</p>
+                    <span v-if="notice.kind === 'coaching'" class="notice-cta">Open improvement plan</span>
                 </Link>
                 <p v-if="!sgc?.notices?.length" class="muted p-[18px]">No notifications yet.</p>
             </div>

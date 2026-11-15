@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-vue-next';
-import type { AiAssist, Flow, NavItem as SgcNavItem, Notice, Role } from './sgc';
+import type { AiAssist, CoachingPayload, Flow, NavItem as SgcNavItem, Notice, Role } from './sgc';
 
 export type { Role, AssessmentStatus, MovStatus, SubmitStep } from './sgc';
 
@@ -28,6 +28,7 @@ export interface SharedData {
         counts?: Record<string, number>;
         notices: Notice[];
         noticeHref: string;
+        coaching?: CoachingPayload | null;
         flow: Flow | null;
         ai: AiAssist | null;
         appearance?: {
