@@ -16,9 +16,15 @@ use App\Support\DriveWorkStatus;
 use App\Support\EncoderRecommendation;
 use App\Support\FatCatalog;
 use App\Support\FormFill;
+use App\Support\ActionPlanFeed;
+use App\Support\ConceptFeed;
+use App\Support\MinutesFeed;
 use App\Support\MovDraft;
 use App\Support\MovDraftUnavailable;
 use App\Support\MovTemplates;
+use App\Support\OrgChartFeed;
+use App\Support\ResolutionFeed;
+use App\Support\SchoolBenchmark;
 use App\Support\SgcMaturity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -72,12 +78,35 @@ class SchoolAssessmentController extends Controller
             'activities' => $this->dashboardActivities(request()->user(), $assessment),
             'maturity_level' => SgcMaturity::levelFor($assessment),
             'step_checks' => $this->maturityChecks($assessment, $snap),
+            'benchmark' => SchoolBenchmark::summaryFor(request()->user()),
             'progress' => [
                 'width' => $width,
                 'text' => $width.'% encoded · need '.$need.' more Yes FIs for functional (10/12)',
                 'actions' => $actions ?: ['Open Submit to see the rest of the path.'],
             ],
         ]);
+    }
+
+    public function benchmarking(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user?->isSchoolStaff(), 403);
+
+        $data = $request->validate([
+            'cycle' => ['sometimes', 'nullable', 'integer'],
+            'metric' => ['sometimes', 'nullable', 'string', 'in:fis,progress'],
+            'compare' => ['sometimes', 'nullable', 'string', 'max:64'],
+        ]);
+
+        return Inertia::render(
+            'school/Benchmarking',
+            SchoolBenchmark::page(
+                $user,
+                isset($data['cycle']) ? (int) $data['cycle'] : null,
+                $data['metric'] ?? 'fis',
+                $data['compare'] ?? null,
+            ),
+        );
     }
 
     public function formData(): Response
@@ -551,10 +580,10 @@ class SchoolAssessmentController extends Controller
     private function aiFilledDocx(User $user, array $item, string $source, string $slotTitle, bool $requireAi = false): array
     {
         $probe = FormFill::docx($user, $source);
-        $blanks = MovDraft::narrativeBlanks($probe);
+        $blanks = $item['kind'] === 'concept' ? [] : MovDraft::narrativeBlanks($probe);
         @unlink($probe);
 
-        if ($requireAi && $blanks !== [] && ! EncoderRecommendation::enabled()) {
+        if ($requireAi && ($blanks !== [] || in_array($item['kind'], ['concept', 'action_plan', 'resolution'], true)) && ! EncoderRecommendation::enabled()) {
             throw new MovDraftUnavailable('Auto Fill needs the AI connection.');
         }
 
@@ -563,8 +592,46 @@ class SchoolAssessmentController extends Controller
             throw new MovDraftUnavailable('The AI could not fill the blanks in this form. Try again.');
         }
 
+        $tmp = FormFill::docx($user, $source, $draft['replacements']);
+        if ($item['kind'] === 'minutes') {
+            MinutesFeed::apply($tmp);
+        }
+        if ($item['kind'] === 'resolution') {
+            $resolution = ResolutionFeed::draft($user, $slotTitle);
+            if ($requireAi && $resolution === null) {
+                @unlink($tmp);
+                throw new MovDraftUnavailable('The AI could not fill this resolution. Try again.');
+            }
+            if ($resolution !== null) {
+                ResolutionFeed::apply($tmp, $resolution);
+            }
+        }
+        if ($item['kind'] === 'action_plan') {
+            $plan = ActionPlanFeed::draft($user, $slotTitle);
+            if ($requireAi && $plan === null) {
+                @unlink($tmp);
+                throw new MovDraftUnavailable('The AI could not fill this action plan. Try again.');
+            }
+            if ($plan !== null) {
+                ActionPlanFeed::apply($tmp, $plan);
+            }
+        }
+        if ($item['kind'] === 'concept') {
+            $concept = ConceptFeed::draft($user, $slotTitle);
+            if ($requireAi && $concept === null) {
+                @unlink($tmp);
+                throw new MovDraftUnavailable('The AI could not fill this concept note. Try again.');
+            }
+            if ($concept !== null) {
+                ConceptFeed::apply($tmp, $concept);
+            }
+        }
+        if ($item['kind'] === 'org_chart') {
+            OrgChartFeed::apply($tmp, $user);
+        }
+
         return [
-            'tmp' => FormFill::docx($user, $source, $draft['replacements']),
+            'tmp' => $tmp,
             'draft' => $draft,
         ];
     }
@@ -792,7 +859,15 @@ class SchoolAssessmentController extends Controller
 
         return response()->json([
             'html' => $html,
-            'note' => 'AI filled the open blanks in this preview. Review them, then download the filled Word file.',
+            'note' => match ($item['kind']) {
+                'minutes' => 'AI filled the open blanks. Present, absent, and agenda rows come from the sample minutes. Review them, then download the filled Word file.',
+                'resolution' => 'AI filled the resolution subject, WHEREAS clauses, and resolved details from the sample style. Review them, then download the filled Word file.',
+                'documentation' => 'AI filled the overview, objectives, and narrative blanks in this preview. Review them, then download the filled Word file.',
+                'action_plan' => 'AI filled sample action / advocacy plan rows in this preview. Review them, then download the filled Word file.',
+                'concept' => 'AI filled the project details, background, objectives, activities, indicators, and budget sample in this preview. Review them, then download the filled Word file.',
+                'org_chart' => 'Officers from Form data were placed on the organizational chart. Review them, then download the filled Word file.',
+                default => 'AI filled the open blanks in this preview. Review them, then download the filled Word file.',
+            },
         ]);
     }
 
@@ -1098,6 +1173,7 @@ class SchoolAssessmentController extends Controller
             'activities' => [],
             'maturity_level' => SgcMaturity::levelFor(null),
             'step_checks' => $this->maturityChecks(null, null),
+            'benchmark' => null,
             'progress' => ['width' => 0, 'text' => 'Wait for Super Admin to open a cycle.', 'actions' => []],
         ];
     }

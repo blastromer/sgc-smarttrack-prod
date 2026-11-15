@@ -188,7 +188,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
                     >
                         <LoaderCircle v-if="filling" class="size-4 shrink-0 animate-spin" />
                         <SgcIcon v-else name="AI assistance" />
-                        Ai Auto fill
+                        Generate Sample
                     </button>
                 </div>
             </aside>

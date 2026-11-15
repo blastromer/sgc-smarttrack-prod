@@ -1,6 +1,8 @@
 /** Outlined Material Symbols from Google Fonts, weight 400. https://fonts.google.com/icons */
+import autoAwesomeSvg from '../icons/auto_awesome.svg?raw';
+
 const files = import.meta.glob(
-    '../../../node_modules/@material-symbols/svg-400/outlined/{arrow_forward,arrow_outward,article,assignment,assignment_return,bar_chart,bolt,calendar_month,check,check_box,check_circle,checklist,close,cloud_upload,dark_mode,dashboard,delete,description,domain,download,draft,edit,error,fact_check,filter_alt,folder_open,format_list_bulleted,group,groups,help,home,hourglass_empty,light_mode,lock,logout,mail,manage_search,menu,menu_book,notifications,open_in_new,pending,pending_actions,person,person_add,person_edit,pie_chart,print,progress_activity,refresh,restart_alt,save,schedule,school,search,send,settings,shield,smartphone,star,sync,task_alt,undo,upload,verified,visibility,wand_stars,warning,workspace_premium}.svg',
+    '../../../node_modules/@material-symbols/svg-400/outlined/{add,arrow_forward,arrow_outward,article,assignment,assignment_return,bar_chart,bolt,calendar_month,check,check_box,check_circle,checklist,close,cloud_upload,dark_mode,dashboard,delete,description,domain,download,draft,edit,error,fact_check,filter_alt,folder_open,format_list_bulleted,group,groups,help,home,hourglass_empty,keyboard_arrow_down,light_mode,lock,logout,mail,manage_search,menu,menu_book,notifications,open_in_new,pending,pending_actions,person,person_add,person_edit,pie_chart,print,progress_activity,refresh,restart_alt,save,schedule,school,search,send,settings,shield,smartphone,star,sync,task_alt,trending_up,undo,upload,verified,visibility,wand_stars,warning,workspace_premium}.svg',
     { eager: true, import: 'default', query: '?raw' },
 ) as Record<string, string>;
 
@@ -12,10 +14,13 @@ for (const [path, svg] of Object.entries(files)) {
     }
 }
 
+MARKUP.auto_awesome = autoAwesomeSvg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+
 const NAMES: Record<string, string> = {
     Overview: 'dashboard',
     Menu: 'menu',
     Dashboard: 'dashboard',
+    Benchmarking: 'bar_chart',
     Divisions: 'domain',
     'Users & roles': 'group',
     Cycles: 'calendar_month',
@@ -35,7 +40,10 @@ const NAMES: Record<string, string> = {
     'Form data': 'article',
     Submit: 'send',
     Notifications: 'notifications',
-    'AI assistance': 'wand_stars',
+    'AI assistance': 'auto_awesome',
+    Add: 'add',
+    Trending: 'trending_up',
+    'Chevron down': 'keyboard_arrow_down',
     Configuration: 'settings',
     'Sign out': 'logout',
     Account: 'person',
@@ -116,6 +124,7 @@ const NAMES: Record<string, string> = {
     View: 'visibility',
     Preview: 'visibility',
     Replace: 'sync',
+    Sync: 'sync',
     Withdraw: 'undo',
     Delete: 'delete',
     Review: 'fact_check',

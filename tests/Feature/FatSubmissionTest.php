@@ -32,6 +32,121 @@ class FatSubmissionTest extends TestCase
                 return Http::response(['id' => 'drive-'.bin2hex(random_bytes(4))]);
             }
             if (str_contains($url, 'api.openai.com')) {
+                $body = $request->body();
+                if (str_contains($body, '"kind":"resolution"') || str_contains($body, '\"kind\":\"resolution\"')) {
+                    $whereas = [];
+                    for ($i = 1; $i <= 9; $i++) {
+                        $whereas[] = 'Resolution whereas clause '.$i;
+                    }
+
+                    return Http::response([
+                        'choices' => [[
+                            'message' => [
+                                'content' => json_encode([
+                                    'subject' => 'CONTINUOUS SIP AND AIP IMPLEMENTATION',
+                                    'whereas' => $whereas,
+                                    'resolved' => [
+                                        'Adopt continuous SIP monitoring for the school year',
+                                        'Endorse quarterly progress reporting to stakeholders',
+                                    ],
+                                    'day' => '15',
+                                    'month' => 'November',
+                                    'year' => '2026',
+                                ]),
+                            ],
+                        ]],
+                    ]);
+                }
+
+                if (str_contains($body, '"kind":"concept"') || str_contains($body, '\"kind\":\"concept\"')) {
+                    return Http::response([
+                        'choices' => [[
+                            'message' => [
+                                'content' => json_encode([
+                                    'title' => 'Project Learning Continuity Kits',
+                                    'supervisor' => 'School Head',
+                                    'organization' => 'School Governance Council',
+                                    'start_date' => 'August 1, 2026',
+                                    'end_date' => 'March 30, 2027',
+                                    'background' => 'This concept note proposes a school-community support activity for SY 2026-2027.',
+                                    'objectives' => [
+                                        'Strengthen stakeholder coordination',
+                                        'Align SIP and AIP priorities',
+                                        'Mobilize partners for learning continuity',
+                                    ],
+                                    'activities' => [
+                                        'Conduct planning workshop with SGC officers',
+                                        'Prepare learner support kits',
+                                        'Monitor distribution during suspensions',
+                                    ],
+                                    'accomplishments' => [
+                                        'Approved concept note and activity calendar',
+                                        'Assembled continuity kits for priority learners',
+                                        'Documented partner commitments',
+                                    ],
+                                    'indicators' => [
+                                        'Concept note endorsed by SGC officers',
+                                        'Kits ready within 24 hours of suspension',
+                                        'Partner support logged each quarter',
+                                    ],
+                                    'budget' => [
+                                        ['item' => 'Printing of modules', 'quantity' => '100', 'unit_price' => '10', 'total' => '1000'],
+                                        ['item' => 'Bond paper', 'quantity' => '20', 'unit_price' => '250', 'total' => '5000'],
+                                        ['item' => 'Transport support', 'quantity' => '1', 'unit_price' => '3000', 'total' => '3000'],
+                                    ],
+                                ]),
+                            ],
+                        ]],
+                    ]);
+                }
+
+                if (str_contains($body, '"kind":"action_plan"') || str_contains($body, '\"kind\":\"action_plan\"')) {
+                    $rows = [];
+                    for ($i = 1; $i <= 5; $i++) {
+                        $rows[] = [
+                            'area' => 'Governance area '.$i,
+                            'need' => 'Prioritized need '.$i,
+                            'objective' => 'Objective '.$i,
+                            'activities' => 'Activity '.$i,
+                            'outputs' => 'Expected output '.$i,
+                            'timeframe' => 'Q'.$i.' SY 2026-2027',
+                            'persons' => 'SGC Officers',
+                            'materials' => 'Advocacy kit '.$i,
+                        ];
+                    }
+
+                    return Http::response([
+                        'choices' => [[
+                            'message' => [
+                                'content' => json_encode(['rows' => $rows]),
+                            ],
+                        ]],
+                    ]);
+                }
+
+                if (str_contains($body, '"kind":"documentation"') || str_contains($body, '\"kind\":\"documentation\"')) {
+                    return Http::response([
+                        'choices' => [[
+                            'message' => [
+                                'content' => json_encode([
+                                    'replacements' => [
+                                        '[INSERT PROJECT TITLE]' => 'SY 2026-2027 SGC Regular Meeting and SIP/AIP Alignment Documentation Report',
+                                        '[Insert project overview, including the date, venue, attendees, & leading organization]' => 'On 6 November 2026 at the school conference room, SGC officers and stakeholders reviewed SIP and AIP priorities.',
+                                        'Obj1' => 'Strengthen stakeholder coordination for school programs',
+                                        'Obj2' => 'Align SIP and AIP monitoring actions',
+                                        'Obj3' => 'Document agreements for quarterly follow-through',
+                                        'Obj4' => 'Mobilize partners for learning continuity support',
+                                        '[Insert description of the activities conducted with photo documentation]' => 'The meeting opened with registration, roll call, and a review of previous agreements.',
+                                        '[INSERT PHOTO DOCUMENTATION/S]' => 'Photo documentation of attendance and deliberation is attached.',
+                                        '[Insert description of the status quo with or without photo documentation]' => 'Current SIP actions are underway with partner support still being mobilized.',
+                                        '[Insert description of accomplishments/Issues/ Concerns with photo documentation]' => 'Agreements on monitoring roles were confirmed; remaining concern is partner scheduling.',
+                                    ],
+                                ]),
+                            ],
+                        ]],
+                    ]);
+                }
+
                 return Http::response([
                     'choices' => [[
                         'message' => [
@@ -771,6 +886,122 @@ class FatSubmissionTest extends TestCase
                 && str_contains($pair[0]->body(), 'San Guillermo Elementary School');
         });
         $this->assertTrue($sent);
+        $this->assertStringNotContainsString('<script', strtolower($html));
+    }
+
+    public function test_auto_fill_updates_the_open_resolution_preview(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => 'test-key']);
+
+        $response = $this->actingAs($encoder)
+            ->postJson('/school/templates/resolution-sgc/autofill')
+            ->assertOk();
+
+        $html = $response->json('html');
+        $this->assertIsString($html);
+        $this->assertStringContainsString('CONTINUOUS SIP AND AIP IMPLEMENTATION', $html);
+        $this->assertStringContainsString('Resolution whereas clause 1', $html);
+        $this->assertStringContainsString('Resolution whereas clause 9', $html);
+        $this->assertStringContainsString('Adopt continuous SIP monitoring for the school year', $html);
+        $this->assertStringNotContainsString('[State the Subject]', $html);
+        $this->assertStringNotContainsString('[State details]', $html);
+        $this->assertStringContainsString('resolution subject, WHEREAS clauses', (string) $response->json('note'));
+        $this->assertStringNotContainsString('<script', strtolower($html));
+    }
+
+    public function test_auto_fill_updates_documentation_overview_and_objectives(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => 'test-key']);
+
+        $response = $this->actingAs($encoder)
+            ->postJson('/school/templates/documentation-sgc/autofill')
+            ->assertOk();
+
+        $html = $response->json('html');
+        $this->assertIsString($html);
+        $this->assertStringContainsString('On 6 November 2026 at the school conference room', $html);
+        $this->assertStringContainsString('Strengthen stakeholder coordination for school programs', $html);
+        $this->assertStringContainsString('Mobilize partners for learning continuity support', $html);
+        $this->assertStringNotContainsString('[Insert project overview, including the date, venue, attendees, & leading organization]', $html);
+        $this->assertStringNotContainsString('Obj1', $html);
+        $this->assertStringNotContainsString('Obj4', $html);
+        $this->assertStringContainsString('overview, objectives', (string) $response->json('note'));
+        $this->assertStringNotContainsString('<script', strtolower($html));
+    }
+
+    public function test_auto_fill_updates_the_open_action_plan_preview(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => 'test-key']);
+
+        $response = $this->actingAs($encoder)
+            ->postJson('/school/templates/action-plan-sgc/autofill')
+            ->assertOk();
+
+        $html = $response->json('html');
+        $this->assertIsString($html);
+        $this->assertStringContainsString('Governance area 1', $html);
+        $this->assertStringContainsString('Prioritized need 5', $html);
+        $this->assertStringContainsString('Expected output 3', $html);
+        $this->assertStringContainsString('Advocacy kit 2', $html);
+        $this->assertStringContainsString('action / advocacy plan rows', (string) $response->json('note'));
+        $this->assertStringNotContainsString('<script', strtolower($html));
+    }
+
+    public function test_auto_fill_updates_the_open_concept_note_preview(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        config(['services.openai.key' => 'test-key']);
+
+        $response = $this->actingAs($encoder)
+            ->postJson('/school/templates/concept-note-sgc/autofill')
+            ->assertOk();
+
+        $html = $response->json('html');
+        $this->assertIsString($html);
+        $this->assertStringContainsString('Project Learning Continuity Kits', $html);
+        $this->assertStringContainsString('August 1, 2026', $html);
+        $this->assertStringContainsString('Strengthen stakeholder coordination', $html);
+        $this->assertStringContainsString('Conduct planning workshop with SGC officers', $html);
+        $this->assertStringContainsString('Printing of modules', $html);
+        $this->assertStringContainsString('9,000', $html);
+        $this->assertStringNotContainsString('[Insert exhaustive background', $html);
+        $this->assertStringNotContainsString('Obj1', $html);
+        $this->assertStringContainsString('project details, background, objectives', (string) $response->json('note'));
+        $this->assertStringNotContainsString('<script', strtolower($html));
+    }
+
+    public function test_auto_fill_updates_the_open_org_chart_preview(): void
+    {
+        $this->openCycle();
+        [$encoder] = $this->schoolPair();
+        \App\Models\SchoolFormProfile::query()->create([
+            'school_code' => '654321',
+            'school_name' => 'Sample ES',
+            'school_head_name' => 'Ana Principal',
+            'co_chair_designated' => 'Ben Designated',
+            'co_chair_elected' => 'Cara Elected',
+            'secretary_name' => 'Dina Secretary',
+        ]);
+
+        $response = $this->actingAs($encoder)
+            ->postJson('/school/templates/org-chart-sgc/autofill')
+            ->assertOk();
+
+        $html = $response->json('html');
+        $this->assertIsString($html);
+        $this->assertStringContainsString('flex-wrap', $html);
+        $this->assertMatchesRegularExpression('/Ana Principal<br(?:\s*\/)?>School Principal/', $html);
+        $this->assertMatchesRegularExpression('/Ben Designated<br(?:\s*\/)?>Designated Co-Chairperson/', $html);
+        $this->assertMatchesRegularExpression('/Cara Elected<br(?:\s*\/)?>Elected Co-Chairperson/', $html);
+        $this->assertMatchesRegularExpression('/Dina Secretary<br(?:\s*\/)?>Elected Secretary/', $html);
+        $this->assertStringContainsString('Officers from Form data', (string) $response->json('note'));
         $this->assertStringNotContainsString('<script', strtolower($html));
     }
 

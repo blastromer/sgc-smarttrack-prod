@@ -32,6 +32,17 @@ const props = defineProps<{
     activities?: Activity[];
     maturity_level?: number;
     step_checks?: Record<string, { state: 'done' | 'progress' | 'open'; detail: string }>;
+    benchmark?: {
+        value: string;
+        metric: string;
+        average: string;
+        difference_points: number;
+        rank: number;
+        total: number;
+        percentile: number;
+        standing: string;
+        href: string;
+    } | null;
 }>();
 
 const page = usePage<SharedData>();
@@ -218,6 +229,38 @@ const statusClass = (status: IndicatorCard['status']) => {
                 </div>
 
                 <aside class="dash-home-side">
+                    <section v-if="benchmark" class="box">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <SgcIcon name="Benchmarking" />
+                                <b>Division benchmark</b>
+                            </div>
+                            <span class="badge">{{ benchmark.standing }}</span>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="muted block text-xs">Your {{ benchmark.metric }}</span>
+                                <b class="text-lg">{{ benchmark.value }}</b>
+                            </div>
+                            <div>
+                                <span class="muted block text-xs">Division average</span>
+                                <b class="text-lg">{{ benchmark.average }}</b>
+                            </div>
+                            <div>
+                                <span class="muted block text-xs">vs average</span>
+                                <b>{{ benchmark.difference_points > 0 ? '+' : '' }}{{ benchmark.difference_points }} pp</b>
+                            </div>
+                            <div>
+                                <span class="muted block text-xs">Standing</span>
+                                <b>#{{ benchmark.rank }} / {{ benchmark.total }} · {{ benchmark.percentile }}th</b>
+                            </div>
+                        </div>
+                        <Link class="btn dash-ask mt-3" :href="benchmark.href">
+                            <SgcIcon name="Benchmarking" />
+                            View benchmarking
+                        </Link>
+                    </section>
+
                     <section class="box">
                         <div class="flex items-start justify-between gap-2">
                             <div class="flex items-center gap-2">

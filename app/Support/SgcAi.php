@@ -91,20 +91,24 @@ class SgcAi
         $messages[] = ['role' => 'user', 'content' => $message];
 
         try {
-            $response = Http::timeout(12)
+            $response = Http::timeout(25)
                 ->connectTimeout(8)
                 ->retry(1, 400)
                 ->withToken((string) config('services.openai.key'))
                 ->acceptJson()
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),
-                    'temperature' => 0.3,
-                    'max_tokens' => $intent === 'ideas' ? 420 : 320,
+                    'max_completion_tokens' => $intent === 'ideas' ? 1600 : 1200,
                     'messages' => $messages,
                 ]);
 
             if (! $response->successful()) {
-                Log::warning('SGC AI chat failed.', ['status' => $response->status(), 'role' => $user->role]);
+                Log::warning('SGC AI chat failed.', [
+                    'status' => $response->status(),
+                    'body' => $response->json('error.message') ?? $response->body(),
+                    'model' => config('services.openai.model'),
+                    'role' => $user->role,
+                ]);
 
                 return $fallback;
             }
@@ -426,6 +430,14 @@ class SgcAi
                 '/school/encoders',
                 'Accept pending teachers or review the active list',
                 ['Explain this page', 'Where is the encoder list?'],
+            ),
+            $path === '/school/benchmarking' && $user->isSchoolStaff() => self::describePage(
+                'school.benchmarking',
+                'Benchmarking',
+                'This page ranks schools in the division by SGC FAT progress (FIs met or assessment progress). You can see other schools by name, status, maturity, and rank. It does not show other schools’ MOV files or private contacts.',
+                '/school/benchmarking',
+                'Check your rank, then encode remaining FIs or upload MOVs',
+                ['Explain this page', 'What is our division rank?', 'Generate next actions'],
             ),
             default => [],
         };

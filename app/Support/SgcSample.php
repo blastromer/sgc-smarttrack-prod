@@ -52,6 +52,7 @@ class SgcSample
             ],
             'school_head' => [
                 ['label' => 'Dashboard', 'href' => '/school'],
+                ['label' => 'Benchmarking', 'href' => '/school/benchmarking'],
                 ['label' => 'My assessment', 'href' => '/school/assessment'],
                 ['label' => 'MOV files', 'href' => '/school/movs'],
                 ['label' => 'Submit', 'href' => '/school/submit'],
@@ -62,6 +63,7 @@ class SgcSample
             ],
             default => [
                 ['label' => 'Dashboard', 'href' => '/school'],
+                ['label' => 'Benchmarking', 'href' => '/school/benchmarking'],
                 ['label' => 'My assessment', 'href' => '/school/assessment'],
                 ['label' => 'MOV files', 'href' => '/school/movs'],
                 ['label' => 'Submit', 'href' => '/school/submit'],
