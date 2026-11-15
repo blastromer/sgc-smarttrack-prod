@@ -943,6 +943,21 @@
     .btn-pair .btn.inline { width: auto; min-width: 5.5rem; }
     .actions { @apply flex-col; }
     .btn.inline { @apply min-h-11 w-full justify-center; }
+    .sgc-ai-compose .btn.inline,
+    .sgc-ai-compose .sgc-ai-send {
+      width: auto;
+      min-width: 2.75rem;
+      flex: 0 0 auto;
+    }
+    .sgc-ai-sheet .ico {
+      width: 18px;
+      height: 18px;
+    }
+    .sgc-ai-compose .sgc-ai-send .ico {
+      width: 16px;
+      height: 16px;
+      color: #fff;
+    }
     .flow-banner b, .flow-banner .muted { overflow-wrap: anywhere; }
     .vchart { @apply h-40; }
     .data-table { min-width: 0; }

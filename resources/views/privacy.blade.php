@@ -67,6 +67,7 @@
         <h2>Who can see it</h2>
         <ul>
             <li>The School Head and encoder of that school can see that school’s answers and files.</li>
+            <li>School staff can also see other schools’ public SGC FAT benchmark information (school name, progress, FIs met, packet status, maturity, and rank). They cannot open another school’s MOV files or private contacts.</li>
             <li>Division reviewers of the Schools Division Office of Cadiz City can see submitted packets and open the files for validation.</li>
             <li>The Super Admin can manage users, cycles, and the system.</li>
             <li>Google receives the files and folder names that the connected Google account stores in Drive, under Google’s own terms.</li>

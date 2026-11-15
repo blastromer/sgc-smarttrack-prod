@@ -349,6 +349,7 @@ class DocxHtmlPreview
                 'tab' => '&nbsp;&nbsp;&nbsp;&nbsp;',
                 'br', 'cr' => '<br>',
                 'drawing', 'pict' => self::image($node, $images),
+                'AlternateContent' => self::alternateContent($node, $images),
                 default => '',
             };
         }
@@ -383,6 +384,39 @@ class DocxHtmlPreview
     /**
      * @param  array<string, string>  $images
      */
+    private static function alternateContent(DOMElement $el, array $images): string
+    {
+        foreach ($el->childNodes as $child) {
+            if (! $child instanceof DOMElement || $child->localName !== 'Choice') {
+                continue;
+            }
+            foreach ($child->childNodes as $node) {
+                if ($node instanceof DOMElement && in_array($node->localName, ['drawing', 'pict'], true)) {
+                    $html = self::image($node, $images);
+                    if ($html !== '') {
+                        return $html;
+                    }
+                }
+            }
+        }
+
+        foreach ($el->childNodes as $child) {
+            if (! $child instanceof DOMElement || $child->localName !== 'Fallback') {
+                continue;
+            }
+            foreach ($child->childNodes as $node) {
+                if ($node instanceof DOMElement && in_array($node->localName, ['drawing', 'pict'], true)) {
+                    return self::image($node, $images);
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, string>  $images
+     */
     private static function image(DOMElement $el, array $images): string
     {
         $id = '';
@@ -401,11 +435,44 @@ class DocxHtmlPreview
                 }
             }
         }
-        if ($id === '' || ! isset($images[$id])) {
+        if ($id !== '' && isset($images[$id])) {
+            return '<img src="'.$images[$id].'" alt="">';
+        }
+
+        return self::drawingTextboxes($el);
+    }
+
+    /**
+     * Render Word drawing text boxes (org charts) that are not image embeds.
+     */
+    private static function drawingTextboxes(DOMElement $el): string
+    {
+        $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+        $boxes = [];
+        foreach ($el->getElementsByTagNameNS($ns, 'txbxContent') as $box) {
+            if (! $box instanceof DOMElement) {
+                continue;
+            }
+            $lines = [];
+            foreach ($box->getElementsByTagNameNS($ns, 'p') as $paragraph) {
+                if (! $paragraph instanceof DOMElement) {
+                    continue;
+                }
+                $line = trim(preg_replace('/\s+/', ' ', $paragraph->textContent) ?? '');
+                if ($line !== '') {
+                    $lines[] = htmlspecialchars($line, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                }
+            }
+            if ($lines !== []) {
+                $boxes[] = '<div style="border:1px solid #333;padding:8px 10px;margin:6px;min-width:140px;text-align:center;background:#fff">'.implode('<br>', $lines).'</div>';
+            }
+        }
+
+        if ($boxes === []) {
             return '';
         }
 
-        return '<img src="'.$images[$id].'" alt="">';
+        return '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0;padding:12px;border:1px dashed #999;background:#fafafa">'.implode('', $boxes).'</div>';
     }
 
     private static function hasChild(DOMElement $el, string $name): bool

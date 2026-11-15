@@ -193,8 +193,7 @@ class EncoderRecommendation
                     ->acceptJson()
                     ->post('https://api.openai.com/v1/chat/completions', [
                         'model' => config('services.openai.model', 'gpt-4o-mini'),
-                        'temperature' => 0.2,
-                        'max_tokens' => 180,
+                        'max_completion_tokens' => 800,
                         'messages' => [
                             [
                                 'role' => 'system',
@@ -261,8 +260,7 @@ class EncoderRecommendation
                 ->acceptJson()
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),
-                    'temperature' => 0.2,
-                    'max_tokens' => 700,
+                    'max_completion_tokens' => 1600,
                     'messages' => [
                         [
                             'role' => 'system',

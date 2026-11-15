@@ -34,7 +34,7 @@ class AiPattern
         $file = match ($kind) {
             'org_chart' => 'org-chart.docx',
             'notice' => 'notice.docx',
-            'minutes' => 'minutes.docx',
+            'minutes' => 'minutes-feed.docx',
             'resolution' => 'resolution.docx',
             'transmittal' => 'transmittal.docx',
             'progress' => 'progress.docx',

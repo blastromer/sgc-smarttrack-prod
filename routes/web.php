@@ -56,6 +56,7 @@ Route::middleware(['auth', 'role:division'])->group(function () {
 
 Route::middleware(['auth', 'role:school,school_head'])->group(function () {
     Route::get('school', [SchoolAssessmentController::class, 'dashboard'])->name('school.dashboard');
+    Route::get('school/benchmarking', [SchoolAssessmentController::class, 'benchmarking'])->name('school.benchmarking');
     Route::get('school/assessment', [SchoolAssessmentController::class, 'assessment'])->name('school.assessment');
     Route::post('school/assessment', [SchoolAssessmentController::class, 'encode'])->name('school.assessment.encode');
     Route::get('school/movs', [SchoolAssessmentController::class, 'movs'])->name('school.movs');

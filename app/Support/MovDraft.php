@@ -67,7 +67,7 @@ class MovDraft
         }
 
         $text = html_entity_decode(strip_tags($xml), ENT_QUOTES | ENT_XML1, 'UTF-8');
-        preg_match_all('/\[[^\[\]]{2,180}\]|Agenda[n]? #\d+/u', $text, $found);
+        preg_match_all('/\[[^\[\]]{2,180}\]|Agenda[n]? #\d+|Obj\d+/u', $text, $found);
 
         $blanks = [];
         foreach ($found[0] ?? [] as $blank) {
@@ -82,7 +82,12 @@ class MovDraft
 
     public static function isNarrative(string $blank): bool
     {
+        if (preg_match('/signature/iu', $blank)) {
+            return false;
+        }
+
         return (bool) preg_match('/^Agenda[n]? #\d+$/u', $blank)
+            || (bool) preg_match('/^Obj\d+$/u', $blank)
             || (bool) preg_match('/^\[insert\b/iu', $blank);
     }
 
@@ -99,11 +104,11 @@ class MovDraft
                 ->acceptJson()
                 ->post('https://api.openai.com/v1/chat/completions', [
                     'model' => config('services.openai.model', 'gpt-4o-mini'),
-                    'max_completion_tokens' => 900,
+                    'max_completion_tokens' => 1400,
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => 'You fill the remaining blank prompts in a DepEd SGC means-of-verification Word form. Recommend wording the school can edit. Use the school facts when they are present. When a pattern sample is included, follow its structure, sequence, and level of detail, but write for the current school. Do not copy the sample school name, school ID, people, address, region, division, dates, or projects. For a missing venue, subject, date, purpose, or agenda item, write a realistic recommendation for that form. Each agenda value is one short line and must not repeat the words Agenda #. Do not invent personal names, signatures, phone numbers, or email addresses. Do not encode Yes or No. Do not say the SGC is Functional. Return JSON {"replacements":{"exact blank":"recommended text"}}. Every key must be copied exactly from the blanks list.',
+                            'content' => 'You fill the remaining blank prompts in a DepEd SGC means-of-verification Word form. Recommend wording the school can edit. Use the school facts when they are present. When a pattern sample is included, follow its structure, sequence, and level of detail, but write for the current school. Do not copy the sample school name, school ID, people, address, region, division, dates, or projects. For a missing venue, subject, date, purpose, overview, or agenda item, write a realistic recommendation for that form. Each Agenda # value is one short line and must not repeat the words Agenda #. Each ObjN value is one short objective line and must not repeat the Obj label. Do not invent personal names, signatures, phone numbers, or email addresses. Do not encode Yes or No. Do not say the SGC is Functional. Return JSON {"replacements":{"exact blank":"recommended text"}}. Every key must be copied exactly from the blanks list.',
                         ],
                         [
                             'role' => 'user',

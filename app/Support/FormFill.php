@@ -216,21 +216,34 @@ class FormFill
     private static function replaceInXml(string $xml, string $search, string $replace, int $limit): string
     {
         $safe = htmlspecialchars($replace, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        $needles = array_values(array_unique(array_filter([
+            $search,
+            htmlspecialchars($search, ENT_XML1 | ENT_QUOTES, 'UTF-8'),
+        ], fn (string $needle) => $needle !== '')));
 
-        if ($limit === 1) {
-            $pos = strpos($xml, $search);
-            if ($pos !== false) {
-                return substr_replace($xml, $safe, $pos, strlen($search));
+        foreach ($needles as $needle) {
+            if ($limit === 1) {
+                $pos = strpos($xml, $needle);
+                if ($pos !== false) {
+                    return substr_replace($xml, $safe, $pos, strlen($needle));
+                }
+
+                continue;
             }
 
-            return self::replaceSplit($xml, $search, $safe, 1);
+            if (str_contains($xml, $needle)) {
+                return str_replace($needle, $safe, $xml);
+            }
         }
 
-        if (str_contains($xml, $search)) {
-            return str_replace($search, $safe, $xml);
+        foreach ($needles as $needle) {
+            $out = self::replaceSplit($xml, $needle, $safe, $limit);
+            if ($out !== $xml) {
+                return $out;
+            }
         }
 
-        return self::replaceSplit($xml, $search, $safe, 0);
+        return $xml;
     }
 
     private static function replaceSplit(string $xml, string $search, string $safe, int $limit): string

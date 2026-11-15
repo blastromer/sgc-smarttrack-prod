@@ -68,7 +68,7 @@ const navGroups = computed(() => {
         take('Assessment Management', ['/division/queue', '/division/alerts']);
         take('Master Data', ['/division/schools', '/division/registrations']);
     } else {
-        take('', ['/school']);
+        take('', ['/school', '/school/benchmarking']);
         take('Assessment Management', ['/school/assessment', '/school/movs', '/school/submit']);
         take('Master Data', ['/school/templates', '/school/form-data', '/school/encoders']);
     }
@@ -627,7 +627,7 @@ onUnmounted(() => {
             </div>
             <p v-if="props.chip" class="chip mb-2 mt-1 block sgc:hidden">{{ props.chip }}</p>
             <div v-if="flash" class="flash">{{ flash }}</div>
-            <div v-if="isSchool && sgc?.flow" :class="currentPath === '/school' ? 'mb-2.5' : 'mb-4'">
+            <div v-if="isSchool && sgc?.flow && currentPath !== '/school/benchmarking'" :class="currentPath === '/school' ? 'mb-2.5' : 'mb-4'">
                 <div class="flow hidden sgc:flex" :class="{ 'is-dash-flow': currentPath === '/school' }">
                     <Link
                         v-for="step in sgc.flow.steps"
@@ -763,20 +763,11 @@ onUnmounted(() => {
         </aside>
         <aside
             v-if="ai"
-            class="fixed top-0 right-0 z-50 flex h-full w-[min(380px,100%)] flex-col border-l border-sgc-line bg-sgc-panel transition-transform duration-200"
+            class="fixed inset-y-0 right-0 z-50 flex h-dvh max-h-dvh w-full max-w-[400px] flex-col overflow-hidden border-l border-[#e8eef2] bg-white shadow-[-8px_0_24px_rgba(15,23,42,.08)] transition-transform duration-200"
             :class="aiOpen ? 'translate-x-0 pointer-events-auto' : 'pointer-events-none translate-x-full'"
             :aria-hidden="!aiOpen"
         >
-            <div class="flex items-center justify-between border-b border-sgc-line px-[18px] pb-3 pt-[18px]">
-                <div>
-                    <b class="text-[15px]">AI assistance</b>
-                    <p class="muted">{{ ai.live ? 'Live OpenAI hint' : 'Catalog hint' }}</p>
-                </div>
-                <button class="sgc-close" type="button" aria-label="Close AI assistance" title="Close" @click="closeAi"><SgcIcon name="Close" /></button>
-            </div>
-            <div class="flex min-h-0 flex-1 flex-col">
-                <SgcAiChat :open="aiOpen" @close="closeAi" />
-            </div>
+            <SgcAiChat :open="aiOpen" @close="closeAi" />
         </aside>
         <SgcWalkthrough />
         </Teleport>
