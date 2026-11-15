@@ -23,6 +23,9 @@ type SchoolRow = {
     movs: string;
     status: string;
     review_id: number | null;
+    ta_priority?: string;
+    ta_action?: string | null;
+    ta_flagged?: boolean;
 };
 
 const props = defineProps<{
@@ -103,11 +106,21 @@ const toggleMenu = (code: string) => {
 };
 
 const exportRows = () => {
-    const header = ['School Name', 'School ID', 'Maturity Level', 'Assessment Progress', 'FIs Met', 'MOVs', 'Assessment Status'];
+    const header = ['School Name', 'School ID', 'Maturity Level', 'Assessment Progress', 'FIs Met', 'MOVs', 'Assessment Status', 'TA Priority', 'Top TA Action'];
     const lines = filtered.value.map((school) => {
         const level = levelOf(school.maturity_level);
 
-        return [school.name, school.school_code, level ? `${level.name} ${level.title}` : 'Level 0', `${school.progress}%`, school.yes, school.movs, STATUS[school.status] ?? school.status];
+        return [
+            school.name,
+            school.school_code,
+            level ? `${level.name} ${level.title}` : 'Level 0',
+            `${school.progress}%`,
+            school.yes,
+            school.movs,
+            STATUS[school.status] ?? school.status,
+            school.ta_priority ?? '',
+            school.ta_action ?? '',
+        ];
     });
     const csv = [header, ...lines]
         .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
@@ -209,6 +222,7 @@ const exportRows = () => {
                                 <th>FIs Met</th>
                                 <th>MOVs</th>
                                 <th>Assessment Status</th>
+                                <th>TA Priority</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -237,6 +251,15 @@ const exportRows = () => {
                                 <td data-label="MOVs">{{ school.movs }}</td>
                                 <td data-label="Assessment Status">
                                     <span class="status-pill" :class="`is-${school.status}`">{{ STATUS[school.status] ?? school.status }}</span>
+                                </td>
+                                <td data-label="TA Priority">
+                                    <span
+                                        class="status-pill"
+                                        :class="school.ta_priority === 'high' ? 'is-returned' : school.ta_priority === 'medium' ? 'is-for_validation' : school.ta_flagged ? 'is-in_progress' : 'is-validated'"
+                                        :title="school.ta_action || undefined"
+                                    >
+                                        {{ school.ta_flagged ? (school.ta_priority || 'flagged') : school.ta_priority === 'none' ? 'Clear' : school.ta_priority || '—' }}
+                                    </span>
                                 </td>
                                 <td data-label="Actions">
                                     <div class="row-actions">

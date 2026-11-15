@@ -54,6 +54,14 @@ class PortalController extends Controller
         return Inertia::render('division/Alerts', PortalMetrics::divisionAlerts());
     }
 
+    public function divisionTa(Request $request): Response
+    {
+        return Inertia::render(
+            'division/Ta',
+            PortalMetrics::divisionTa($request->integer('cycle') ?: null),
+        );
+    }
+
     public function schoolDashboard(): Response
     {
         return Inertia::render('school/Dashboard', SgcSample::page('school.dashboard'));

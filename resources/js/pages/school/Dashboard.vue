@@ -3,7 +3,7 @@ import MaturityLevelDialog from '@/components/sgc/MaturityLevelDialog.vue';
 import SgcIcon from '@/components/sgc/SgcIcon.vue';
 import SgcLayout from '@/layouts/SgcLayout.vue';
 import type { SharedData } from '@/types';
-import type { Kpi } from '@/types/sgc';
+import type { CoachingPayload, Kpi } from '@/types/sgc';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, ref } from 'vue';
 
@@ -43,6 +43,7 @@ const props = defineProps<{
         standing: string;
         href: string;
     } | null;
+    coaching?: CoachingPayload | null;
 }>();
 
 const page = usePage<SharedData>();
@@ -119,6 +120,18 @@ const statusClass = (status: IndicatorCard['status']) => {
 <template>
     <SgcLayout :title="title" :subtitle="subtitle" :chip="chip">
         <div class="dash-home">
+            <Link v-if="coaching" class="coach-banner" href="/school/improvement-plan">
+                <SgcIcon name="Improvement plan" />
+                <div>
+                    <b>Division coaching scheduled</b>
+                    <p>
+                        {{ coaching.when }}
+                        · {{ coaching.mode === 'online' ? 'Online' : 'On-site' }}
+                        <span v-if="coaching.venue"> · {{ coaching.venue }}</span>
+                    </p>
+                    <p v-if="coaching.focus">{{ coaching.focus }}</p>
+                </div>
+            </Link>
             <div v-if="kpis?.length" class="dash-kpis">
                 <Link v-for="item in kpis" :key="item.label" class="dash-kpi" href="/school/assessment">
                     <span class="dash-kpi-ico" :class="kpiTone(item.label)" aria-hidden="true"><SgcIcon :name="kpiIcon(item.label)" /></span>

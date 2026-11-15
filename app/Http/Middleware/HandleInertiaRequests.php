@@ -6,6 +6,7 @@ use App\Models\Assessment;
 use App\Models\Mov;
 use App\Models\User;
 use App\Support\AssessmentEngine;
+use App\Support\GovernanceImprovementPlan;
 use App\Support\SgcAi;
 use App\Support\SgcSample;
 use App\Support\SiteAppearance;
@@ -60,6 +61,7 @@ class HandleInertiaRequests extends Middleware
                 'counts' => $this->navCounts($user),
                 'notices' => $this->noticesFor($user),
                 'noticeHref' => SgcSample::noticeHref($user->role),
+                'coaching' => $user->isSchoolStaff() ? $this->coachingFor($user) : null,
                 'flow' => $user->isSchoolStaff() ? AssessmentEngine::flowFor($user) : null,
                 'ai' => SgcAi::forUser($user, $request->path()),
                 'appearance' => [
@@ -82,8 +84,12 @@ class HandleInertiaRequests extends Middleware
             return [];
         }
 
+        $activeHeads = User::query()->where('role', 'school_head')->where('status', 'active')->count();
+        $functional = Assessment::query()->where('result', 'functional')->count();
+
         return [
             '/division/queue' => Assessment::query()->whereIn('status', ['submitted', 'under_review'])->count(),
+            '/division/ta' => max(0, $activeHeads - $functional),
             '/division/alerts' => Mov::query()->where('status', 'returned')->count(),
             '/division/registrations' => User::query()->where('role', 'school_head')->where('status', 'pending')->count(),
         ];
@@ -98,16 +104,49 @@ class HandleInertiaRequests extends Middleware
             ->latest()
             ->limit(12)
             ->get()
-            ->map(fn ($notification) => [
-                'id' => $notification->id,
-                'unread' => $notification->read_at === null,
-                'title' => $notification->data['title'] ?? 'Notice',
-                'detail' => $notification->data['detail'] ?? '',
-                'when' => $notification->created_at?->diffForHumans() ?? '',
-                'href' => $notification->data['href'] ?? SgcSample::noticeHref($user->role),
-            ])
+            ->map(function ($notification) use ($user) {
+                $title = (string) ($notification->data['title'] ?? 'Notice');
+                $kind = $notification->data['kind'] ?? (str_contains(strtolower($title), 'coaching') ? 'coaching' : 'info');
+
+                return [
+                    'id' => $notification->id,
+                    'unread' => $notification->read_at === null,
+                    'title' => $title,
+                    'detail' => $notification->data['detail'] ?? '',
+                    'when' => $notification->created_at?->diffForHumans() ?? '',
+                    'href' => $notification->data['href'] ?? SgcSample::noticeHref($user->role),
+                    'kind' => $kind,
+                ];
+            })
+            ->sortBy(function (array $notice) {
+                if (($notice['kind'] ?? '') === 'coaching' && $notice['unread']) {
+                    return 0;
+                }
+                if ($notice['unread']) {
+                    return 1;
+                }
+                if (($notice['kind'] ?? '') === 'coaching') {
+                    return 2;
+                }
+
+                return 3;
+            })
+            ->values()
             ->all();
 
         return $live;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function coachingFor(User $user): ?array
+    {
+        $session = GovernanceImprovementPlan::upcomingSession(
+            $user->packetSchoolCode(),
+            AssessmentEngine::currentCycle()?->id,
+        );
+
+        return $session ? GovernanceImprovementPlan::sessionPayload($session) : null;
     }
 }
