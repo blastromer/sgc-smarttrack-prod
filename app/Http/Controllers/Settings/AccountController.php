@@ -30,7 +30,7 @@ class AccountController extends Controller
 
         return Inertia::render('Docs', [
             'title' => 'Docs',
-            'subtitle' => 'Role manuals, FAT rules, and walkthroughs',
+            'subtitle' => 'Role manuals, FAT rules, SGIP, coaching, and walkthroughs',
             'role' => $user->role,
         ]);
     }
