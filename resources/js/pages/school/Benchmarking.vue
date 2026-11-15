@@ -866,7 +866,7 @@ const setSort = (key: typeof sortKey.value) => {
     width: min(920px, calc(100vw - 1.5rem));
     max-height: calc(100dvh - 1.5rem);
     margin: 0;
-    overflow: auto;
+    overflow: hidden;
     border: 0;
     border-radius: 20px;
     padding: 0;
@@ -888,6 +888,7 @@ const setSort = (key: typeof sortKey.value) => {
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+    flex-shrink: 0;
     padding: 1.15rem 1.25rem 1.2rem;
     color: #fff;
     background:
@@ -946,6 +947,7 @@ const setSort = (key: typeof sortKey.value) => {
 .snap-tabs {
     display: flex;
     gap: 0.15rem;
+    flex-shrink: 0;
     padding: 0 0.75rem;
     border-bottom: 1px solid #e2e8f0;
     background: #fff;
@@ -999,6 +1001,9 @@ const setSort = (key: typeof sortKey.value) => {
     display: grid;
     grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.85fr);
     gap: 1rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
     padding: 1rem 1.15rem;
     background: #f8fafc;
 }
@@ -1179,6 +1184,7 @@ const setSort = (key: typeof sortKey.value) => {
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+    flex-shrink: 0;
     padding: 0.9rem 1.15rem 1.05rem;
     border-top: 1px solid #e2e8f0;
     background: #fff;
