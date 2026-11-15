@@ -54,6 +54,8 @@ export const roleMatrix: { action: string; super: string; division: string; scho
     { action: 'Certify QA and submit', super: 'No', division: 'No', school_head: 'Yes', school: 'No' },
     { action: 'Withdraw packet', super: 'No', division: 'No', school_head: 'If no MOV is valid yet', school: 'No' },
     { action: 'Accept or return MOV', super: 'No', division: 'Validation queue', school_head: 'No', school: 'No' },
+    { action: 'Generate SGIP / schedule coaching', super: 'No', division: 'Technical assistance', school_head: 'No', school: 'No' },
+    { action: 'Read improvement plan', super: 'No', division: 'School dossier', school_head: 'Improvement plan', school: 'Improvement plan' },
     { action: 'Reset school and FAT data', super: 'Type RESET FAT DATA', division: 'No', school_head: 'No', school: 'No' },
 ];
 
@@ -160,7 +162,8 @@ export const roleGuides: RoleGuide[] = [
         screens: [
             { name: 'Overview', href: '/division', purpose: 'Live submission counts plus a TA preview.', snapshot: shot('division-overview') },
             { name: 'Validation queue', href: '/division/queue', purpose: 'Packets waiting for MOV review.', snapshot: shot('division-queue') },
-            { name: 'Technical assistance', href: '/division/ta', purpose: 'AI-supported TA priority list, SGIP generation, and coaching schedule.', snapshot: shot('division-overview') },
+            { name: 'Technical assistance', href: '/division/ta', purpose: 'AI-supported TA priority list, SGIP generation, and coaching schedule.', snapshot: shot('division-ta') },
+            { name: 'School dossier', href: '/division/schools/{code}', purpose: 'Full TA recommendations, SGIP, and coaching for one school.', snapshot: shot('division-school') },
             { name: 'Schools', href: '/division/schools', purpose: 'Accepted schools, packet status, and TA priority.', snapshot: shot('division-schools') },
             { name: 'Registrations', href: '/division/registrations', purpose: 'Accept School Heads only.', snapshot: shot('division-registrations') },
             { name: 'Alerts', href: '/division/alerts', purpose: 'Overdue or returned packets.', snapshot: shot('division-alerts') },
@@ -230,13 +233,14 @@ export const roleGuides: RoleGuide[] = [
                 title: 'Use Technical assistance',
                 detail: 'Open Technical assistance in the side nav. Filter by priority, generate a School Governance Improvement Plan, then schedule coaching so the school is notified. Open a school dossier for the full recommendations on unmet FIs, maturity gaps, and returned MOVs.',
                 href: '/division/ta',
-                snapshot: shot('division-overview'),
+                snapshot: shot('division-ta'),
             },
         ],
         notes: [
             'Division accepts School Heads only. Encoder accept lives under the School Head Encoders page.',
             'Do not ask a school to rebuild the whole packet for one invalid MOV.',
             'TA recommendations and the School Governance Improvement Plan are grounded in the school’s FAT answers and maturity checks. They do not encode Yes/No for the school.',
+            'Schedule coaching from Technical assistance. The School Head sees a dashboard banner and can hover the bell for the date and time.',
         ],
     },
     {
@@ -258,12 +262,12 @@ export const roleGuides: RoleGuide[] = [
             'Remove a MOV that Division already marked valid.',
         ],
         screens: [
-            { name: 'Dashboard', href: '/school', purpose: 'Packet progress and 6-step FAT path.', snapshot: shot('head-dashboard') },
+            { name: 'Dashboard', href: '/school', purpose: 'Packet progress, maturity path, and Division coaching banner.', snapshot: shot('head-dashboard') },
             { name: 'My assessment', href: '/school/assessment', purpose: 'Yes / No for 12 functionality indicators.', snapshot: shot('head-assessment') },
             { name: 'MOV files', href: '/school/movs', purpose: 'Upload, remove, or withdraw files.', snapshot: shot('head-movs') },
             { name: 'Submit', href: '/school/submit', purpose: 'Certify QA, submit, or withdraw.', snapshot: shot('head-submit') },
             { name: 'Encoders', href: '/school/encoders', purpose: 'Accept teachers for this School ID.', snapshot: shot('head-encoders') },
-            { name: 'Improvement plan', href: '/school/improvement-plan', purpose: 'Read the Division-issued SGIP and scheduled coaching.' },
+            { name: 'Improvement plan', href: '/school/improvement-plan', purpose: 'Read the Division-issued SGIP and scheduled coaching.', snapshot: shot('head-improvement-plan') },
             { name: 'Notifications', href: '/school/notifications', purpose: 'Encoder requests, Division returns, and coaching notices.', snapshot: shot('head-notifications') },
         ],
         walkthrough: [
@@ -337,10 +341,19 @@ export const roleGuides: RoleGuide[] = [
                 href: '/school/movs',
                 snapshot: shot('head-movs'),
             },
+            {
+                n: 10,
+                title: 'Read coaching and the improvement plan',
+                detail: 'When Division schedules coaching, a coral “Division coaching scheduled” banner appears on the dashboard. Hover the bell to see Upcoming coaching with date, time, and venue. Open Notifications for the in-app notice, then open Improvement plan to read the School Governance Improvement Plan.',
+                href: '/school/improvement-plan',
+                action: 'Open improvement plan',
+                snapshot: shot('head-improvement-plan'),
+            },
         ],
         notes: [
             'School name and School ID must be unique among School Heads.',
             'Encoder and Head share one packet through the same School ID.',
+            'Hover the notification bell to preview the coaching schedule without opening the list. The dashboard banner also links to Improvement plan.',
         ],
     },
     {
@@ -354,6 +367,7 @@ export const roleGuides: RoleGuide[] = [
             'Upload Minimum MOVs and the Validity Form.',
             'Request removal of an unapproved file so the School Head can delete it.',
             'Replace a MOV that Division returned.',
+            'Read the Division-issued School Governance Improvement Plan and coaching details (same page as the School Head).',
         ],
         cannotDo: [
             'Register before the School Head is active for that School ID.',
@@ -362,11 +376,11 @@ export const roleGuides: RoleGuide[] = [
             'Remove a file directly — request removal instead.',
         ],
         screens: [
-            { name: 'Dashboard', href: '/school', purpose: 'See packet progress. Submit stays locked for Encoder.', snapshot: shot('encoder-dashboard') },
+            { name: 'Dashboard', href: '/school', purpose: 'See packet progress and any Division coaching banner. Submit stays locked for Encoder.', snapshot: shot('encoder-dashboard') },
             { name: 'My assessment', href: '/school/assessment', purpose: 'Answer Yes or No for 12 FIs.', snapshot: shot('encoder-assessment') },
             { name: 'MOV files', href: '/school/movs', purpose: 'Upload files and request removal.', snapshot: shot('encoder-movs') },
             { name: 'Submit', href: '/school/submit', purpose: 'Read the checklist. QA and Submit buttons are for the Head only.', snapshot: shot('encoder-submit') },
-            { name: 'Improvement plan', href: '/school/improvement-plan', purpose: 'Read the Division-issued SGIP and scheduled coaching.' },
+            { name: 'Improvement plan', href: '/school/improvement-plan', purpose: 'Read the Division-issued SGIP and scheduled coaching.', snapshot: shot('encoder-improvement-plan') },
             { name: 'Notifications', href: '/school/notifications', purpose: 'Accept notice, returned MOV, Head actions, and coaching.', snapshot: shot('encoder-notifications') },
         ],
         walkthrough: [
@@ -427,10 +441,18 @@ export const roleGuides: RoleGuide[] = [
                 href: '/school/movs',
                 snapshot: shot('encoder-movs'),
             },
+            {
+                n: 9,
+                title: 'Read the improvement plan',
+                detail: 'Open Improvement plan to read the same School Governance Improvement Plan Division issued for your school. You cannot generate the plan or schedule coaching.',
+                href: '/school/improvement-plan',
+                snapshot: shot('encoder-improvement-plan'),
+            },
         ],
         notes: [
             'Position list changes with “I am registering as.” Encoder positions are teacher and SGC staff titles, not Principal titles.',
             'One School ID = one packet. Do not invent a second school code for the same school.',
+            'If Division scheduled coaching, the dashboard banner and bell tooltip also appear for Encoder. Only the School Head receives the email notice.',
         ],
     },
 ];

@@ -13,8 +13,9 @@ defineProps<{
 <template>
     <SgcLayout :title="title" :subtitle="subtitle">
         <p class="muted" style="margin-bottom: 12px">
-            Start with your role walkthrough. Switch tabs to train Super Admin, Division Admin, School Head, or Encoder.
-            Full manuals live under Docs.
+            Start with your role walkthrough. Switch tabs to train Super Admin, Division Admin, School Head, or Encoder —
+            including Technical assistance, School Governance Improvement Plan, and coaching.
+            Full manuals and the all-roles PDF live under Docs.
         </p>
         <RoleDocs :user-role="role" mode="walkthrough" />
     </SgcLayout>

@@ -46,12 +46,12 @@
   <section class="cover">
     <div class="kicker">Schools Division of Cadiz City · Negros Island Region</div>
     <h1>SGC SmartTrack</h1>
-    <p class="sub">User Role Guide — Super Admin, Division Admin, School Head, and Encoder. Complete instructions with screen snapshots.</p>
+    <p class="sub">User Role Guide — Super Admin, Division Admin, School Head, and Encoder. Includes School Governance Improvement Plan, technical assistance, and coaching, with current screen snapshots.</p>
     <div class="meta">
       <p><strong>Portal:</strong> https://sgc-smarttrack.com</p>
       <p><strong>Policy:</strong> DepEd Order 26, s. 2022 — School Governance Council Functionality Assessment Tool</p>
       <p><strong>Scope:</strong> One SDO, one domain. Not multi-tenant.</p>
-      <p><strong>Date:</strong> 20 September 2026</p>
+      <p><strong>Date:</strong> 16 November 2026</p>
     </div>
   </section>
 
@@ -64,6 +64,7 @@
     <li><a href="#division">Division Admin</a></li>
     <li><a href="#school_head">School Head</a></li>
     <li><a href="#school">Encoder</a></li>
+    <li><a href="#sgip">School Governance Improvement Plan and coaching</a></li>
     <li><a href="#return">Returned or invalid MOV</a></li>
     <li><a href="#register">Registration rules and positions</a></li>
   </ol>
@@ -88,6 +89,7 @@
       <li>The School Head certifies QA and submits to Division. Only the Head can submit or withdraw.</li>
       <li>Division reviews each MOV, Accepts or Returns flagged files, then completes the review.</li>
       <li>If a file is returned: replace only that file, recertify QA, resubmit. Do not rebuild the packet.</li>
+      <li>Division opens Technical assistance, generates a School Governance Improvement Plan, and can schedule coaching. The school reads the plan on Improvement plan. The School Head also sees a dashboard banner and can hover the bell for the date and time.</li>
     </ol>
   </section>
 
@@ -104,7 +106,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>Create first Super Admin</td><td>Yes — /setup once</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Create Division Admin</td><td>Users &amp; roles</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Accept School Head</td><td>No</td><td>Registrations</td><td>No</td><td>No</td></tr><tr><td>Accept Encoder</td><td>No</td><td>No</td><td>Encoders</td><td>No</td></tr><tr><td>Encode Yes / No</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Upload MOV</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Remove unapproved MOV</td><td>No</td><td>No</td><td>Remove</td><td>Request only</td></tr><tr><td>Certify QA and submit</td><td>No</td><td>No</td><td>Yes</td><td>No</td></tr><tr><td>Withdraw packet</td><td>No</td><td>No</td><td>If no MOV is valid yet</td><td>No</td></tr><tr><td>Accept or return MOV</td><td>No</td><td>Validation queue</td><td>No</td><td>No</td></tr><tr><td>Reset school and FAT data</td><td>Type RESET FAT DATA</td><td>No</td><td>No</td><td>No</td></tr>
+        <tr><td>Create first Super Admin</td><td>Yes — /setup once</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Create Division Admin</td><td>Users &amp; roles</td><td>No</td><td>No</td><td>No</td></tr><tr><td>Accept School Head</td><td>No</td><td>Registrations</td><td>No</td><td>No</td></tr><tr><td>Accept Encoder</td><td>No</td><td>No</td><td>Encoders</td><td>No</td></tr><tr><td>Encode Yes / No</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Upload MOV</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr><tr><td>Remove unapproved MOV</td><td>No</td><td>No</td><td>Remove</td><td>Request only</td></tr><tr><td>Certify QA and submit</td><td>No</td><td>No</td><td>Yes</td><td>No</td></tr><tr><td>Withdraw packet</td><td>No</td><td>No</td><td>If no MOV is valid yet</td><td>No</td></tr><tr><td>Accept or return MOV</td><td>No</td><td>Validation queue</td><td>No</td><td>No</td></tr><tr><td>Generate SGIP / schedule coaching</td><td>No</td><td>Technical assistance</td><td>No</td><td>No</td></tr><tr><td>Read improvement plan</td><td>No</td><td>School dossier</td><td>Improvement plan</td><td>Improvement plan</td></tr><tr><td>Reset school and FAT data</td><td>Type RESET FAT DATA</td><td>No</td><td>No</td><td>No</td></tr>
       </tbody>
     </table>
   </section>
@@ -218,17 +220,17 @@
     </section>
     <section class="role" id="division">
         <h1>2. Division Admin</h1>
-        <p class="lead">Accepts School Heads, validates MOV files, and records Functional or Not Yet Functional for SDO Cadiz City.</p>
+        <p class="lead">Accepts School Heads, validates MOV files, records Functional or Not Yet Functional, and uses AI-supported TA for School Governance Improvement Plans and coaching.</p>
         <p>SDO Cadiz City SGC focal or validator. Created by Super Admin. Does not register on the public Register page.</p>
         <div class="split">
-            <div><h2>This role can</h2><ul><li>Accept pending School Head registrations.</li><li>See schools that belong to this division.</li><li>Review submitted packets, download MOVs, Accept or Return a file with a reason.</li><li>Complete review so the school result is posted.</li></ul></div>
+            <div><h2>This role can</h2><ul><li>Accept pending School Head registrations.</li><li>See schools that belong to this division.</li><li>Review submitted packets, download MOVs, Accept or Return a file with a reason.</li><li>Complete review so the school result is posted.</li><li>Use Technical assistance for AI-supported TA priority schools, then open each school dossier for full recommendations.</li><li>Generate a School Governance Improvement Plan and schedule coaching that notifies the School Head.</li></ul></div>
             <div><h2>This role cannot</h2><ul><li>Create Super Admin or another Division Admin.</li><li>Accept Encoders. That is the School Head.</li><li>Encode a school packet or certify School Head QA.</li></ul></div>
         </div>
         <h2>Screens</h2>
         
         <article class="screen">
             <h3>Overview <code>/division</code></h3>
-            <p>Live submission and validation counts.</p>
+            <p>Live submission counts plus a TA preview.</p>
             <figure class="shot"><img src="division-overview.png" alt="Overview"><figcaption>Overview</figcaption></figure>
         </article>
         <article class="screen">
@@ -237,8 +239,18 @@
             <figure class="shot"><img src="division-queue.png" alt="Validation queue"><figcaption>Validation queue</figcaption></figure>
         </article>
         <article class="screen">
+            <h3>Technical assistance <code>/division/ta</code></h3>
+            <p>AI-supported TA priority list, SGIP generation, and coaching schedule.</p>
+            <figure class="shot"><img src="division-ta.png" alt="Technical assistance"><figcaption>Technical assistance</figcaption></figure>
+        </article>
+        <article class="screen">
+            <h3>School dossier <code>/division/schools/{code}</code></h3>
+            <p>Full TA recommendations, SGIP, and coaching for one school.</p>
+            <figure class="shot"><img src="division-school.png" alt="School dossier"><figcaption>School dossier</figcaption></figure>
+        </article>
+        <article class="screen">
             <h3>Schools <code>/division/schools</code></h3>
-            <p>Accepted schools and packet status.</p>
+            <p>Accepted schools, packet status, and TA priority.</p>
             <figure class="shot"><img src="division-schools.png" alt="Schools"><figcaption>Schools</figcaption></figure>
         </article>
         <article class="screen">
@@ -339,22 +351,32 @@
                 <figure class="shot"><img src="division-alerts.png" alt="Watch returned packets come back"><figcaption>Watch returned packets come back</figcaption></figure>
             </div>
         </article>
+        <article class="step">
+            <div class="n">9</div>
+            <div>
+                <h3>Use Technical assistance</h3>
+                <p>Open Technical assistance in the side nav. Filter by priority, generate a School Governance Improvement Plan, then schedule coaching so the school is notified. Open a school dossier for the full recommendations on unmet FIs, maturity gaps, and returned MOVs.</p>
+                <p><strong>Click:</strong> Generate School Governance Improvement Plan, then Schedule coaching</p>
+                <p><strong>Page:</strong> <code>/division/ta</code></p>
+                <figure class="shot"><img src="division-ta.png" alt="Use Technical assistance"><figcaption>Use Technical assistance</figcaption></figure>
+            </div>
+        </article>
         <h2>Notes</h2>
-        <ul><li>Division accepts School Heads only. Encoder accept lives under the School Head Encoders page.</li><li>Do not ask a school to rebuild the whole packet for one invalid MOV.</li></ul>
+        <ul><li>Division accepts School Heads only. Encoder accept lives under the School Head Encoders page.</li><li>Do not ask a school to rebuild the whole packet for one invalid MOV.</li><li>TA recommendations and the School Governance Improvement Plan are grounded in the school’s FAT answers and maturity checks. They do not encode Yes/No for the school.</li><li>Schedule coaching from Technical assistance. The School Head sees a dashboard banner and can hover the bell for the date and time.</li></ul>
     </section>
     <section class="role" id="school_head">
         <h1>3. School Head</h1>
         <p class="lead">Owns the school identity, accepts teachers, certifies QA, submits to Division, and can remove or withdraw unapproved files.</p>
         <p>Principal, Head Teacher, Teacher-in-Charge, or Officer-in-Charge. Registers with a unique school name and School ID.</p>
         <div class="split">
-            <div><h2>This role can</h2><ul><li>Register as School Head and wait for Division accept.</li><li>Accept Encoder (teacher) registrations for the same School ID.</li><li>Encode indicators and upload MOVs, or let the Encoder do that work.</li><li>Remove an unapproved MOV, certify School Head QA, submit, and withdraw if Division has not accepted any file yet.</li></ul></div>
+            <div><h2>This role can</h2><ul><li>Register as School Head and wait for Division accept.</li><li>Accept Encoder (teacher) registrations for the same School ID.</li><li>Encode indicators and upload MOVs, or let the Encoder do that work.</li><li>Remove an unapproved MOV, certify School Head QA, submit, and withdraw if Division has not accepted any file yet.</li><li>Read the Division-issued School Governance Improvement Plan and attend scheduled coaching.</li></ul></div>
             <div><h2>This role cannot</h2><ul><li>Create Division Admin.</li><li>Accept another School Head.</li><li>Register a second Head with the same school name or School ID.</li><li>Remove a MOV that Division already marked valid.</li></ul></div>
         </div>
         <h2>Screens</h2>
         
         <article class="screen">
             <h3>Dashboard <code>/school</code></h3>
-            <p>Packet progress and 6-step FAT path.</p>
+            <p>Packet progress, maturity path, and Division coaching banner.</p>
             <figure class="shot"><img src="head-dashboard.png" alt="Dashboard"><figcaption>Dashboard</figcaption></figure>
         </article>
         <article class="screen">
@@ -378,8 +400,13 @@
             <figure class="shot"><img src="head-encoders.png" alt="Encoders"><figcaption>Encoders</figcaption></figure>
         </article>
         <article class="screen">
+            <h3>Improvement plan <code>/school/improvement-plan</code></h3>
+            <p>Read the Division-issued SGIP and scheduled coaching.</p>
+            <figure class="shot"><img src="head-improvement-plan.png" alt="Improvement plan"><figcaption>Improvement plan</figcaption></figure>
+        </article>
+        <article class="screen">
             <h3>Notifications <code>/school/notifications</code></h3>
-            <p>Encoder requests and Division returns.</p>
+            <p>Encoder requests, Division returns, and coaching notices.</p>
             <figure class="shot"><img src="head-notifications.png" alt="Notifications"><figcaption>Notifications</figcaption></figure>
         </article>
         <h2>Walkthrough</h2>
@@ -475,22 +502,32 @@
                 
             </div>
         </article>
+        <article class="step">
+            <div class="n">10</div>
+            <div>
+                <h3>Read coaching and the improvement plan</h3>
+                <p>When Division schedules coaching, a coral “Division coaching scheduled” banner appears on the dashboard. Hover the bell to see Upcoming coaching with date, time, and venue. Open Notifications for the in-app notice, then open Improvement plan to read the School Governance Improvement Plan.</p>
+                <p><strong>Click:</strong> Open improvement plan</p>
+                <p><strong>Page:</strong> <code>/school/improvement-plan</code></p>
+                <figure class="shot"><img src="head-improvement-plan.png" alt="Read coaching and the improvement plan"><figcaption>Read coaching and the improvement plan</figcaption></figure>
+            </div>
+        </article>
         <h2>Notes</h2>
-        <ul><li>School name and School ID must be unique among School Heads.</li><li>Encoder and Head share one packet through the same School ID.</li></ul>
+        <ul><li>School name and School ID must be unique among School Heads.</li><li>Encoder and Head share one packet through the same School ID.</li><li>Hover the notification bell to preview the coaching schedule without opening the list. The dashboard banner also links to Improvement plan.</li></ul>
     </section>
     <section class="role" id="school">
         <h1>4. Encoder</h1>
         <p class="lead">Teacher who encodes Yes / No, uploads MOVs, and requests removal of a wrong file. Cannot submit to Division.</p>
         <p>Teacher, SGC coordinator, or other school staff on the Encoder position list. Registers only after an active School Head exists for that School ID.</p>
         <div class="split">
-            <div><h2>This role can</h2><ul><li>Register as Encoder using the Head’s school name and School ID.</li><li>Encode Yes / No on My assessment.</li><li>Upload Minimum MOVs and the Validity Form.</li><li>Request removal of an unapproved file so the School Head can delete it.</li><li>Replace a MOV that Division returned.</li></ul></div>
+            <div><h2>This role can</h2><ul><li>Register as Encoder using the Head’s school name and School ID.</li><li>Encode Yes / No on My assessment.</li><li>Upload Minimum MOVs and the Validity Form.</li><li>Request removal of an unapproved file so the School Head can delete it.</li><li>Replace a MOV that Division returned.</li><li>Read the Division-issued School Governance Improvement Plan and coaching details (same page as the School Head).</li></ul></div>
             <div><h2>This role cannot</h2><ul><li>Register before the School Head is active for that School ID.</li><li>Use a different school name from the Head.</li><li>Certify School Head QA, submit, or withdraw the packet.</li><li>Remove a file directly. Request removal instead.</li></ul></div>
         </div>
         <h2>Screens</h2>
         
         <article class="screen">
             <h3>Dashboard <code>/school</code></h3>
-            <p>See packet progress. Submit stays locked for Encoder.</p>
+            <p>See packet progress and any Division coaching banner. Submit stays locked for Encoder.</p>
             <figure class="shot"><img src="encoder-dashboard.png" alt="Dashboard"><figcaption>Dashboard</figcaption></figure>
         </article>
         <article class="screen">
@@ -509,8 +546,13 @@
             <figure class="shot"><img src="encoder-submit.png" alt="Submit"><figcaption>Submit</figcaption></figure>
         </article>
         <article class="screen">
+            <h3>Improvement plan <code>/school/improvement-plan</code></h3>
+            <p>Read the Division-issued SGIP and scheduled coaching.</p>
+            <figure class="shot"><img src="encoder-improvement-plan.png" alt="Improvement plan"><figcaption>Improvement plan</figcaption></figure>
+        </article>
+        <article class="screen">
             <h3>Notifications <code>/school/notifications</code></h3>
-            <p>Accept notice, returned MOV, and Head actions.</p>
+            <p>Accept notice, returned MOV, Head actions, and coaching.</p>
             <figure class="shot"><img src="encoder-notifications.png" alt="Notifications"><figcaption>Notifications</figcaption></figure>
         </article>
         <h2>Walkthrough</h2>
@@ -596,9 +638,32 @@
                 
             </div>
         </article>
+        <article class="step">
+            <div class="n">9</div>
+            <div>
+                <h3>Read the improvement plan</h3>
+                <p>Open Improvement plan to read the same School Governance Improvement Plan Division issued for your school. You cannot generate the plan or schedule coaching.</p>
+                <p><strong>Page:</strong> <code>/school/improvement-plan</code></p>
+                <figure class="shot"><img src="encoder-improvement-plan.png" alt="Read the improvement plan"><figcaption>Read the improvement plan</figcaption></figure>
+            </div>
+        </article>
         <h2>Notes</h2>
-        <ul><li>Position list changes with “I am registering as.” Encoder positions are teacher and SGC staff titles, not Principal titles.</li><li>One School ID = one packet. Do not invent a second school code for the same school.</li></ul>
+        <ul><li>Position list changes with “I am registering as.” Encoder positions are teacher and SGC staff titles, not Principal titles.</li><li>One School ID = one packet. Do not invent a second school code for the same school.</li><li>If Division scheduled coaching, the dashboard banner and bell tooltip also appear for Encoder. Only the School Head receives the email notice.</li></ul>
     </section>
+
+  <section class="role" id="sgip">
+    <h1>School Governance Improvement Plan and coaching</h1>
+    <p>After FAT encoding starts, Division Admin uses Technical assistance to rank schools, generate a School Governance Improvement Plan, and schedule coaching. The plan is grounded in Yes/No answers, maturity checks, and returned MOVs. It does not encode indicators for the school.</p>
+    <ol>
+      <li>Division opens Technical assistance and filters by priority.</li>
+      <li>Division generates or refreshes the School Governance Improvement Plan, then may schedule coaching (date, time, on-site or online, venue, focus).</li>
+      <li>The School Head receives an in-app notice and email. The dashboard shows a “Division coaching scheduled” banner. Hover the bell for Upcoming coaching.</li>
+      <li>School Head and Encoder open Improvement plan to read the issued SGIP. They cannot generate the plan.</li>
+    </ol>
+    <figure class="shot"><img src="division-ta.png" alt="Division Technical assistance — generate SGIP and schedule coaching"><figcaption>Division Technical assistance — generate SGIP and schedule coaching</figcaption></figure>
+    <figure class="shot"><img src="head-dashboard.png" alt="School Head dashboard — coaching banner and bell"><figcaption>School Head dashboard — coaching banner and bell</figcaption></figure>
+    <figure class="shot"><img src="head-improvement-plan.png" alt="School Improvement plan — issued SGIP and upcoming coaching"><figcaption>School Improvement plan — issued SGIP and upcoming coaching</figcaption></figure>
+  </section>
 
   <section class="role" id="return">
     <h1>Returned or invalid MOV</h1>
